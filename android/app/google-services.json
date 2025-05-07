@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "452642457267",
+    "project_id": "pemesanan-c54b8",
+    "storage_bucket": "pemesanan-c54b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452642457267:android:5c87f3ee72d736c41812c6",
+        "android_client_info": {
+          "package_name": "com.company.pemesanan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9LsQii46InqgIDTOVb8-UnGF6kJZ9UPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452642457267:android:95787b7a585978d01812c6",
+        "android_client_info": {
+          "package_name": "com.example.pemesanan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9LsQii46InqgIDTOVb8-UnGF6kJZ9UPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
