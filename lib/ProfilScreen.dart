@@ -222,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await FirebaseAuth.instance.signOut();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => SignUpScreen()),
+                  MaterialPageRoute(builder: (context) => SplashScreen()),
                 );
               },
               style: ElevatedButton.styleFrom(

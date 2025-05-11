@@ -3,12 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pemesanan/KeranjangScreen.dart'; // Untuk mengambil ID pengguna yang login
 
-class MarketScreen extends StatefulWidget {
+class NonHalalScreen extends StatefulWidget {
   @override
-  _MarketScreenState createState() => _MarketScreenState();
+  _NonHalalScreenState createState() => _NonHalalScreenState();
 }
 
-class _MarketScreenState extends State<MarketScreen> {
+class _NonHalalScreenState extends State<NonHalalScreen> {
   List<Map<String, dynamic>> products = [
     {"name": "Onion Rings 90g", "price": 20000},
     {"name": "Choco Free Time Bar 36g", "price": 30000},

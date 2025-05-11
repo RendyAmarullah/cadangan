@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pemesanan/MarketScreen.dart'; // Import the MarketScreen
+import 'package:pemesanan/BunsikScreen.dart';
+import 'package:pemesanan/KeranjangScreen.dart';
+import 'package:pemesanan/MarketScreen.dart';
+import 'package:pemesanan/MinumanScreen.dart';
+import 'package:pemesanan/NonHalalScreen.dart'; // Import the MarketScreen
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -17,6 +21,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProfileData();
   }
 
+List<Map<String, dynamic>> cartItems = [];
+  Future<void> _saveCartItems() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    CollectionReference cartCollection = FirebaseFirestore.instance.collection('carts');
+
+    // Menyimpan data keranjang ke Firestore, ID pengguna sebagai dokumen
+    await cartCollection.doc(userId).set({
+      'cartItems': cartItems,  // Menyimpan data keranjang dalam dokumen
+      'updatedAt': FieldValue.serverTimestamp(),  // Timestamp saat diperbarui
+    });
+
+    print('Data keranjang berhasil disimpan ke Firestore');
+  }
   Future<void> _loadProfileData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -73,10 +90,15 @@ class _HomeScreenState extends State<HomeScreen> {
               // ikon keranjang
               IconButton(
                 icon: Icon(Icons.shopping_cart, color: Colors.black),
-                onPressed: () {
-                  // Navigate to the MarketScreen when the cart button is pressed
-                  
-                },
+                 onPressed: () {
+          // Navigasi ke halaman keranjang
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => KeranjangScreen(cartItems: cartItems),
+            ),
+          );
+        },
               ),
             ],
           ),
@@ -99,12 +121,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 }),
                 _buildIconButton(Icons.local_drink, 'Drink', () {
                   // Handle "Drink" button tap
+                   Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MinumanScreen()),
+                  );
                 }),
                 _buildIconButton(Icons.ramen_dining, 'Soup', () {
                   // Handle "Soup" button tap
+                   Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => BunsikScreen()),
+                  );
                 }),
-                _buildIconButton(Icons.local_offer, 'Discount', () {
+                _buildIconButton(Icons.plagiarism, 'Non-halal', () {
                   // Handle "Discount" button tap
+                   Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NonHalalScreen()),
+                  );
                 }),
               ],
             ),
