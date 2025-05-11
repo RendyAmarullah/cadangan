@@ -10,12 +10,12 @@ import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/AkunScreen.dart';  // Import AkunScreen
 import 'package:pemesanan/SplahScreen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class AkunScreen extends StatefulWidget {
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  _AkunScreenState createState() => _AkunScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _AkunScreenState extends State<AkunScreen> {
   late Client _client;
   late Storage _storage;
   late Account _account;
@@ -23,9 +23,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   String? _profileImageUrl;
   String? _userName;
+  String? _email;
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String collectionId = '681aa352000e7e9b76b5';
   final String projectId = '681aa0b70002469fc157';
+
+  TextEditingController _nameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
+
+  bool _isEditing = false;  // Toggle for edit mode
 
   @override
   void initState() {
@@ -120,7 +126,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final data = documentSnapshot.data() as Map<String, dynamic>;
           setState(() {
             _userName = data['name'];
+            _email = data['email'];
           });
+          _nameController.text = _userName ?? '';
+          _emailController.text = _email ?? '';
         }
 
         final document = await _databases.getDocument(
@@ -142,6 +151,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _updateProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        // Update Firebase Auth data (name, email)
+        await user.updateDisplayName(_nameController.text);
+        await user.updateEmail(_emailController.text);
+
+        // Update Firestore data
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'name': _nameController.text,
+          'email': _emailController.text,
+        });
+
+        // Optionally, update Appwrite data as well
+        await _databases.updateDocument(
+          databaseId: databaseId,
+          collectionId: collectionId,
+          documentId: user.uid,
+          data: {
+            'name': _nameController.text,
+            'email': _emailController.text,
+          },
+        );
+
+        setState(() {
+          _isEditing = false;  // Exit editing mode
+        });
+      } catch (e) {
+        print('Error updating profile: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
@@ -152,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text('Akun', style: TextStyle(color: Colors.white)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -168,81 +211,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             SizedBox(height: 10),
-            Center(
-                    child: Text(
-                      _userName ?? '${user?.displayName ?? 'Guest'}',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            _isEditing
+                ? Column(
+                    children: [
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(labelText: 'Name'),
+                      ),
+                      TextField(
+                        controller: _emailController,
+                        decoration: InputDecoration(labelText: 'Email'),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _updateProfile,
+                        child: Text('Save Changes'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                      ),
+                    ],
+                  )
+                : Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Nama',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                          ),
+                        ),
+                        _buildMenuItem( _userName ?? '${user?.displayName ?? 'Guest'}'),
+                         Divider(color: Colors.black ,  indent: 15,
+                        endIndent: 15,) ,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Email',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                          ),
+                        ),
+                        _buildMenuItem(_email ?? '${user?.email ?? 'Guest'}'),
+                         Divider(color: Colors.black,  indent: 15,endIndent: 15,),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Jenis Kelamin',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                          ),
+                        ),
+                        _buildMenuItem('Jenis Kelamin disini'),
+                        Divider(color: Colors.black,  indent: 15,endIndent: 15,),
+                        SizedBox(height: 40),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _isEditing = true;
+                            });
+                          },
+                          child: Text('Edit Profile'),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                        ),
+                      ],
                     ),
-                  ),
-            Container(
-              padding: const EdgeInsets.all(4.0),
-              decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.black, 
-                width: 2.0,  
-              ),
-              borderRadius: BorderRadius.circular(20), 
-            ),
-              child: Column(
-                children: [
-                  
-                  SizedBox(height: 10),
-                  _buildMenuItem('Alamat Tersimpan'),
-                   Divider(color: Colors.black ,  indent: 15, endIndent: 15,) ,
-                  _buildMenuItem('Akun Saya', onTap: () {
-                    
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AkunScreen()), 
-                    );
-                  }),
-                  Divider(color: Colors.black ,  indent: 15, endIndent: 15,) ,
-                  _buildMenuItem('Favorit'),
-                  Divider(color: Colors.black ,  indent: 15, endIndent: 15,) ,
-                  
-                ],
-              ),
-            ),
-            SizedBox(height: 10),
-                  Text(
-                    'Butuh Bantuan?',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-            SizedBox(height: 10),
-            ListTile(
-              leading: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
-              title: Text('For Customer Service (chat only)'),
-              subtitle: Text('0831 - 8274 - 2991'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {},
-            ),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => SignUpScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: StadiumBorder(),
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-              ),
-              child: Text("KELUAR", style: TextStyle(color: Colors.white)),
-            ),
+                ),
+            SizedBox(height: 20),
+            
           ],
         ),
       ),
     );
   }
-
-  Widget _buildMenuItem(String title, {Function()? onTap}) {
+}
+Widget _buildMenuItem(String title, {Function()? onTap}) {
     return ListTile(
       title: Text(title),
       trailing: Icon(Icons.arrow_forward_ios),
       onTap: onTap,
     );
   }
-}
+
