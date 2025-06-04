@@ -6,6 +6,9 @@ import 'package:pemesanan/KeranjangScreen.dart';
 import 'package:pemesanan/MarketScreen.dart';
 import 'package:pemesanan/MinumanScreen.dart';
 import 'package:pemesanan/NonHalalScreen.dart'; // Import the MarketScreen
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart';
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -13,11 +16,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+ Account? account;
+  Client client = Client();
   String? _userName;
-  String? _Email;
+  String? _email;
+
   @override
   void initState() {
     super.initState();
+    // Inisialisasi Appwrite Client
+    client
+        .setEndpoint('https://cloud.appwrite.io/v1') // Ganti dengan endpointmu
+        .setProject('681aa0b70002469fc157'); // Ganti dengan project ID-mu
+
+    account = Account(client);
+
     _loadProfileData();
   }
 
@@ -35,37 +48,21 @@ List<Map<String, dynamic>> cartItems = [];
     print('Data keranjang berhasil disimpan ke Firestore');
   }
   Future<void> _loadProfileData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        // Fetch the user's data from Firestore using the UID
-        final documentSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        if (documentSnapshot.exists) {
-          // Assuming that the data is stored with 'email', 'name', 'password' fields
-          final data = documentSnapshot.data() as Map<String, dynamic>;
-
-          setState(() {
-            _userName = data['name']; // Set the name
-            _Email = data['email'];
-            // Set the email
-            // _password = data['password']; // We don't usually display passwords for security reasons
-          });
-        } else {
-          print("No data found for this user.");
-        }
-      } catch (e) {
-        print('Error loading user data: $e');
-      }
+    try {
+      final user = await account!.get();
+      setState(() {
+        _userName = user.name ?? 'No name';
+        _email = user.email;
+      });
+      print('User loaded: ${user.name} - ${user.email}');
+    } catch (e) {
+      print('Failed to load user profile: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final User? user = FirebaseAuth.instance.currentUser;
+    
 
     return Scaffold(
       appBar: PreferredSize(
@@ -79,7 +76,7 @@ List<Map<String, dynamic>> cartItems = [];
               Image.asset('images/logohome.jpg', width: 50), // logo
               SizedBox(width: 8),
               Text(
-                'Selamat datang, ${_userName ?? user?.displayName ?? 'Guest'}', // Display user's name or 'Guest' if not available
+                'Selamat datang, ${_userName ?? 'Guest'}', // Display user's name or 'Guest' if not available
                 style: TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,

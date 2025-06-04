@@ -7,16 +7,20 @@ import 'package:pemesanan/SplahScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:appwrite/appwrite.dart';
+import 'appwrite_service.dart';
 
+
+// GLOBAL INSTANCE
+Client client = Client()
+  ..setEndpoint('https://fra.cloud.appwrite.io/v1')
+  ..setProject('681a925f0002c1ab6d72')
+  ..setSelfSigned(status: true);
+
+Account account = Account(client);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(MyApp());
-  Client client = Client();
-client
-    .setEndpoint('https://fra.cloud.appwrite.io/v1')
-    .setProject('681a925f0002c1ab6d72')
-    .setSelfSigned(status: true); // For self signed certificates, only use for development;
 }
 
 class MyApp extends StatelessWidget {
@@ -35,23 +39,49 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
+  @override
+  _AuthWrapperState createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAppwriteSession();
+  }
+
+  Future<void> _checkAppwriteSession() async {
+    try {
+      final session = await account.getSession(sessionId: 'current');
+      setState(() {
+        _isLoggedIn = true;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoggedIn = false;
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (snapshot.hasData) {
-          return MainScreen(); // User is logged in, show main screen with bottom navigation
-        } else {
-          return SplashScreen(); // User is not logged in, show splash screen
-        }
-      },
-    );
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_isLoggedIn) {
+      return MainScreen(); // User is logged in
+    } else {
+      return SplashScreen(); // User not logged in
+    }
   }
 }
 

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pemesanan/KeranjangScreen.dart'; // Untuk mengambil ID pengguna yang login
-
+import 'package:pemesanan/KeranjangScreen.dart';
 class BunsikScreen extends StatefulWidget {
   @override
   _BunsikScreenState createState() => _BunsikScreenState();
@@ -18,29 +17,29 @@ class _BunsikScreenState extends State<BunsikScreen> {
     {"name": "Chocochip Cookie 104g", "price": 21000},
   ];
 
-  List<Map<String, dynamic>> cartItems = [];  // Daftar produk yang ada di keranjang
+  List<Map<String, dynamic>> cartItems = [];
 
-  // Fungsi untuk mengambil ID pengguna dari Firebase Authentication
+  
   String get userId {
     User? user = FirebaseAuth.instance.currentUser;
-    return user != null ? user.uid : ''; // Mengembalikan ID pengguna jika ada
+    return user != null ? user.uid : '';
   }
 
-  // Fungsi untuk menyimpan data keranjang ke Firestore berdasarkan ID pengguna
+ 
   Future<void> _simpanKeKeranjang() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
     CollectionReference cartCollection = FirebaseFirestore.instance.collection('carts');
 
-    // Menyimpan data keranjang ke Firestore, ID pengguna sebagai dokumen
+    
     await cartCollection.doc(userId).set({
-      'cartItems': cartItems,  // Menyimpan data keranjang dalam dokumen
-      'updatedAt': FieldValue.serverTimestamp(),  // Timestamp saat diperbarui
+      'cartItems': cartItems, 
+      'updatedAt': FieldValue.serverTimestamp(),
     });
 
     print('Data keranjang berhasil disimpan ke Firestore');
   }
 
-  // Fungsi untuk mengambil data keranjang dari Firestore berdasarkan ID pengguna
+  
   Future<void> _ambilDataKeranjang() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
     DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('carts').doc(userId).get();
@@ -53,25 +52,25 @@ class _BunsikScreenState extends State<BunsikScreen> {
   }
 
   
-  // Menambahkan produk ke dalam keranjang
+ 
 void tambahKeranjang(Map<String, dynamic> product) {
-  // Cek apakah produk sudah ada di keranjang berdasarkan nama produk
+ 
   int index = cartItems.indexWhere((item) => item['name'] == product['name']);
 
   if (index != -1) {
-    // Jika produk sudah ada, tambahkan quantity-nya
+  
     setState(() {
       cartItems[index]['quantity'] += 1;
     });
   } else {
-    // Jika produk belum ada, tambahkan produk baru ke keranjang
+   
     setState(() {
-      product['quantity'] = 1;  // Set quantity awal ke 1
+      product['quantity'] = 1;
       cartItems.add(product);
     });
   }
 
-  _simpanKeKeranjang();  // Menyimpan keranjang yang diperbarui ke Firestore
+  _simpanKeKeranjang();
 }
 
 

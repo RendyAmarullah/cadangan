@@ -1,11 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/homescreen.dart';
-import 'package:pemesanan/main.dart';
-
+import 'appwrite_service.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -18,16 +16,32 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<Offset> _animation;
   bool _showImage = false;
   bool _showForm = false;
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
-  
+
+  // Appwrite client setup
+  final Client client = Client();
+  late Account account;
+  late Databases database;
+
+  final String projectId = '681aa0b70002469fc157';
+  final String endpoint = 'https://cloud.appwrite.io/v1';
+  final String databaseId = '681aa33a0023a8c7eb1f';
+  final String collectionId = '684083800031dfaaecad'; // ganti sesuai
+
   @override
   void initState() {
     super.initState();
 
-    // Delay before logo animation
+    // Setup Appwrite client
+    client
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+    account = Account(client);
+    database = Databases(client);
+
     Future.delayed(Duration(seconds: 2), () {
       setState(() {
         _showImage = true;
@@ -58,25 +72,33 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  // Function to handle login
-  void _login() async {
-    try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+ void _login() async {
+  try {
+    // Logout dulu sesi yang sedang aktif (jika ada)
+    await AppwriteService.account.deleteSession(sessionId: 'current');
 
-      // If login is successful, navigate to the main screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()), // Navigate to Home Screen
-      );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.message}')),
-      );
-    }
+    // Buat session baru (login)
+    await AppwriteService.account.createEmailPasswordSession(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    final user = await AppwriteService.account.get();
+
+    print("Login berhasil: ${user.email}");
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomeScreen()),
+    );
+  } on AppwriteException catch (e) {
+    print("Login error: ${e.message}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Login gagal: ${e.message}')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +120,6 @@ class _SplashScreenState extends State<SplashScreen>
                     )
                   : Image(image: AssetImage("images/logo.PNG")),
             ),
-            // Form from the bottom
             if (_showForm)
               AnimatedPositioned(
                 duration: Duration(milliseconds: 1000),
@@ -108,9 +129,8 @@ class _SplashScreenState extends State<SplashScreen>
                 right: 0,
                 height: 350,
                 child: Container(
-                  height: 450,
                   decoration: const BoxDecoration(
-                    color: Color.fromRGBO(254, 254, 254, 0.843), // Light green
+                    color: Color.fromRGBO(254, 254, 254, 0.843),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
                   ),
                   padding: EdgeInsets.all(24),
@@ -123,109 +143,58 @@ class _SplashScreenState extends State<SplashScreen>
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black,
                           ),
                         ),
                       ),
                       SizedBox(height: 15),
                       TextFormField(
                         controller: _emailController,
-                        decoration: InputDecoration(
-                          hintText: "Email",
-                          hintStyle: TextStyle(color: Colors.black),
-                          filled: true,
-                          fillColor: Colors.grey,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                        decoration: _inputDecoration("Email"),
                       ),
                       SizedBox(height: 15),
                       TextFormField(
                         obscureText: true,
                         controller: _passwordController,
-                        decoration: InputDecoration(
-                          hintText: "Password",
-                          hintStyle: TextStyle(color: Colors.black),
-                          filled: true,
-                          fillColor: Colors.grey,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                        decoration: _inputDecoration("Password"),
                       ),
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            // Action for forgot password
-                          },
-                          child: Text(
-                            "Lupa Password",
-                            style: TextStyle(color: Colors.black),
-                          ),
+                          onPressed: () {},
+                          child: Text("Lupa Password", style: TextStyle(color: Colors.black)),
                         ),
                       ),
-                      SizedBox(height: 0),
+                      SizedBox(height: 10),
                       Center(
                         child: ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      final userCredential = await _auth.signInWithEmailAndPassword(
-                        email: _emailController.text,
-                        password: _passwordController.text,
-                      );
-                  //     if (userCredential.user != null) {
-                  //   final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
-                  //   final role = userDoc['role'];
-                  //   if (role == 'admin') {
-                  //     Navigator.pushReplacement(
-                  //       context,
-                  //       MaterialPageRoute(builder: (context) => MainScreen()),
-                  //     );
-                  //   } else {
-                  //     Navigator.pushReplacement(
-                  //       context,
-                  //       MaterialPageRoute(builder: (context) => MainScreen()),
-                  //     );
-                  //   }
-                  // };
-                    } catch (error) {
-                      print(error.toString());  
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
-                  shape: StadiumBorder(),
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  ),
-                  child: Text("LOGIN", style: TextStyle(color: Colors.white),),
-                  // child: const Text('Sign In'),
-                  // style: ButtonStyle(
-                  //     shape: MaterialStateProperty.all(RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.zero))),
-                ),
+                      onPressed: () async {
+                        try {
+                          // Ganti dengan email & password yang diambil dari controller kamu
+                          final session = await account.createEmailPasswordSession(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text.trim(),
+                          );
 
-                        
-                        // child: ElevatedButton(
-                        //   onPressed: () {
-                        //     Navigator.push(
-                        //       context,
-                        //       MaterialPageRoute(builder: (context) => MainScreen()),
-                        //     );
-                        //   }, // Trigger the login action
-                        //   style: ElevatedButton.styleFrom(
-                        //     backgroundColor: Colors.blue,
-                        //     shape: StadiumBorder(),
-                        //     padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                        //   ),
-                        //   child: Text("LOGIN", style: TextStyle(color: Colors.white)),
-                        // ),
+                          // Jika login berhasil, navigasi ke MainScreen
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => HomeScreen()),
+                          );
+                        } on AppwriteException catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login gagal: ${e.message}')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: StadiumBorder(),
+                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                       ),
-                      SizedBox(height: 1),
+                      child: Text("LOGIN", style: TextStyle(color: Colors.white)),
+),
+                      ),
                       Center(
                         child: TextButton(
                           onPressed: () {
@@ -234,10 +203,7 @@ class _SplashScreenState extends State<SplashScreen>
                               MaterialPageRoute(builder: (context) => SignUpScreen()),
                             );
                           },
-                          child: Text(
-                            "Sign up",
-                            style: TextStyle(color: Colors.black),
-                          ),
+                          child: Text("Sign up", style: TextStyle(color: Colors.black)),
                         ),
                       ),
                     ],
@@ -246,6 +212,20 @@ class _SplashScreenState extends State<SplashScreen>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.black),
+      filled: true,
+      fillColor: Colors.grey[300],
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide.none,
       ),
     );
   }
