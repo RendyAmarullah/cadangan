@@ -92,7 +92,7 @@ List<Map<String, dynamic>> cartItems = [];
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => KeranjangScreen(cartItems: cartItems),
+              builder: (context) => KeranjangScreen(),
             ),
           );
         },

@@ -1,104 +1,144 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart' as models;
 
 class KeranjangScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> cartItems;
-
-  KeranjangScreen({required this.cartItems});
-
   @override
   _KeranjangScreenState createState() => _KeranjangScreenState();
 }
 
 class _KeranjangScreenState extends State<KeranjangScreen> {
+  final Client _client = Client();
+  late Databases _databases;
+  late Account _account;
+
+  final String projectId = '681aa0b70002469fc157'; // Ganti dengan Project ID Anda
+  final String databaseId = '681aa33a0023a8c7eb1f'; // Ganti dengan Database ID Anda
+  final String cartsCollectionId = '68407db7002d8716c9d0'; // Ganti dengan Collection ID untuk keranjang
+  final String bucketId = '681aa16f003054da8969'; // Ganti dengan Bucket ID Anda
+
+  String userId = '';
   List<Map<String, dynamic>> cartItems = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCartItems();
+    _initAppwrite();
   }
 
-  // Fungsi untuk mengambil data keranjang dari Firestore
-  Future<void> _loadCartItems() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('carts').doc(userId).get();
+  void _initAppwrite() async {
+    _client
+        .setEndpoint('https://fra.cloud.appwrite.io/v1') // Ganti dengan endpoint Appwrite Anda
+        .setProject(projectId)
+        .setSelfSigned(status: true);
 
-    if (snapshot.exists) {
+    _databases = Databases(_client);
+    _account = Account(_client);
+
+    await _getCurrentUser();
+    await _fetchCartItems();
+  }
+
+  Future<void> _getCurrentUser() async {
+    try {
+      final models.User user = await _account.get();
       setState(() {
-        cartItems = List<Map<String, dynamic>>.from(snapshot['cartItems']);
+        userId = user.$id;
       });
+    } catch (e) {
+      print('Error getting user: $e');
     }
   }
 
-  // Fungsi untuk mendapatkan URL gambar dari Appwrite
+  Future<void> _fetchCartItems() async {
+    try {
+      final models.DocumentList result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+        ],
+      );
+
+      setState(() {
+        // Karena tiap produk di keranjang disimpan sebagai dokumen terpisah,
+        // map dokumen ke list data produk
+        cartItems = result.documents.map((doc) => doc.data).toList();
+      });
+    } catch (e) {
+      print('Error fetching cart: $e');
+    }
+  }
+
   String getImageUrl(String fileId) {
-    String appwriteEndpoint = 'https://fra.cloud.appwrite.io/v1';  // Replace with your Appwrite endpoint
-    String bucketId = '681aa16f003054da8969';  // Replace with your Appwrite bucket ID
+    String appwriteEndpoint = 'https://fra.cloud.appwrite.io/v1';
     return '$fileId';
   }
 
-  // Fungsi untuk memperbarui jumlah produk di Firestore
   Future<void> _updateCartItemQuantity(int index, int newQuantity) async {
     if (newQuantity < 1) {
-      // Tampilkan dialog konfirmasi sebelum menghapus item
-      _showDeleteConfirmationDialog(index);
-    } else {
-      setState(() {
-        cartItems[index]['quantity'] = newQuantity;
-      });
+      _deleteCartItem(index);
+      return;
+    }
 
-      String userId = FirebaseAuth.instance.currentUser!.uid;
-      try {
-        // Menyimpan perubahan jumlah produk ke Firestore
-        await FirebaseFirestore.instance.collection('carts').doc(userId).update({
-          'cartItems': cartItems,
+    try {
+      final docs = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+          Query.equal('productId', cartItems[index]['productId']),
+        ],
+      );
+
+      if (docs.documents.isNotEmpty) {
+        final docId = docs.documents.first.$id;
+
+        await _databases.updateDocument(
+          databaseId: databaseId,
+          collectionId: cartsCollectionId,
+          documentId: docId,
+          data: {
+            'quantity': newQuantity,
+          },
+        );
+
+        setState(() {
+          cartItems[index]['quantity'] = newQuantity;
         });
-        print('Data keranjang berhasil diperbarui');
-      } catch (e) {
-        print('Error updating cart: $e');
       }
+    } catch (e) {
+      print('Error updating cart item quantity: $e');
     }
   }
 
-  // Fungsi untuk menampilkan dialog konfirmasi penghapusan produk
-  void _showDeleteConfirmationDialog(int index) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Hapus Pesanan'),
-          content: Text('Apakah Anda yakin ingin menghapus pesanan ini dari keranjang?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Tidak'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  cartItems.removeAt(index);
-                });
-                String userId = FirebaseAuth.instance.currentUser!.uid;
-                try {
-                  FirebaseFirestore.instance.collection('carts').doc(userId).update({
-                    'cartItems': cartItems,
-                  });
-                  print('Barang berhasil dihapus dari keranjang');
-                } catch (e) {
-                  print('Error deleting item: $e');
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Ya'),
-            ),
-          ],
+  Future<void> _deleteCartItem(int index) async {
+    try {
+      final docs = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+          Query.equal('productId', cartItems[index]['productId']),
+        ],
+      );
+
+      if (docs.documents.isNotEmpty) {
+        final docId = docs.documents.first.$id;
+
+        await _databases.deleteDocument(
+          databaseId: databaseId,
+          collectionId: cartsCollectionId,
+          documentId: docId,
         );
-      },
-    );
+
+        setState(() {
+          cartItems.removeAt(index);
+        });
+      }
+    } catch (e) {
+      print('Error deleting cart item: $e');
+    }
   }
 
   @override
@@ -115,17 +155,13 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
               bottomRight: Radius.circular(20),
             ),
           ),
-          title: Row(
-            children: [
-              Text(
-                'Keranjang',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-            ],
+          title: Text(
+            'Keranjang',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -141,9 +177,10 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
               itemCount: cartItems.length,
               itemBuilder: (context, index) {
                 int quantity = cartItems[index]['quantity'] ?? 1;
-
-                // Get the image URL using the productImageUrl (fileId from Appwrite)
-                String imageUrl = getImageUrl(cartItems[index]['productImageUrl']);
+                String imageUrl = '';
+                if (cartItems[index].containsKey('productImageUrl')) {
+                  imageUrl = getImageUrl(cartItems[index]['productImageUrl']);
+                }
 
                 return Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -155,36 +192,34 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                         BoxShadow(
                           color: Colors.black26,
                           blurRadius: 5,
-                          offset: Offset(0, 3), // Shadow position
+                          offset: Offset(0, 3),
                         ),
                       ],
                     ),
                     child: Row(
                       children: [
-                        // Gambar produk
                         Container(
                           width: 80,
                           height: 80,
-                          color: Colors.grey[300], // Placeholder image
+                          color: Colors.grey[300],
                           child: imageUrl.isNotEmpty
-                              ? Image.network(imageUrl, fit: BoxFit.cover)  // Load the product image
-                              : Center(child: Icon(Icons.image, color: Colors.white)), // Placeholder if no image
+                              ? Image.network(imageUrl, fit: BoxFit.cover)
+                              : Center(child: Icon(Icons.image, color: Colors.white)),
                         ),
                         SizedBox(width: 16),
-                        // Deskripsi produk dan jumlah
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                cartItems[index]['name'],
+                                cartItems[index]['name'] ?? 'Produk',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
                               SizedBox(height: 4),
-                              Text('Rp ${cartItems[index]['price']}'),
+                              Text('Rp ${cartItems[index]['price'] ?? '-'}'),
                               SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
@@ -197,7 +232,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                       }
                                     },
                                   ),
-                                  Text(quantity.toString()), // Menampilkan jumlah produk
+                                  Text(quantity.toString()),
                                   IconButton(
                                     icon: Icon(Icons.add),
                                     onPressed: () {

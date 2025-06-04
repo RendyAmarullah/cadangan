@@ -1,3 +1,4 @@
+// Updated MarketScreen to open KeranjangScreen after saving cart
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
@@ -14,11 +15,11 @@ class _MarketScreenState extends State<MarketScreen> {
   late Databases _databases;
   late Account _account;
 
-  final String projectId = '681aa0b70002469fc157'; // Ganti dengan Project ID Anda
-  final String databaseId = '681aa33a0023a8c7eb1f'; // Ganti dengan Database ID Anda
-  final String productsCollectionId = '68407bab00235ecda20d'; // Ganti dengan Collection ID untuk produk
-  final String cartsCollectionId = '68407db7002d8716c9d0'; // Ganti dengan Collection ID untuk keranjang
-  final String bucketId = '681aa16f003054da8969'; // Ganti dengan Bucket ID Anda
+  final String projectId = '681aa0b70002469fc157';
+  final String databaseId = '681aa33a0023a8c7eb1f';
+  final String productsCollectionId = '68407bab00235ecda20d';
+  final String cartsCollectionId = '68407db7002d8716c9d0';
+  final String bucketId = '681aa16f003054da8969';
 
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> cartItems = [];
@@ -32,7 +33,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
   void _initializeAppwrite() async {
     _client
-        .setEndpoint('https://fra.cloud.appwrite.io/v1') // Ganti dengan endpoint Appwrite Anda
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(projectId)
         .setSelfSigned(status: true);
 
@@ -51,7 +52,7 @@ class _MarketScreenState extends State<MarketScreen> {
         userId = user.$id;
       });
     } catch (e) {
-      print('Error getting user: $e');
+      print('Error getting user: \$e');
     }
   }
 
@@ -66,7 +67,7 @@ class _MarketScreenState extends State<MarketScreen> {
         products = result.documents.map((doc) => doc.data).toList();
       });
     } catch (e) {
-      print('Error fetching products: $e');
+      print('Error fetching products: \$e');
     }
   }
 
@@ -90,66 +91,59 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
-  Future<void> _saveCart() async {
-    try {
-      final models.DocumentList result = await _databases.listDocuments(
+  
+
+  Future<void> tambahKeranjang(Map<String, dynamic> product) async {
+  try {
+    // Cek apakah produk ini sudah ada di keranjang (by userId & productId)
+    final existingItems = await _databases.listDocuments(
+      databaseId: databaseId,
+      collectionId: cartsCollectionId,
+      queries: [
+        Query.equal('userId', userId),
+        Query.equal('productId', product['\$id']),
+      ],
+    );
+
+    if (existingItems.documents.isNotEmpty) {
+      // Update quantity jika sudah ada
+      final docId = existingItems.documents.first.$id;
+      final currentQty = existingItems.documents.first.data['quantity'] ?? 1;
+
+      await _databases.updateDocument(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
+        documentId: docId,
+        data: {
+          'quantity': currentQty + 1,
+        },
       );
-
-      if (result.documents.isNotEmpty) {
-        // Update existing cart
-        await _databases.updateDocument(
-          databaseId: databaseId,
-          collectionId: cartsCollectionId,
-          documentId: result.documents.first.$id,
-          data: {
-            'cartItems': cartItems,
-            'updatedAt': DateTime.now().toIso8601String(),
-          },
-        );
-      } else {
-        // Create new cart
-        await _databases.createDocument(
-          databaseId: databaseId,
-          collectionId: cartsCollectionId,
-          documentId: ID.unique(),
-          data: {
-            'userId': userId,
-            'cartItems': cartItems,
-            'updatedAt': DateTime.now().toIso8601String(),
-          },
-        );
-      }
-    } catch (e) {
-      print('Error saving cart: $e');
-    }
-  }
-
-  void tambahKeranjang(Map<String, dynamic> product) {
-    int index = cartItems.indexWhere((item) => item['name'] == product['name']);
-
-    if (index != -1) {
-      setState(() {
-        cartItems[index]['quantity'] += 1;
-      });
     } else {
-      setState(() {
-        product['quantity'] = 1;
-        cartItems.add(product);
-      });
+      // Tambah item baru
+      await _databases.createDocument(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        documentId: ID.unique(),
+        data: {
+          'userId': userId,
+          'productId': product['\$id'],
+          'name': product['name'],
+          'price': product['price'],
+          'quantity': 1,
+          'productImageUrl': product['productImageUrl'],
+        },
+      );
     }
 
-    _saveCart();
+    print('Barang berhasil disimpan ke keranjang');
+  } catch (e) {
+    print('Error menyimpan ke keranjang: $e');
   }
+}
 
- String getImageUrl(String fileId) {
-    String appwriteEndpoint = 'https://fra.cloud.appwrite.io/v1';  // Replace with your Appwrite endpoint
-    String bucketId = '681aa16f003054da8969';  // Replace with your Appwrite bucket ID
-    return '$fileId';
+
+  String getImageUrl(String fileId) {
+    return fileId;
   }
 
   @override
@@ -218,7 +212,7 @@ class _MarketScreenState extends State<MarketScreen> {
                           child: ElevatedButton(
                             onPressed: () {
                               tambahKeranjang(products[index]);
-                              print('Added to cart: ${products[index]['name']}');
+                              
                             },
                             child: Text('Keranjang'),
                             style: ElevatedButton.styleFrom(

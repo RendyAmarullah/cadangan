@@ -8,7 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:appwrite/appwrite.dart';
 import 'appwrite_service.dart';
-
+import 'package:appwrite/models.dart' as models;
 
 // GLOBAL INSTANCE
 Client client = Client()
@@ -39,49 +39,42 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatefulWidget {
-  @override
-  _AuthWrapperState createState() => _AuthWrapperState();
-}
+class AuthWrapper extends StatelessWidget {
+  final Client client = Client()
+    ..setEndpoint('https://cloud.appwrite.io/v1') // Ganti dengan endpoint kamu
+    ..setProject('681aa0b70002469fc157'); // Ganti dengan project ID kamu
 
-class _AuthWrapperState extends State<AuthWrapper> {
-  bool _isLoading = true;
-  bool _isLoggedIn = false;
+  final Account account;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkAppwriteSession();
-  }
+  AuthWrapper() : account = Account(Client()
+    ..setEndpoint('https://cloud.appwrite.io/v1')
+    ..setProject('681aa0b70002469fc157'));
 
-  Future<void> _checkAppwriteSession() async {
+  Future<models.User?> _checkLoginStatus() async {
     try {
-      final session = await account.getSession(sessionId: 'current');
-      setState(() {
-        _isLoggedIn = true;
-        _isLoading = false;
-      });
+      final user = await account.get();
+      return user;
     } catch (e) {
-      setState(() {
-        _isLoggedIn = false;
-        _isLoading = false;
-      });
+      return null; // Tidak login
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_isLoggedIn) {
-      return MainScreen(); // User is logged in
-    } else {
-      return SplashScreen(); // User not logged in
-    }
+    return FutureBuilder<models.User?>(
+      future: _checkLoginStatus(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          return MainScreen(); // User sudah login
+        } else {
+          return SplashScreen(); // Belum login
+        }
+      },
+    );
   }
 }
 

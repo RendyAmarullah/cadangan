@@ -216,7 +216,7 @@ void tambahKeranjang(Map<String, dynamic> product) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => KeranjangScreen(cartItems: cartItems),
+              builder: (context) => KeranjangScreen(),
             ),
           );
         },
