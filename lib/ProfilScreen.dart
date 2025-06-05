@@ -48,7 +48,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -104,45 +105,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfileData() async {
-  final session = await _account.get();
-  final userId = session.$id;
+    final session = await _account.get();
+    final userId = session.$id;
 
-  try {
-    // Ambil data gambar profil dari Collection A
-    final profileDoc = await _databases.getDocument(
-      databaseId: databaseId,
-      collectionId: collectionId, // Collection A
-      documentId: userId,
-    );
+    try {
+      final profileDoc = await _databases.getDocument(
+        databaseId: databaseId,
+        collectionId: collectionId,
+        documentId: userId,
+      );
 
-    final profileImageId = profileDoc.data['profile_image'];
-    if (profileImageId != null) {
-      final fileViewUrl =
-          'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/$profileImageId/view?project=$projectId';
-      setState(() {
-        _profileImageUrl = fileViewUrl;
-      });
+      final profileImageId = profileDoc.data['profile_image'];
+      if (profileImageId != null) {
+        final fileViewUrl =
+            'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/$profileImageId/view?project=$projectId';
+        setState(() {
+          _profileImageUrl = fileViewUrl;
+        });
+      }
+
+      final userDetailDoc = await _databases.getDocument(
+        databaseId: databaseId,
+        collectionId: '684083800031dfaaecad',
+        documentId: userId,
+      );
+
+      final name = userDetailDoc.data['name'];
+      if (name != null) {
+        setState(() {
+          _userName = name;
+        });
+      }
+    } catch (e) {
+      print('Error loading profile data: $e');
     }
-
-    // Ambil username dari Collection B
-    final userDetailDoc = await _databases.getDocument(
-      databaseId: databaseId,
-      collectionId: '684083800031dfaaecad', // Ganti dengan ID koleksi username
-      documentId: userId,
-    );
-
-    final name = userDetailDoc.data['name'];
-    if (name != null) {
-      setState(() {
-        _userName = name;
-      });
-    }
-
-  } catch (e) {
-    print('Error loading profile data: $e');
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -152,95 +149,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         title: Text('Akun', style: TextStyle(color: Colors.white)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 60,
-                  child: _profileImageUrl != null
-                      ? CircleAvatar(radius: 60, backgroundImage: NetworkImage(_profileImageUrl!))
-                      : const CircleAvatar(radius: 60, child: Icon(Icons.person)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: CircleAvatar(
+                    radius: 60,
+                    child: _profileImageUrl != null
+                        ? CircleAvatar(
+                            radius: 60,
+                            backgroundImage: NetworkImage(_profileImageUrl!))
+                        : const CircleAvatar(
+                            radius: 60, child: Icon(Icons.person)),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 10),
-            Center(
-              child: Text(
-                _userName ?? 'Guest',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              SizedBox(height: 10),
+              Center(
+                child: Text(
+                  _userName ?? 'Guest',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(4.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 2.0),
-                borderRadius: BorderRadius.circular(20),
+              Container(
+                padding: const EdgeInsets.all(4.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 2.0),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(height: 10),
+                    _buildMenuItem('Alamat Tersimpan'),
+                    Divider(color: Colors.black, indent: 15, endIndent: 15),
+                    _buildMenuItem('Akun Saya', onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AkunScreen()),
+                      );
+                    }),
+                    Divider(color: Colors.black, indent: 15, endIndent: 15),
+                    _buildMenuItem('Favorit'),
+                    Divider(color: Colors.black, indent: 15, endIndent: 15),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  SizedBox(height: 10),
-                  _buildMenuItem('Alamat Tersimpan'),
-                  Divider(color: Colors.black, indent: 15, endIndent: 15),
-                  _buildMenuItem('Akun Saya', onTap: () {
-                    Navigator.push(
+              SizedBox(height: 10),
+              Text(
+                'Butuh Bantuan?',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 10),
+              ListTile(
+                leading: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                title: Text('For Customer Service (chat only)'),
+                subtitle: Text('0831 - 8274 - 2991'),
+                trailing: Icon(Icons.arrow_forward_ios),
+                onTap: () {},
+              ),
+              SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await _account.deleteSession(sessionId: 'current');
+                    Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => AkunScreen()),
+                      MaterialPageRoute(builder: (context) => SplashScreen()),
                     );
-                  }),
-                  Divider(color: Colors.black, indent: 15, endIndent: 15),
-                  _buildMenuItem('Favorit'),
-                  Divider(color: Colors.black, indent: 15, endIndent: 15),
-                ],
+                  } catch (e) {
+                    print('Logout gagal: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal logout, coba lagi.')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: StadiumBorder(),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                ),
+                child: Text(
+                  "KELUAR",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Butuh Bantuan?',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            SizedBox(height: 10),
-            ListTile(
-              leading: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
-              title: Text('For Customer Service (chat only)'),
-              subtitle: Text('0831 - 8274 - 2991'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {},
-            ),
-            SizedBox(height: 30),
-           ElevatedButton(
-  onPressed: () async {
-    try {
-      await _account.deleteSession(sessionId: 'current');
-      // Setelah logout sukses, pindah ke SplashScreen atau halaman login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SplashScreen()),
-      );
-    } catch (e) {
-      // Tangani error jika logout gagal
-      print('Logout gagal: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal logout, coba lagi.')),
-      );
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blue,
-    shape: StadiumBorder(),
-    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-  ),
-  child: Text(
-    "KELUAR",
-    style: TextStyle(color: Colors.white),
-  ),
-),
-
-          ],
+            ],
+          ),
         ),
       ),
     );

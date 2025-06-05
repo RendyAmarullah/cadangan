@@ -20,7 +20,6 @@ class _SplashScreenState extends State<SplashScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Appwrite client setup
   final Client client = Client();
   late Account account;
   late Databases database;
@@ -28,16 +27,13 @@ class _SplashScreenState extends State<SplashScreen>
   final String projectId = '681aa0b70002469fc157';
   final String endpoint = 'https://cloud.appwrite.io/v1';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String collectionId = '684083800031dfaaecad'; // ganti sesuai
+  final String collectionId = '684083800031dfaaecad';
 
   @override
   void initState() {
     super.initState();
 
-    // Setup Appwrite client
-    client
-        .setEndpoint(endpoint)
-        .setProject(projectId);
+    client.setEndpoint(endpoint).setProject(projectId);
 
     account = Account(client);
     database = Databases(client);
@@ -72,33 +68,30 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
- void _login() async {
-  try {
-    // Logout dulu sesi yang sedang aktif (jika ada)
-    await AppwriteService.account.deleteSession(sessionId: 'current');
+  void _login() async {
+    try {
+      await AppwriteService.account.deleteSession(sessionId: 'current');
 
-    // Buat session baru (login)
-    await AppwriteService.account.createEmailPasswordSession(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
+      await AppwriteService.account.createEmailPasswordSession(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-    final user = await AppwriteService.account.get();
+      final user = await AppwriteService.account.get();
 
-    print("Login berhasil: ${user.email}");
+      print("Login berhasil: ${user.email}");
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen()),
-    );
-  } on AppwriteException catch (e) {
-    print("Login error: ${e.message}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Login gagal: ${e.message}')),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+    } on AppwriteException catch (e) {
+      print("Login error: ${e.message}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login gagal: ${e.message}')),
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +124,8 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Container(
                   decoration: const BoxDecoration(
                     color: Color.fromRGBO(254, 254, 254, 0.843),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(40)),
                   ),
                   padding: EdgeInsets.all(24),
                   child: Column(
@@ -147,7 +141,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
-                      SizedBox(height: 15),
+                      SizedBox(height: 10),
                       TextFormField(
                         controller: _emailController,
                         decoration: _inputDecoration("Email"),
@@ -162,48 +156,51 @@ class _SplashScreenState extends State<SplashScreen>
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {},
-                          child: Text("Lupa Password", style: TextStyle(color: Colors.black)),
+                          child: Text("Lupa Password",
+                              style: TextStyle(color: Colors.black)),
                         ),
                       ),
                       SizedBox(height: 10),
                       Center(
                         child: ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          // Ganti dengan email & password yang diambil dari controller kamu
-                          final session = await account.createEmailPasswordSession(
-                            email: _emailController.text.trim(),
-                            password: _passwordController.text.trim(),
-                          );
+                          onPressed: () async {
+                            try {
+                              final session =
+                                  await account.createEmailPasswordSession(
+                                email: _emailController.text.trim(),
+                                password: _passwordController.text.trim(),
+                              );
 
-                          // Jika login berhasil, navigasi ke MainScreen
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => HomeScreen()),
-                          );
-                        } on AppwriteException catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Login gagal: ${e.message}')),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: StadiumBorder(),
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                      ),
-                      child: Text("LOGIN", style: TextStyle(color: Colors.white)),
-),
+                              Navigator.pushReplacementNamed(context, '/home');
+                              ;
+                            } on AppwriteException catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Login gagal: ${e.message}')),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: StadiumBorder(),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 12),
+                          ),
+                          child: Text("LOGIN",
+                              style: TextStyle(color: Colors.white)),
+                        ),
                       ),
                       Center(
                         child: TextButton(
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => SignUpScreen()),
+                              MaterialPageRoute(
+                                  builder: (context) => SignUpScreen()),
                             );
                           },
-                          child: Text("Sign up", style: TextStyle(color: Colors.black)),
+                          child: Text("Sign up",
+                              style: TextStyle(color: Colors.black)),
                         ),
                       ),
                     ],

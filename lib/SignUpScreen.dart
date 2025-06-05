@@ -17,10 +17,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   bool _isLoading = false;
 
-  // Appwrite setup
   final Client _client = Client()
-      .setEndpoint('https://cloud.appwrite.io/v1') // Ganti dengan endpoint Appwrite Anda
-      .setProject('681aa0b70002469fc157'); // Ganti dengan project ID Anda
+      .setEndpoint('https://cloud.appwrite.io/v1')
+      .setProject('681aa0b70002469fc157');
 
   late final Account _account = Account(_client);
   late final Databases _databases = Databases(_client);
@@ -34,7 +33,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Create Account in Appwrite
       final user = await _account.create(
         userId: ID.unique(),
         email: _emailController.text.trim(),
@@ -42,7 +40,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         name: _nameController.text.trim(),
       );
 
-      // 2. Create Document in Appwrite Database
       await _databases.createDocument(
         databaseId: databaseId,
         collectionId: usersCollectionId,
@@ -58,7 +55,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         SnackBar(content: Text('Akun berhasil dibuat!')),
       );
 
-      // Navigate
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => SplashScreen()),
       );
@@ -119,16 +115,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SizedBox(height: 15),
                       TextFormField(
                         controller: _nameController,
-                        validator: (value) =>
-                            value == null || value.isEmpty ? "Masukkan nama" : null,
+                        validator: (value) => value == null || value.isEmpty
+                            ? "Masukkan nama"
+                            : null,
                         decoration: _inputDecoration("Name"),
                       ),
                       SizedBox(height: 15),
                       TextFormField(
                         controller: _emailController,
-                        validator: (value) => value != null && value.contains("@")
-                            ? null
-                            : "Masukkan email yang valid",
+                        validator: (value) =>
+                            value != null && value.contains("@")
+                                ? null
+                                : "Masukkan email yang valid",
                         decoration: _inputDecoration("Email"),
                       ),
                       SizedBox(height: 15),
@@ -149,9 +147,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue,
                                   shape: StadiumBorder(),
-                                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 40, vertical: 12),
                                 ),
-                                child: Text("SIGN UP", style: TextStyle(color: Colors.white)),
+                                child: Text("SIGN UP",
+                                    style: TextStyle(color: Colors.white)),
                               ),
                       ),
                       SizedBox(height: 10),

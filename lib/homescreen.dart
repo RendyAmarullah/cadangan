@@ -5,10 +5,9 @@ import 'package:pemesanan/BunsikScreen.dart';
 import 'package:pemesanan/KeranjangScreen.dart';
 import 'package:pemesanan/MarketScreen.dart';
 import 'package:pemesanan/MinumanScreen.dart';
-import 'package:pemesanan/NonHalalScreen.dart'; // Import the MarketScreen
+import 'package:pemesanan/NonHalalScreen.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
-
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -16,7 +15,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
- Account? account;
+  Account? account;
   Client client = Client();
   String? _userName;
   String? _email;
@@ -24,29 +23,29 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Inisialisasi Appwrite Client
     client
-        .setEndpoint('https://cloud.appwrite.io/v1') // Ganti dengan endpointmu
-        .setProject('681aa0b70002469fc157'); // Ganti dengan project ID-mu
+        .setEndpoint('https://cloud.appwrite.io/v1')
+        .setProject('681aa0b70002469fc157');
 
     account = Account(client);
 
     _loadProfileData();
   }
 
-List<Map<String, dynamic>> cartItems = [];
+  List<Map<String, dynamic>> cartItems = [];
   Future<void> _saveCartItems() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
-    CollectionReference cartCollection = FirebaseFirestore.instance.collection('carts');
+    CollectionReference cartCollection =
+        FirebaseFirestore.instance.collection('carts');
 
-    // Menyimpan data keranjang ke Firestore, ID pengguna sebagai dokumen
     await cartCollection.doc(userId).set({
-      'cartItems': cartItems,  // Menyimpan data keranjang dalam dokumen
-      'updatedAt': FieldValue.serverTimestamp(),  // Timestamp saat diperbarui
+      'cartItems': cartItems,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
 
     print('Data keranjang berhasil disimpan ke Firestore');
   }
+
   Future<void> _loadProfileData() async {
     try {
       final user = await account!.get();
@@ -62,8 +61,6 @@ List<Map<String, dynamic>> cartItems = [];
 
   @override
   Widget build(BuildContext context) {
-    
-
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80),
@@ -72,11 +69,10 @@ List<Map<String, dynamic>> cartItems = [];
           elevation: 0,
           title: Row(
             children: [
-              // logo mugung
-              Image.asset('images/logohome.jpg', width: 50), // logo
+              Image.asset('images/logohome.jpg', width: 50),
               SizedBox(width: 8),
               Text(
-                'Selamat datang, ${_userName ?? 'Guest'}', // Display user's name or 'Guest' if not available
+                'Selamat datang, ${_userName ?? 'Guest'}',
                 style: TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
@@ -84,18 +80,16 @@ List<Map<String, dynamic>> cartItems = [];
                 ),
               ),
               Spacer(),
-              // ikon keranjang
               IconButton(
                 icon: Icon(Icons.shopping_cart, color: Colors.black),
-                 onPressed: () {
-          // Navigasi ke halaman keranjang
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => KeranjangScreen(),
-            ),
-          );
-        },
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => KeranjangScreen(),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -103,36 +97,31 @@ List<Map<String, dynamic>> cartItems = [];
       ),
       body: Column(
         children: [
-          // Icons Section
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildIconButton(Icons.shopping_cart, 'Cart', () {
-                  // Navigate to the MarketScreen when the Cart button is pressed
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => MarketScreen()),
                   );
                 }),
                 _buildIconButton(Icons.local_drink, 'Drink', () {
-                  // Handle "Drink" button tap
-                   Navigator.push(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => MinumanScreen()),
                   );
                 }),
                 _buildIconButton(Icons.ramen_dining, 'Soup', () {
-                  // Handle "Soup" button tap
-                   Navigator.push(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => BunsikScreen()),
                   );
                 }),
                 _buildIconButton(Icons.plagiarism, 'Non-halal', () {
-                  // Handle "Discount" button tap
-                   Navigator.push(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => NonHalalScreen()),
                   );
@@ -140,8 +129,6 @@ List<Map<String, dynamic>> cartItems = [];
               ],
             ),
           ),
-          
-          // Menu Popular Section
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
@@ -152,7 +139,6 @@ List<Map<String, dynamic>> cartItems = [];
               ),
             ),
           ),
-          // Popular Menu Items
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
@@ -169,10 +155,9 @@ List<Map<String, dynamic>> cartItems = [];
     );
   }
 
-  // Helper method for creating icon buttons
   Widget _buildIconButton(IconData icon, String label, VoidCallback onPressed) {
     return GestureDetector(
-      onTap: onPressed, // Call the onPressed callback when tapped
+      onTap: onPressed,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -194,7 +179,6 @@ List<Map<String, dynamic>> cartItems = [];
     );
   }
 
-  // Helper method for creating menu items
   Widget _buildMenuItem(String name, String price) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -202,7 +186,7 @@ List<Map<String, dynamic>> cartItems = [];
         Container(
           width: 80,
           height: 80,
-          color: Colors.grey[300], // Placeholder for image
+          color: Colors.grey[300],
         ),
         SizedBox(height: 8),
         Text(name),

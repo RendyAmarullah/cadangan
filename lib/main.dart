@@ -1,22 +1,21 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pemesanan/ProfilScreen.dart';
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:appwrite/appwrite.dart';
-import 'appwrite_service.dart';
 import 'package:appwrite/models.dart' as models;
 
-// GLOBAL INSTANCE
+// Appwrite config
 Client client = Client()
-  ..setEndpoint('https://fra.cloud.appwrite.io/v1')
-  ..setProject('681a925f0002c1ab6d72')
+  ..setEndpoint('https://cloud.appwrite.io/v1')
+  ..setProject('681aa0b70002469fc157')
   ..setSelfSigned(status: true);
-
 Account account = Account(client);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -27,51 +26,45 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Splash Screen Demo',
+      title: 'Aplikasi Pemesanan',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.green),
       home: AuthWrapper(),
-      initialRoute: '/',
       routes: {
         '/signup': (context) => SignUpScreen(),
         '/signin': (context) => SplashScreen(),
-        '/home': (context) => HomeScreen(),
+        '/home': (context) => MainScreen(),
       },
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  final Client client = Client()
-    ..setEndpoint('https://cloud.appwrite.io/v1') // Ganti dengan endpoint kamu
-    ..setProject('681aa0b70002469fc157'); // Ganti dengan project ID kamu
+class AuthWrapper extends StatefulWidget {
+  @override
+  _AuthWrapperState createState() => _AuthWrapperState();
+}
 
-  final Account account;
-
-  AuthWrapper() : account = Account(Client()
-    ..setEndpoint('https://cloud.appwrite.io/v1')
-    ..setProject('681aa0b70002469fc157'));
-
-  Future<models.User?> _checkLoginStatus() async {
+class _AuthWrapperState extends State<AuthWrapper> {
+  Future<models.User?> checkLoginStatus() async {
     try {
       final user = await account.get();
       return user;
     } catch (e) {
-      return null; // Tidak login
+      return null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<models.User?>(
-      future: _checkLoginStatus(),
+      future: checkLoginStatus(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
         } else if (snapshot.hasData) {
-          return MainScreen(); // User sudah login
+          return MainScreen(); // langsung ke main dengan menu
         } else {
-          return SplashScreen(); // Belum login
+          return SplashScreen(); // atau ke login/signup
         }
       },
     );
@@ -86,14 +79,12 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // List of widget options for bottom navigation
   static List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     RiwayatTransaksi(),
     ProfileScreen(),
   ];
 
-  // Function to handle bottom navigation item taps
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -108,31 +99,21 @@ class _MainScreenState extends State<MainScreen> {
         children: _widgetOptions,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromRGBO(142, 198, 63, 0.847), // Custom green color for bottom bar
+        backgroundColor: const Color.fromRGBO(142, 198, 63, 0.847),
         items: [
-          BottomNavigationBarItem(
-            icon: _buildNavItem(Icons.home),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNavItem(Icons.note),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNavItem(Icons.person),
-            label: '',
-          ),
+          BottomNavigationBarItem(icon: _buildNavItem(Icons.home), label: ''),
+          BottomNavigationBarItem(icon: _buildNavItem(Icons.note), label: ''),
+          BottomNavigationBarItem(icon: _buildNavItem(Icons.person), label: ''),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.white,
-        onTap: _onItemTapped, // Update the selected screen
+        onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
       ),
     );
   }
 
-  // Helper method to create bottom navigation item with circular style
   Widget _buildNavItem(IconData icon) {
     return CircleAvatar(
       radius: 25,

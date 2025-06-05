@@ -7,7 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:pemesanan/SignUpScreen.dart';
-import 'package:pemesanan/AkunScreen.dart';  // Import AkunScreen
+import 'package:pemesanan/AkunScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
 
 class AkunScreen extends StatefulWidget {
@@ -31,7 +31,7 @@ class _AkunScreenState extends State<AkunScreen> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
 
-  bool _isEditing = false;  // Toggle for edit mode
+  bool _isEditing = false;
 
   @override
   void initState() {
@@ -51,7 +51,8 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -121,7 +122,10 @@ class _AkunScreenState extends State<AkunScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        final documentSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final documentSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (documentSnapshot.exists) {
           final data = documentSnapshot.data() as Map<String, dynamic>;
           setState(() {
@@ -140,7 +144,8 @@ class _AkunScreenState extends State<AkunScreen> {
 
         final profileImageId = document.data['profile_image'];
         if (profileImageId != null) {
-          final fileViewUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/$profileImageId/view?project=$projectId';
+          final fileViewUrl =
+              'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/$profileImageId/view?project=$projectId';
           setState(() {
             _profileImageUrl = fileViewUrl;
           });
@@ -155,17 +160,17 @@ class _AkunScreenState extends State<AkunScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        // Update Firebase Auth data (name, email)
         await user.updateDisplayName(_nameController.text);
         await user.updateEmail(_emailController.text);
 
-        // Update Firestore data
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
           'name': _nameController.text,
           'email': _emailController.text,
         });
 
-        // Optionally, update Appwrite data as well
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: collectionId,
@@ -177,7 +182,7 @@ class _AkunScreenState extends State<AkunScreen> {
         );
 
         setState(() {
-          _isEditing = false;  // Exit editing mode
+          _isEditing = false;
         });
       } catch (e) {
         print('Error updating profile: $e');
@@ -205,8 +210,11 @@ class _AkunScreenState extends State<AkunScreen> {
                 child: CircleAvatar(
                   radius: 60,
                   child: _profileImageUrl != null
-                      ? CircleAvatar(radius: 60, backgroundImage: NetworkImage(_profileImageUrl!))
-                      : const CircleAvatar(radius: 60, child: Icon(Icons.person)),
+                      ? CircleAvatar(
+                          radius: 60,
+                          backgroundImage: NetworkImage(_profileImageUrl!))
+                      : const CircleAvatar(
+                          radius: 60, child: Icon(Icons.person)),
                 ),
               ),
             ),
@@ -226,42 +234,64 @@ class _AkunScreenState extends State<AkunScreen> {
                       ElevatedButton(
                         onPressed: _updateProfile,
                         child: Text('Save Changes'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue),
                       ),
                     ],
                   )
                 : Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
                       children: [
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Nama',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Colors.green),
                           ),
                         ),
-                        _buildMenuItem( _userName ?? '${user?.displayName ?? 'Guest'}'),
-                         Divider(color: Colors.black ,  indent: 15,
-                        endIndent: 15,) ,
+                        _buildMenuItem(
+                            _userName ?? '${user?.displayName ?? 'Guest'}'),
+                        Divider(
+                          color: Colors.black,
+                          indent: 15,
+                          endIndent: 15,
+                        ),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Email',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Colors.green),
                           ),
                         ),
                         _buildMenuItem(_email ?? '${user?.email ?? 'Guest'}'),
-                         Divider(color: Colors.black,  indent: 15,endIndent: 15,),
+                        Divider(
+                          color: Colors.black,
+                          indent: 15,
+                          endIndent: 15,
+                        ),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Jenis Kelamin',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Colors.green),
                           ),
                         ),
                         _buildMenuItem('Jenis Kelamin disini'),
-                        Divider(color: Colors.black,  indent: 15,endIndent: 15,),
+                        Divider(
+                          color: Colors.black,
+                          indent: 15,
+                          endIndent: 15,
+                        ),
                         SizedBox(height: 40),
                         ElevatedButton(
                           onPressed: () {
@@ -270,24 +300,24 @@ class _AkunScreenState extends State<AkunScreen> {
                             });
                           },
                           child: Text('Edit Profile'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue),
                         ),
                       ],
                     ),
-                ),
+                  ),
             SizedBox(height: 20),
-            
           ],
         ),
       ),
     );
   }
 }
-Widget _buildMenuItem(String title, {Function()? onTap}) {
-    return ListTile(
-      title: Text(title),
-      trailing: Icon(Icons.arrow_forward_ios),
-      onTap: onTap,
-    );
-  }
 
+Widget _buildMenuItem(String title, {Function()? onTap}) {
+  return ListTile(
+    title: Text(title),
+    trailing: Icon(Icons.arrow_forward_ios),
+    onTap: onTap,
+  );
+}

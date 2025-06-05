@@ -12,10 +12,10 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
   late Databases _databases;
   late Account _account;
 
-  final String projectId = '681aa0b70002469fc157'; // Ganti dengan Project ID Anda
-  final String databaseId = '681aa33a0023a8c7eb1f'; // Ganti dengan Database ID Anda
-  final String cartsCollectionId = '68407db7002d8716c9d0'; // Ganti dengan Collection ID untuk keranjang
-  final String bucketId = '681aa16f003054da8969'; // Ganti dengan Bucket ID Anda
+  final String projectId = '681aa0b70002469fc157';
+  final String databaseId = '681aa33a0023a8c7eb1f';
+  final String cartsCollectionId = '68407db7002d8716c9d0';
+  final String bucketId = '681aa16f003054da8969';
 
   String userId = '';
   List<Map<String, dynamic>> cartItems = [];
@@ -28,7 +28,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
 
   void _initAppwrite() async {
     _client
-        .setEndpoint('https://fra.cloud.appwrite.io/v1') // Ganti dengan endpoint Appwrite Anda
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(projectId)
         .setSelfSigned(status: true);
 
@@ -61,8 +61,6 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
       );
 
       setState(() {
-        // Karena tiap produk di keranjang disimpan sebagai dokumen terpisah,
-        // map dokumen ke list data produk
         cartItems = result.documents.map((doc) => doc.data).toList();
       });
     } catch (e) {
@@ -204,7 +202,9 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                           color: Colors.grey[300],
                           child: imageUrl.isNotEmpty
                               ? Image.network(imageUrl, fit: BoxFit.cover)
-                              : Center(child: Icon(Icons.image, color: Colors.white)),
+                              : Center(
+                                  child:
+                                      Icon(Icons.image, color: Colors.white)),
                         ),
                         SizedBox(width: 16),
                         Expanded(
@@ -228,7 +228,8 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                     icon: Icon(Icons.remove),
                                     onPressed: () {
                                       if (quantity > 0) {
-                                        _updateCartItemQuantity(index, quantity - 1);
+                                        _updateCartItemQuantity(
+                                            index, quantity - 1);
                                       }
                                     },
                                   ),
@@ -236,7 +237,8 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                   IconButton(
                                     icon: Icon(Icons.add),
                                     onPressed: () {
-                                      _updateCartItemQuantity(index, quantity + 1);
+                                      _updateCartItemQuantity(
+                                          index, quantity + 1);
                                     },
                                   ),
                                 ],

@@ -1,4 +1,3 @@
-// Updated MinumanScreen to open KeranjangScreen after saving cart
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
@@ -84,7 +83,8 @@ class _MinumanScreenState extends State<MinumanScreen> {
 
       if (result.documents.isNotEmpty) {
         setState(() {
-          cartItems = List<Map<String, dynamic>>.from(result.documents.first.data['cartItems']);
+          cartItems = List<Map<String, dynamic>>.from(
+              result.documents.first.data['cartItems']);
         });
       }
     } catch (e) {
@@ -92,56 +92,50 @@ class _MinumanScreenState extends State<MinumanScreen> {
     }
   }
 
-  
-
   Future<void> tambahKeranjang(Map<String, dynamic> product) async {
-  try {
-    // Cek apakah produk ini sudah ada di keranjang (by userId & productId)
-    final existingItems = await _databases.listDocuments(
-      databaseId: databaseId,
-      collectionId: cartsCollectionId,
-      queries: [
-        Query.equal('userId', userId),
-        Query.equal('productId', product['\$id']),
-      ],
-    );
-
-    if (existingItems.documents.isNotEmpty) {
-      // Update quantity jika sudah ada
-      final docId = existingItems.documents.first.$id;
-      final currentQty = existingItems.documents.first.data['quantity'] ?? 1;
-
-      await _databases.updateDocument(
+    try {
+      final existingItems = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        documentId: docId,
-        data: {
-          'quantity': currentQty + 1,
-        },
+        queries: [
+          Query.equal('userId', userId),
+          Query.equal('productId', product['\$id']),
+        ],
       );
-    } else {
-      // Tambah item baru
-      await _databases.createDocument(
-        databaseId: databaseId,
-        collectionId: cartsCollectionId,
-        documentId: ID.unique(),
-        data: {
-          'userId': userId,
-          'productId': product['\$id'],
-          'name': product['name'],
-          'price': product['price'],
-          'quantity': 1,
-          'productImageUrl': product['productImageUrl'],
-        },
-      );
+
+      if (existingItems.documents.isNotEmpty) {
+        final docId = existingItems.documents.first.$id;
+        final currentQty = existingItems.documents.first.data['quantity'] ?? 1;
+
+        await _databases.updateDocument(
+          databaseId: databaseId,
+          collectionId: cartsCollectionId,
+          documentId: docId,
+          data: {
+            'quantity': currentQty + 1,
+          },
+        );
+      } else {
+        await _databases.createDocument(
+          databaseId: databaseId,
+          collectionId: cartsCollectionId,
+          documentId: ID.unique(),
+          data: {
+            'userId': userId,
+            'productId': product['\$id'],
+            'name': product['name'],
+            'price': product['price'],
+            'quantity': 1,
+            'productImageUrl': product['productImageUrl'],
+          },
+        );
+      }
+
+      print('Barang berhasil disimpan ke keranjang');
+    } catch (e) {
+      print('Error menyimpan ke keranjang: $e');
     }
-
-    print('Barang berhasil disimpan ke keranjang');
-  } catch (e) {
-    print('Error menyimpan ke keranjang: $e');
   }
-}
-
 
   String getImageUrl(String fileId) {
     return fileId;
@@ -151,7 +145,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Market'),
+        title: Text('Minuman'),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
@@ -168,7 +162,8 @@ class _MinumanScreenState extends State<MinumanScreen> {
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
-                  String imageUrl = getImageUrl(products[index]['productImageUrl']);
+                  String imageUrl =
+                      getImageUrl(products[index]['productImageUrl']);
 
                   return Card(
                     color: Color(0xFF81C784),
@@ -180,7 +175,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
                       children: [
                         Container(
                           color: Colors.white,
-                          height: 60,
+                          height: 50,
                           width: double.infinity,
                           child: Image.network(
                             imageUrl,
@@ -213,7 +208,6 @@ class _MinumanScreenState extends State<MinumanScreen> {
                           child: ElevatedButton(
                             onPressed: () {
                               tambahKeranjang(products[index]);
-                              
                             },
                             child: Text('Keranjang'),
                             style: ElevatedButton.styleFrom(

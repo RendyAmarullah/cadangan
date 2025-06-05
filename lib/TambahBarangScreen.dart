@@ -19,10 +19,10 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   late Databases _databases;
   String _productImageUrl = '';
 
-  final String projectId = '681aa0b70002469fc157'; // Ganti sesuai Project ID
-  final String databaseId = '681aa33a0023a8c7eb1f'; // Ganti sesuai Database ID
-  final String collectionId = '68407bab00235ecda20d'; // Ganti sesuai Collection ID
-  final String bucketId = '681aa16f003054da8969'; // Ganti sesuai Bucket ID
+  final String projectId = '681aa0b70002469fc157';
+  final String databaseId = '681aa33a0023a8c7eb1f';
+  final String collectionId = '68407bab00235ecda20d';
+  final String bucketId = '681aa16f003054da8969';
 
   @override
   void initState() {
@@ -78,8 +78,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     String price = _priceController.text.trim();
 
     if (name.isEmpty || price.isEmpty || _productImageUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Semua kolom harus diisi')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Semua kolom harus diisi')));
       return;
     }
 
@@ -87,7 +87,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       await _databases.createDocument(
         databaseId: databaseId,
         collectionId: collectionId,
-        documentId: 'unique()', // Generate unique ID
+        documentId: 'unique()',
         data: {
           'name': name,
           'price': int.parse(price),
@@ -96,13 +96,13 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
         },
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Produk berhasil ditambahkan')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Produk berhasil ditambahkan')));
       _clearForm();
     } catch (e) {
       print('Error adding product: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menambahkan produk')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Gagal menambahkan produk')));
     }
   }
 
@@ -145,8 +145,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
               child: Text('Pilih Gambar Produk'),
             ),
             SizedBox(height: 16),
-            if (_imageFile != null)
-              Image.file(_imageFile!, height: 100),
+            if (_imageFile != null) Image.file(_imageFile!, height: 100),
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
