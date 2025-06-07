@@ -140,6 +140,69 @@ class _MarketScreenState extends State<MarketScreen> {
     return fileId;
   }
 
+  void _showProductDetail(Map<String, dynamic> product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    product['name'],
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      Navigator.pop(context); // Menutup bottom sheet
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Image.network(
+                product['productImageUrl'],
+                fit: BoxFit.cover,
+                height: 200,
+                width: double.infinity,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Rp ${product['price']}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Description: ${product['description'] ?? 'No description available'}',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  tambahKeranjang(product);
+                },
+                child: Text('Add to Cart'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,63 +224,67 @@ class _MarketScreenState extends State<MarketScreen> {
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
-                  String imageUrl =
-                      getImageUrl(products[index]['productImageUrl']);
+                  String imageUrl = getImageUrl(products[index]['productImageUrl']);
 
-                  return Card(
-                    color: Color(0xFF81C784),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          color: Colors.white,
-                          height: 50,
-                          width: double.infinity,
-                          child: Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            products[index]['name'],
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                  return GestureDetector(
+                    onTap: () {
+                      _showProductDetail(products[index]);
+                    },
+                    child: Card(
+                      color: Color(0xFF81C784),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            color: Colors.white,
+                            height: 110,
+                            width: double.infinity,
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            'Rp ${products[index]['price']}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Spacer(),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              tambahKeranjang(products[index]);
-                            },
-                            child: Text('Keranjang'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              products[index]['name'],
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Text(
+                              'Rp ${products[index]['price']}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Spacer(),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            // child: ElevatedButton(
+                            //   onPressed: () {
+                            //     tambahKeranjang(products[index]);
+                            //   },
+                            //   child: Text('Keranjang'),
+                            //   style: ElevatedButton.styleFrom(
+                            //     backgroundColor: Colors.blue,
+                            //     shape: RoundedRectangleBorder(
+                            //       borderRadius: BorderRadius.circular(8),
+                            //     ),
+                            //   ),
+                            // ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
