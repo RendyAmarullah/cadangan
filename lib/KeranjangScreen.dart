@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
+import 'package:pemesanan/CheckOutScreen.dart';
 
 class KeranjangScreen extends StatefulWidget {
   @override
@@ -197,11 +198,11 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                     child: Row(
                       children: [
                         Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.grey[300],
+                          width: 100,
+                          height: 100,
+                          
                           child: imageUrl.isNotEmpty
-                              ? Image.network(imageUrl, fit: BoxFit.cover)
+                              ? ClipOval(child: Image.network(imageUrl, fit: BoxFit.cover))
                               : Center(
                                   child:
                                       Icon(Icons.image, color: Colors.white)),
@@ -211,6 +212,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              SizedBox(height: 8,),
                               Text(
                                 cartItems[index]['name'] ?? 'Produk',
                                 style: TextStyle(
@@ -219,13 +221,23 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                 ),
                               ),
                               SizedBox(height: 4),
-                              Text('Rp ${cartItems[index]['price'] ?? '-'}'),
+                              Text('Rp ${cartItems[index]['price'] ?? '-'}',style: TextStyle(color: Colors.green)),
                               SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.remove),
+                                    icon: Container( padding: EdgeInsets.all(1),  
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,  
+                                           borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Icon(
+                                          Icons.remove,
+                                          color: Colors.white,  // Icon color (white in this case)
+                                        ),
+                                        
+                                        ),
                                     onPressed: () {
                                       if (quantity > 0) {
                                         _updateCartItemQuantity(
@@ -235,7 +247,17 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                   ),
                                   Text(quantity.toString()),
                                   IconButton(
-                                    icon: Icon(Icons.add),
+                                    icon: Container( padding: EdgeInsets.all(1),  
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue,  
+                                           borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Icon(
+                                          Icons.add,
+                                          color: Colors.white,  // Icon color (white in this case)
+                                        ),
+                                        
+                                        ),
                                     onPressed: () {
                                       _updateCartItemQuantity(
                                           index, quantity + 1);
@@ -252,6 +274,25 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                 );
               },
             ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ElevatedButton(
+          onPressed: () {
+            // Navigate to CheckoutScreen and pass cartItems
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CheckoutScreen(cartItems: cartItems),
+              ),
+            );
+          },
+          child: Text('Checkout'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green, // Checkout button color
+            padding: EdgeInsets.symmetric(vertical: 15),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -111,7 +111,7 @@ class _AkunScreenState extends State<AkunScreen> {
     try {
       final updatedName = _nameController.text;
       final updatedEmail = _emailController.text;
-      final updatedGender = _genderController.text;
+      
 
       final user = await _account.get();
       if (user != null) {
