@@ -161,7 +161,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   IconButton(
                     icon: Icon(Icons.close),
                     onPressed: () {
-                      Navigator.pop(context); // Menutup bottom sheet
+                      Navigator.pop(context);
                     },
                   ),
                 ],
@@ -170,7 +170,7 @@ class _MarketScreenState extends State<MarketScreen> {
               Image.network(
                 product['productImageUrl'],
                 fit: BoxFit.cover,
-                height: 200,
+                height: 350,
                 width: double.infinity,
               ),
               SizedBox(height: 16),
@@ -180,7 +180,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               SizedBox(height: 16),
               Text(
-                'Description: ${product['description'] ?? 'No description available'}',
+                'Deskripsi: ${product['description'] ?? 'No description available'}',
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 20),
@@ -188,7 +188,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 onPressed: () {
                   tambahKeranjang(product);
                 },
-                child: Text('Add to Cart'),
+                child: Text('Tambahkan Ke Keranjang'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   shape: RoundedRectangleBorder(
