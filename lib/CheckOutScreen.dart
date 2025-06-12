@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:flutter/widgets.dart';
+import 'dart:convert';
+
+final client = Client()
+  ..setEndpoint('https://fra.cloud.appwrite.io/v1') 
+  ..setProject('681aa0b70002469fc157')
+  ..setSelfSigned(status: true);
+
+final databases = Databases(client);
+final account = Account(client);
 
 class CheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -19,10 +28,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   String userId = '';
   String address = '';
-
+  String _metodePembayaran = 'COD';
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String addressCollectionId = '68447d3d0007b5f75cc5'; // Replace with actual collection ID
+  final String cartsCollectionId = '68407db7002d8716c9d0';
+  final String addressCollectionId = '68447d3d0007b5f75cc5'; 
 
   @override
   void initState() {
@@ -30,7 +40,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _initAppwrite();
   }
 
-  // Initialize Appwrite client and services
+ 
   void _initAppwrite() async {
     _client = Client();
     _client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject(projectId).setSelfSigned(status: true);
@@ -48,7 +58,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       widget.cartItems[index]['quantity'] = newQuantity;
     });
   }
-  // Get the current user's ID
+  
   Future<void> _getCurrentUser() async {
     try {
       final models.User user = await _account.get();
@@ -60,14 +70,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  // Fetch user address from Appwrite database
+  Future<void> clearCartItems(String userId) async {
+  try {
+    final result = await _databases.listDocuments(
+      databaseId: databaseId,
+      collectionId: cartsCollectionId,
+      queries: [
+        Query.equal('userId', userId),
+      ],
+    );
+
+    for (var doc in result.documents) {
+      await _databases.deleteDocument(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        documentId: doc.$id,
+      );
+    }
+
+    print('Cart cleared successfully.');
+  } catch (e) {
+    print('Error clearing cart: $e');
+  }
+}
+
+
   Future<void> _fetchUserAddress() async {
     try {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: addressCollectionId,
         queries: [
-          Query.equal('user_id', userId), // Assuming the address is stored with the user ID
+          Query.equal('user_id', userId), 
         ],
       );
 
@@ -91,6 +125,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       int price = item['price'] is int ? item['price'] : 0;
       int quantity = item['quantity'] is int ? item['quantity'] : 1;
       return sum + price * quantity;
+    });
+
+    int totalPrice2 = widget.cartItems.fold<int>(0, (sum, item) {
+      
+      return totalPrice + 10000;
     });
 
     return Scaffold(
@@ -137,7 +176,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               SizedBox(height: 16),
         
-              // Order List
+             
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black, width: 2.0),
@@ -270,12 +309,134 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
         ),
+        SizedBox(height: 10,),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black, width: 2.0),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(  // Use Column to arrange items vertically
+        crossAxisAlignment: CrossAxisAlignment.start, // Align content to the start (left)
+        children: [
+         Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Pilih Pembayaran:',
+                style: TextStyle(fontWeight: FontWeight.bold),),
+                PopupMenuButton<String>(
+                  onSelected: (String value) {
+                    setState(() {
+                      _metodePembayaran = value;
+                    });
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(
+                      value: 'COD',
+                      child: Text('COD'),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'QRIS',
+                      child: Text('QRIS'),
+                    ),
+                  ],
+                  child: Text(
+                    '$_metodePembayaran >',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+          SizedBox(height: 10),
+          Divider(),
+           SizedBox(height: 10),
+          // First line for Total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total Pesanan:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text('Rp $totalPrice', style: TextStyle(color: Colors.green), ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total Biaya Pengiriman:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text('Rp 10000', style: TextStyle(color: Colors.green), ),
+            ],
+          ),
+          Divider(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text('Rp $totalPrice2', style: TextStyle(color: Colors.green), ),
+            ],
+          ),
+           // Add space between the Total and Catatan Tambahan
+          // Second line for Catatan Tambahan
+          
+        ],
+            ),
+          ),
+        ),
         
               SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
-                  // Implement order submission or payment logic here
-                },
+                onPressed: () async {
+       try {
+   
+      final user = await account.get();
+      final produkList = widget.cartItems.map((item) => {
+        'nama': item['name'],
+        'jumlah': item['quantity'],
+        'harga': item['price'],
+      }).toList();
+      final produkJsonString = jsonEncode(produkList);
+          
+        final data = {
+        'userId': user.$id,
+        'alamat': address,
+        'produk': produkJsonString, // simpan sebagai string
+        'metodePembayaran': _metodePembayaran,
+        'total': totalPrice2,
+        'createdAt': DateTime.now().toUtc().toIso8601String(),
+      };
+
+
+  
+        final response = await databases.createDocument(
+          databaseId: '681aa33a0023a8c7eb1f', // Ganti
+          collectionId: '684b33e80033b767b024', // Ganti
+          documentId: ID.unique(),
+          data: data,
+        );
+
+         await clearCartItems(userId);
+
+        print('Pesanan berhasil dibuat: ${response.$id}');
+   
+        Navigator.pop(context);
+          } catch (e) {
+            print('Gagal membuat pesanan: $e');
+          
+          }
+        },
+
                 child: Text('Buat Pesanan'),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               ),

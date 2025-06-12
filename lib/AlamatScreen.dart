@@ -14,7 +14,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
   late Client _client;
   late Databases _databases;
 
-  // ID dari database dan koleksi yang digunakan
+  
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String collectionId = '68447d3d0007b5f75cc5'; // Koleksi untuk menyimpan alamat
 
@@ -28,12 +28,12 @@ class _AlamatScreenState extends State<AlamatScreen> {
     _getCurrentLocation();
   }
 
-  // Mendapatkan lokasi saat ini
+  
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Memeriksa apakah layanan lokasi diaktifkan
+    
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       setState(() {
@@ -42,7 +42,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
       return;
     }
 
-    // Memeriksa izin lokasi
+    
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -55,15 +55,15 @@ class _AlamatScreenState extends State<AlamatScreen> {
       }
     }
 
-    // Mendapatkan posisi terkini (latitude, longitude)
+   
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
 
-    // Mendapatkan alamat dari koordinat
+    
     _getAddressFromCoordinates(position.latitude, position.longitude);
   }
 
-  // Mengonversi koordinat menjadi alamat
+ 
   Future<void> _getAddressFromCoordinates(double latitude, double longitude) async {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
@@ -73,7 +73,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
         _address = fullAddress;
       });
 
-      // Setelah mendapatkan alamat, simpan alamat ke Appwrite
+      
       await _saveAddressToDatabase(fullAddress);
     } catch (e) {
       setState(() {
@@ -82,18 +82,18 @@ class _AlamatScreenState extends State<AlamatScreen> {
     }
   }
 
-  // Menyimpan alamat ke database Appwrite
+  
   Future<void> _saveAddressToDatabase(String address) async {
     try {
-      // Ambil user_id dari session atau user yang sedang login
+     
       final user = await Account(_client).get();
       final userId = user.$id;
 
-      // Membuat dokumen baru dengan data alamat
+      
       final response = await _databases.createDocument(
         databaseId: databaseId,
         collectionId: collectionId,
-        documentId: userId, // Gunakan user_id sebagai ID dokumen
+        documentId: userId, 
         data: {
           'user_id': userId,
           'address': address,
