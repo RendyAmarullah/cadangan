@@ -4,6 +4,8 @@ import 'package:appwrite/models.dart' as models;
 import 'package:flutter/widgets.dart';
 import 'dart:convert';
 
+import 'package:pemesanan/RiwayatTransaksiScreen.dart';
+
 final client = Client()
   ..setEndpoint('https://fra.cloud.appwrite.io/v1') 
   ..setProject('681aa0b70002469fc157')
@@ -405,11 +407,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'nama': item['name'],
         'jumlah': item['quantity'],
         'harga': item['price'],
+        'productImageUrl': item['productImageUrl']
       }).toList();
       final produkJsonString = jsonEncode(produkList);
           
         final data = {
         'userId': user.$id,
+        
         'alamat': address,
         'produk': produkJsonString, // simpan sebagai string
         'metodePembayaran': _metodePembayaran,
@@ -430,14 +434,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
         print('Pesanan berhasil dibuat: ${response.$id}');
    
-        Navigator.pop(context);
-          } catch (e) {
-            print('Gagal membuat pesanan: $e');
-          
-          }
-        },
-
-                child: Text('Buat Pesanan'),
+           Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RiwayatTransaksiScreen(userId: user.$id), // Passing the userId
+        ),
+      );
+      
+    } catch (e) {
+      print('Gagal membuat pesanan: $e');
+    }
+  },
+  child: Text('Buat Pesanan'),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               ),
             ],

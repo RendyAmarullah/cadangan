@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 import 'package:pemesanan/ProfilScreen.dart';
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
@@ -33,7 +32,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/signup': (context) => SignUpScreen(),
         '/signin': (context) => SplashScreen(),
-        '/home': (context) => MainScreen(),
+        '/home': (context) => HomeScreen(),
       },
     );
   }
@@ -56,15 +55,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<models.User?>(
+    return FutureBuilder<models.User?>( 
       future: checkLoginStatus(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(body: Center(child: CircularProgressIndicator()));
         } else if (snapshot.hasData) {
-          return MainScreen(); // langsung ke main dengan menu
+          return MainScreen(userId: snapshot.data!.$id); 
         } else {
-          return SplashScreen(); // atau ke login/signup
+          return SplashScreen(); 
         }
       },
     );
@@ -72,6 +71,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
 }
 
 class MainScreen extends StatefulWidget {
+  final String userId;
+
+  MainScreen({required this.userId});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -79,20 +82,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  static List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    RiwayatTransaksi(),
-    ProfileScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+ 
+  late List<Widget> _widgetOptions;
 
   @override
   Widget build(BuildContext context) {
+    
+    _widgetOptions = <Widget>[
+      HomeScreen(),
+      RiwayatTransaksiScreen(userId: widget.userId), 
+      ProfileScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
@@ -112,6 +113,12 @@ class _MainScreenState extends State<MainScreen> {
         type: BottomNavigationBarType.fixed,
       ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   Widget _buildNavItem(IconData icon) {

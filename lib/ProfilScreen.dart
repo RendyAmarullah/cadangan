@@ -313,7 +313,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     }),
                     Divider(color: Colors.black, indent: 15, endIndent: 15),
-                    _buildMenuItem('Favorit'),
+                    _buildMenuItem('pesanan', onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AkunScreen()),
+                      );
+                    }),
+                    
                     Divider(color: Colors.black, indent: 15, endIndent: 15),
                   ],
                 ),
