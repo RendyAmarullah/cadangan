@@ -70,6 +70,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset:
+          false, // Background tidak naik saat keyboard muncul
       body: Stack(
         children: [
           Positioned.fill(
@@ -78,92 +80,86 @@ class _SignUpScreenState extends State<SignUpScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          Align(
-            alignment: Alignment.center,
+          Center(
             child: SingleChildScrollView(
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(24),
-                margin: EdgeInsets.symmetric(horizontal: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.0),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Align(
-                        alignment: Alignment.topCenter,
-                        child: Image.asset(
-                          'images/logosignup.png',
-                          width: 150,
-                        ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 20),
+                    Image.asset(
+                      'images/logotanpanama.png',
+                      width: 150,
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "Buat Akun",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      SizedBox(height: 5),
-                      Center(
-                        child: Text(
-                          "Create an Account",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                    ),
+                    SizedBox(height: 20),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _nameController,
+                            validator: (value) => value == null || value.isEmpty
+                                ? "Masukkan nama"
+                                : null,
+                            decoration: _inputDecoration("Name"),
                           ),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      TextFormField(
-                        controller: _nameController,
-                        validator: (value) => value == null || value.isEmpty
-                            ? "Masukkan nama"
-                            : null,
-                        decoration: _inputDecoration("Name"),
-                      ),
-                      SizedBox(height: 15),
-                      TextFormField(
-                        controller: _emailController,
-                        validator: (value) =>
-                            value != null && value.contains("@")
-                                ? null
-                                : "Masukkan email yang valid",
-                        decoration: _inputDecoration("Email"),
-                      ),
-                      SizedBox(height: 15),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        validator: (value) => value != null && value.length >= 6
-                            ? null
-                            : "Minimal 6 karakter",
-                        decoration: _inputDecoration("Password"),
-                      ),
-                      SizedBox(height: 20),
-                      Center(
-                        child: _isLoading
-                            ? CircularProgressIndicator()
-                            : ElevatedButton(
-                                onPressed: _signUp,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  shape: StadiumBorder(),
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 40, vertical: 12),
+                          SizedBox(height: 15),
+                          TextFormField(
+                            controller: _emailController,
+                            validator: (value) =>
+                                value != null && value.contains("@")
+                                    ? null
+                                    : "Masukkan email yang valid",
+                            decoration: _inputDecoration("Email"),
+                          ),
+                          SizedBox(height: 15),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            validator: (value) =>
+                                value != null && value.length >= 6
+                                    ? null
+                                    : "Minimal 6 karakter",
+                            decoration: _inputDecoration("Password"),
+                          ),
+                          SizedBox(height: 20),
+                          _isLoading
+                              ? CircularProgressIndicator()
+                              : ElevatedButton(
+                                  onPressed: _signUp,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    shape: StadiumBorder(),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 40, vertical: 12),
+                                  ),
+                                  child: Text(
+                                    "DAFTAR",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
-                                child: Text("SIGN UP",
-                                    style: TextStyle(color: Colors.white)),
-                              ),
+                          SizedBox(height: 10),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Already have an account? Login",
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 10),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text("Already have an account? Login",
-                              style: TextStyle(color: Colors.black)),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

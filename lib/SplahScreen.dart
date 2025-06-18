@@ -34,16 +34,8 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     client.setEndpoint(endpoint).setProject(projectId);
-
     account = Account(client);
     database = Databases(client);
-
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _showImage = true;
-        _controller.forward();
-      });
-    });
 
     _controller = AnimationController(
       duration: const Duration(seconds: 1),
@@ -54,6 +46,13 @@ class _SplashScreenState extends State<SplashScreen>
       begin: Offset(0, -1),
       end: Offset(0, 0),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    Future.delayed(Duration(seconds: 2), () {
+      setState(() {
+        _showImage = true;
+        _controller.forward();
+      });
+    });
   }
 
   @override
@@ -78,7 +77,6 @@ class _SplashScreenState extends State<SplashScreen>
       );
 
       final user = await AppwriteService.account.get();
-
       print("Login berhasil: ${user.email}");
 
       Navigator.pushReplacement(
@@ -86,7 +84,6 @@ class _SplashScreenState extends State<SplashScreen>
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
     } on AppwriteException catch (e) {
-      print("Login error: ${e.message}");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login gagal: ${e.message}')),
       );
@@ -97,113 +94,140 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
       body: GestureDetector(
         onTap: _toggleForm,
         child: Stack(
           children: [
-            Center(
+            Positioned.fill(
               child: _showImage
                   ? SlideTransition(
                       position: _animation,
-                      child: Image.asset(
-                        'images/login.png',
-                        width: 1000,
-                        height: 1000,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            'images/login.png',
+                            fit: BoxFit.cover,
+                          ),
+                          Container(
+                            color: Colors.black.withOpacity(0.3),
+                          ),
+                        ],
                       ),
                     )
-                  : Image(image: AssetImage("images/logo.PNG")),
+                  : Image.asset(
+                      "images/logo.PNG",
+                      fit: BoxFit.cover,
+                    ),
             ),
-            if (_showForm)
-              AnimatedPositioned(
-                duration: Duration(milliseconds: 1000),
-                curve: Curves.easeOut,
-                bottom: 0,
+            if (_showImage && !_showForm)
+              Positioned(
+                bottom: 60,
                 left: 0,
                 right: 0,
-                height: 350,
+                child: Column(
+                  children: [
+                    Text(
+                      "Geser Ke Atas",
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Untuk Masuk",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Icon(
+                      Icons.keyboard_arrow_up,
+                      size: 30,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            if (_showForm)
+              Positioned.fill(
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color.fromRGBO(254, 254, 254, 0.843),
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(40)),
-                  ),
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Text(
-                          "Enter Your Account",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                  color: Colors.black.withOpacity(0.3),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      physics: NeverScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Masukkan Akun Anda",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            TextFormField(
+                              controller: _emailController,
+                              style: TextStyle(color: Colors.black),
+                              decoration: _inputDecoration("Email"),
+                            ),
+                            SizedBox(height: 15),
+                            TextFormField(
+                              obscureText: true,
+                              controller: _passwordController,
+                              style: TextStyle(color: Colors.black),
+                              decoration: _inputDecoration("Password"),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => SignUpScreen()),
+                                    );
+                                  },
+                                  child: Text("Daftar",
+                                      style: TextStyle(color: Colors.green)),
+                                ),
+                                TextButton(
+                                  onPressed: () {},
+                                  child: Text("Lupa Password",
+                                      style: TextStyle(color: Colors.black)),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                shape: StadiumBorder(),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 40, vertical: 12),
+                              ),
+                              child: Text(
+                                "MASUK",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 10),
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: _inputDecoration("Email"),
-                      ),
-                      SizedBox(height: 15),
-                      TextFormField(
-                        obscureText: true,
-                        controller: _passwordController,
-                        decoration: _inputDecoration("Password"),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {},
-                          child: Text("Lupa Password",
-                              style: TextStyle(color: Colors.black)),
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            try {
-                              final session =
-                                  await account.createEmailPasswordSession(
-                                email: _emailController.text.trim(),
-                                password: _passwordController.text.trim(),
-                              );
-
-                              Navigator.pushReplacementNamed(context, '/home');
-                              ;
-                            } on AppwriteException catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Login gagal: ${e.message}')),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            shape: StadiumBorder(),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 40, vertical: 12),
-                          ),
-                          child: Text("LOGIN",
-                              style: TextStyle(color: Colors.white)),
-                        ),
-                      ),
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => SignUpScreen()),
-                            );
-                          },
-                          child: Text("Sign up",
-                              style: TextStyle(color: Colors.black)),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
