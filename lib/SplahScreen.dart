@@ -210,7 +210,24 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                             SizedBox(height: 10),
                             ElevatedButton(
-                              onPressed: _login,
+                              onPressed: () async {
+                                try {
+                                  final session =
+                                      await account.createEmailPasswordSession(
+                                    email: _emailController.text.trim(),
+                                    password: _passwordController.text.trim(),
+                                  );
+
+                                  Navigator.pushReplacementNamed(
+                                      context, '/home');
+                                } on AppwriteException catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Login gagal: ${e.message}')),
+                                  );
+                                }
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 shape: StadiumBorder(),
