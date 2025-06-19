@@ -20,6 +20,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Databases? databases;
   String? _userName;
   String? _email;
+  int _cartItemCount = 0;
+  Stream<DocumentSnapshot>? _cartStream;
 
   final String profil = '684083800031dfaaecad';
 
@@ -34,9 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
     databases = Databases(client);
 
     _loadProfileData();
+    _initializeCartStream();
   }
 
   List<Map<String, dynamic>> cartItems = [];
+
   Future<void> _saveCartItems() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
     CollectionReference cartCollection =
@@ -48,6 +52,30 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     print('Data keranjang berhasil disimpan ke Firestore');
+  }
+
+  void _initializeCartStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _cartStream = FirebaseFirestore.instance
+          .collection('carts')
+          .doc(user.uid)
+          .snapshots();
+    }
+  }
+
+  int _calculateCartItemCount(List<dynamic>? cartItems) {
+    if (cartItems == null) return 0;
+
+    int totalCount = 0;
+    for (var item in cartItems) {
+      // Asumsi setiap item memiliki field 'quantity' atau 'jumlah'
+      if (item is Map<String, dynamic>) {
+        int quantity = item['quantity'] ?? item['jumlah'] ?? 1;
+        totalCount += quantity;
+      }
+    }
+    return totalCount;
   }
 
   Future<void> _loadProfileData() async {
@@ -82,20 +110,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80),
+        preferredSize: Size.fromHeight(55),
         child: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           title: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Color(0xFF0072BC),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(Icons.restaurant, color: Colors.white),
+                width: 35,
+                height: 35,
+                child: Image.asset('images/logotanpanama.png'),
               ),
               SizedBox(width: 8),
               Text(
@@ -107,45 +131,62 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Spacer(),
-              Stack(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.shopping_bag_outlined,
-                        color: Color(0xFF0072BC), size: 28),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => KeranjangScreen(),
+              // Realtime Cart Icon with Badge
+              StreamBuilder<DocumentSnapshot>(
+                stream: _cartStream,
+                builder: (context, snapshot) {
+                  int cartCount = 0;
+
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    Map<String, dynamic>? data =
+                        snapshot.data!.data() as Map<String, dynamic>?;
+                    if (data != null && data.containsKey('cartItems')) {
+                      cartCount = _calculateCartItemCount(data['cartItems']);
+                    }
+                  }
+
+                  return Stack(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.shopping_bag_rounded,
+                            color: Color(0xFF0072BC), size: 28),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => KeranjangScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      if (cartCount > 0) // Hanya tampilkan badge jika ada item
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              cartCount > 99 ? '99+' : cartCount.toString(),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '2',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -272,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            SizedBox(height: 20), // Reduced space since no bottom navigation
+            SizedBox(height: 20),
           ],
         ),
       ),
@@ -295,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Icon(icon, color: Colors.white, size: 30),
           ),
-          SizedBox(height: 8),
+          SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(

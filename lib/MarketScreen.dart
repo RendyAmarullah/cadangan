@@ -206,8 +206,8 @@ class _MarketScreenState extends State<MarketScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(60),
         child: AppBar(
           backgroundColor: Colors.blue,
           elevation: 0,
@@ -247,7 +247,8 @@ class _MarketScreenState extends State<MarketScreen> {
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
-                  String imageUrl = getImageUrl(products[index]['productImageUrl']);
+                  String imageUrl =
+                      getImageUrl(products[index]['productImageUrl']);
 
                   return GestureDetector(
                     onTap: () {
@@ -281,7 +282,8 @@ class _MarketScreenState extends State<MarketScreen> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
                             child: Text(
                               'Rp ${products[index]['price']}',
                               style: TextStyle(
@@ -318,12 +320,12 @@ class _MarketScreenState extends State<MarketScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TambahBarangScreen(),
+              builder: (context) => KeranjangScreen(),
             ),
           );
         },
         child: Icon(Icons.shopping_cart),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(0xFF0072BC),
       ),
     );
   }

@@ -111,7 +111,6 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
     }
   }
 
-  
   Future<void> _deleteCartItem(int index) async {
     try {
       final docs = await _databases.listDocuments(
@@ -145,9 +144,9 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90),
+        preferredSize: Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: Colors.blue,
+          backgroundColor: Color(0xFF0072BC),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
@@ -201,9 +200,10 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                         Container(
                           width: 100,
                           height: 100,
-                          
                           child: imageUrl.isNotEmpty
-                              ? ClipOval(child: Image.network(imageUrl, fit: BoxFit.cover))
+                              ? ClipOval(
+                                  child: Image.network(imageUrl,
+                                      fit: BoxFit.cover))
                               : Center(
                                   child:
                                       Icon(Icons.image, color: Colors.white)),
@@ -213,7 +213,9 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(height: 8,),
+                              SizedBox(
+                                height: 8,
+                              ),
                               Text(
                                 cartItems[index]['name'] ?? 'Produk',
                                 style: TextStyle(
@@ -222,23 +224,25 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                 ),
                               ),
                               SizedBox(height: 4),
-                              Text('Rp ${cartItems[index]['price'] ?? '-'}',style: TextStyle(color: Colors.green)),
+                              Text('Rp ${cartItems[index]['price'] ?? '-'}',
+                                  style: TextStyle(color: Color(0xFF8DC63F))),
                               SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon: Container( padding: EdgeInsets.all(1),  
-                                        decoration: BoxDecoration(
-                                          color: Colors.green,  
-                                           borderRadius: BorderRadius.zero,
-                                        ),
-                                        child: Icon(
-                                          Icons.remove,
-                                          color: Colors.white,  // Icon color (white in this case)
-                                        ),
-                                        
-                                        ),
+                                    icon: Container(
+                                      padding: EdgeInsets.all(1),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF8DC63F),
+                                        borderRadius: BorderRadius.zero,
+                                      ),
+                                      child: Icon(
+                                        Icons.remove,
+                                        color: Colors
+                                            .white, // Icon color (white in this case)
+                                      ),
+                                    ),
                                     onPressed: () {
                                       if (quantity > 0) {
                                         _updateCartItemQuantity(
@@ -248,17 +252,18 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                   ),
                                   Text(quantity.toString()),
                                   IconButton(
-                                    icon: Container( padding: EdgeInsets.all(1),  
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue,  
-                                           borderRadius: BorderRadius.zero,
-                                        ),
-                                        child: Icon(
-                                          Icons.add,
-                                          color: Colors.white,  // Icon color (white in this case)
-                                        ),
-                                        
-                                        ),
+                                    icon: Container(
+                                      padding: EdgeInsets.all(1),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue,
+                                        borderRadius: BorderRadius.zero,
+                                      ),
+                                      child: Icon(
+                                        Icons.add,
+                                        color: Colors
+                                            .white, // Icon color (white in this case)
+                                      ),
+                                    ),
                                     onPressed: () {
                                       _updateCartItemQuantity(
                                           index, quantity + 1);
@@ -289,7 +294,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
           },
           child: Text('Checkout'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green, // Checkout button color
+            backgroundColor: Color(0xFF8DC63F), // Checkout button color
             padding: EdgeInsets.symmetric(vertical: 15),
           ),
         ),

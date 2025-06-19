@@ -7,12 +7,9 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/AlamatScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
-import 'package:pemesanan/AkunScreen.dart';  // Import AkunScreen
+import 'package:pemesanan/AkunScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
 import 'package:geolocator/geolocator.dart';
-
-
-
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -27,12 +24,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   String? _profileImageUrl;
   String? _userName;
+  String? _userEmail;
   models.Session? _session;
   models.User? _currentUser;
   String? _userLocation;
+  bool _isLoading = true;
 
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String collectionId = '681aa352000e7e9b76b5';
+  final String usersCollectionId = '684083800031dfaaecad';
   final String bucketId = '681aa16f003054da8969';
   final String projectId = '681aa0b70002469fc157';
 
@@ -54,7 +54,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -72,32 +73,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final inputFile = InputFile.fromPath(path: _imageFile!.path);
 
-      // Upload the image to Appwrite
       final result = await _storage.createFile(
         bucketId: bucketId,
         file: inputFile,
         fileId: fileId,
       );
 
-      // Construct the URL to view the uploaded image
       final fileViewUrl =
           'https://fra.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${result.$id}/view?project=$projectId';
 
-      // Update profile image URL in the UI
       setState(() {
-        _profileImageUrl = fileViewUrl;  // Update the profile image URL directly
+        _profileImageUrl = fileViewUrl;
       });
 
-      // Save the image URL to the database
       await _saveProfileImage(result.$id);
-
     } catch (e) {
       print('Error uploading image: $e');
     }
   }
 
   Future<void> _saveProfileImage(String fileId) async {
-    final user = await _account.get();  // Get current user info
+    final user = await _account.get();
     if (user != null) {
       try {
         final document = await _databases.getDocument(
@@ -106,7 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           documentId: user.$id,
         );
 
-        // Update the document with the new profile image ID
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: collectionId,
@@ -131,18 +126,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfileData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
+      print("🔄 Starting to load profile data...");
+
       // Get the current session
-      _session = await _account.getSession(sessionId: 'current');
-      _currentUser = await _account.get();
+      try {
+        _session = await _account.getSession(sessionId: 'current');
+        print("✅ Session loaded successfully");
+      } catch (e) {
+        print("❌ Error loading session: $e");
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Get current user
+      try {
+        _currentUser = await _account.get();
+        print("✅ Current user loaded: ${_currentUser?.$id}");
+        print("📧 User email: ${_currentUser?.email}");
+        print("👤 User name from auth: ${_currentUser?.name}");
+
+        // Set email and name from auth as fallback
+        setState(() {
+          _userEmail = _currentUser?.email;
+          if (_currentUser?.name != null && _currentUser!.name.isNotEmpty) {
+            _userName = _currentUser!.name;
+          }
+        });
+      } catch (e) {
+        print("❌ Error loading current user: $e");
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
       final userId = _currentUser?.$id;
       if (userId != null) {
+        // Try to load profile image
         try {
-          // Fetch the profile data (image) from the current collection
+          print(
+              "🖼️ Trying to load profile image from collection: $collectionId");
           final profileDoc = await _databases.getDocument(
             databaseId: databaseId,
-            collectionId: collectionId, // This collection contains the profile image
+            collectionId: collectionId,
             documentId: userId,
           );
 
@@ -151,75 +184,131 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final fileViewUrl =
                 'https://fra.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/$profileImageId/view?project=$projectId';
             setState(() {
-              _profileImageUrl = fileViewUrl;  // Update profile image
+              _profileImageUrl = fileViewUrl;
             });
+            print("✅ Profile image loaded successfully");
+          } else {
+            print("ℹ️ No profile image found in document");
           }
+        } catch (e) {
+          print("❌ Error loading profile image: $e");
+          // Create empty profile document if it doesn't exist
+          if (e.toString().contains('document_not_found')) {
+            try {
+              await _databases.createDocument(
+                databaseId: databaseId,
+                collectionId: collectionId,
+                documentId: userId,
+                data: {'profile_image': null},
+              );
+              print("✅ Created empty profile document");
+            } catch (createError) {
+              print("❌ Error creating profile document: $createError");
+            }
+          }
+        }
 
-          // Fetch the name from a different collection (usersCollectionId)
+        // Try to load user name from users collection
+        try {
+          print(
+              "👤 Trying to load user name from collection: $usersCollectionId");
           final userNameDoc = await _databases.getDocument(
             databaseId: databaseId,
-            collectionId: '684083800031dfaaecad', // Different collection for user name
+            collectionId: usersCollectionId,
             documentId: userId,
           );
 
           final name = userNameDoc.data['name'];
-          if (name != null) {
+          if (name != null && name.toString().isNotEmpty) {
             setState(() {
-              _userName = name;  // Update name directly
+              _userName = name.toString();
             });
+            print("✅ User name loaded from database: $name");
+          } else {
+            print("ℹ️ Name field is empty in users collection");
           }
         } catch (e) {
-          print('Error loading profile data: $e');
+          print("❌ Error loading user name from database: $e");
+
+          // If document doesn't exist, try to create it with data from auth
+          if (e.toString().contains('document_not_found')) {
+            try {
+              final userData = {
+                'name': _currentUser?.name ??
+                    _currentUser?.email?.split('@')[0] ??
+                    'User',
+                'email': _currentUser?.email ?? '',
+                'userId': userId,
+              };
+
+              await _databases.createDocument(
+                databaseId: databaseId,
+                collectionId: usersCollectionId,
+                documentId: userId,
+                data: userData,
+              );
+
+              setState(() {
+                _userName = userData['name'];
+              });
+
+              print("✅ Created user document with name: ${userData['name']}");
+            } catch (createError) {
+              print("❌ Error creating user document: $createError");
+            }
+          }
         }
       }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      print("🎉 Profile data loading completed");
+      print("Final state - Name: $_userName, Email: $_userEmail");
     } catch (e) {
-      print('Error loading session or current user: $e');
+      print('❌ General error loading profile data: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   Future<void> _getUserLocation() async {
-  bool serviceEnabled;
-  LocationPermission permission;
+    bool serviceEnabled;
+    LocationPermission permission;
 
-  // Cek apakah service lokasi diaktifkan
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    // Jika layanan lokasi tidak diaktifkan
-    print('Location services are disabled.');
-    return;
-  }
-
-  // Memeriksa apakah pengguna memberikan izin lokasi
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      print('Location permission is denied');
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      print('Location services are disabled.');
       return;
     }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        print('Location permission is denied');
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      print(
+          'Location permission is permanently denied, we cannot request permissions.');
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
+
+    setState(() {
+      _userLocation =
+          'Latitude: ${position.latitude}, Longitude: ${position.longitude}';
+    });
   }
-
-  if (permission == LocationPermission.deniedForever) {
-    // Jika izin lokasi ditolak secara permanen
-    print('Location permission is permanently denied, we cannot request permissions.');
-    return;
-  }
-
-  // Mendapatkan posisi pengguna
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high);
-
-  // Cetak lokasi pengguna (latitude dan longitude)
-  print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
-
-  // Anda dapat memperbarui UI dengan lokasi yang didapat
-  setState(() {
-    // Misalnya, tampilkan latitude dan longitude dalam teks
-    _userLocation = 'Latitude: ${position.latitude}, Longitude: ${position.longitude}';
-  });
-}
-
-
 
   Future<void> _refreshData() async {
     await _loadProfileData();
@@ -229,9 +318,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90),
+        preferredSize: Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: Colors.blue,
+          backgroundColor: Color(0xFF0072BC),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
@@ -256,113 +345,133 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshData, // Function to call when the user pulls to refresh
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: ListView(
-            children: [
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 60,
-                    child: _profileImageUrl != null
-                        ? CircleAvatar(radius: 60, backgroundImage: NetworkImage(_profileImageUrl!))
-                        : const CircleAvatar(radius: 60, child: Icon(Icons.person)),
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              Center(
-                child: Text(
-                  _userName ?? 'Guest',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(4.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black, width: 2.0),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+        onRefresh: _refreshData,
+        child: _isLoading
+            ? Center(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Memuat data profil...'),
+                  ],
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: ListView(
+                  children: [
+                    Center(
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: CircleAvatar(
+                          radius: 60,
+                          child: _profileImageUrl != null
+                              ? CircleAvatar(
+                                  radius: 60,
+                                  backgroundImage:
+                                      NetworkImage(_profileImageUrl!))
+                              : const CircleAvatar(
+                                  radius: 60, child: Icon(Icons.person)),
+                        ),
+                      ),
+                    ),
                     SizedBox(height: 10),
-            
-                    _buildMenuItem('Alamat Tersimpan', onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AlamatScreen()),
-                      );
-                    }),
-                  //   ElevatedButton(
-                  //   onPressed: _getUserLocation,
-                  //   style: ElevatedButton.styleFrom(
-                  //     backgroundColor: Colors.blue,
-                  //     shape: StadiumBorder(),
-                  //     padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  //   ),
-                  //   child: Text("Ambil Lokasi Saya", style: TextStyle(color: Colors.white)),
-                  // ),
-
-                    Divider(color: Colors.black, indent: 15, endIndent: 15),
-                    _buildMenuItem('Akun Saya', onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AkunScreen()),
-                      );
-                    }),
-                    Divider(color: Colors.black, indent: 15, endIndent: 15),
-                    _buildMenuItem('pesanan', onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AkunScreen()),
-                      );
-                    }),
-                    
-                    Divider(color: Colors.black, indent: 15, endIndent: 15),
+                    Center(
+                      child: Text(
+                        _userName ??
+                            _currentUser?.name ??
+                            _userEmail?.split('@')[0] ??
+                            'Guest',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(4.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black, width: 2.0),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(height: 10),
+                          _buildMenuItem('Alamat Tersimpan', onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => AlamatScreen()),
+                            );
+                          }),
+                          Divider(
+                              color: Colors.black, indent: 15, endIndent: 15),
+                          _buildMenuItem('Akun Saya', onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => AkunScreen()),
+                            );
+                          }),
+                          Divider(
+                              color: Colors.black, indent: 15, endIndent: 15),
+                          _buildMenuItem('Pesanan', onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => AkunScreen()),
+                            );
+                          }),
+                          Divider(
+                              color: Colors.black, indent: 15, endIndent: 15),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Butuh Bantuan?',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    SizedBox(height: 10),
+                    ListTile(
+                      leading: FaIcon(FontAwesomeIcons.whatsapp,
+                          color: Color(0xFF8DC63F)),
+                      title: Text('For Customer Service (chat only)'),
+                      subtitle: Text('0831 - 8274 - 2991'),
+                      trailing: Icon(Icons.arrow_forward_ios),
+                      onTap: () {},
+                    ),
+                    SizedBox(height: 30),
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          await _account.deleteSession(sessionId: 'current');
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => SplashScreen()),
+                          );
+                        } catch (e) {
+                          print('Logout failed: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('Failed to logout, try again.')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0072BC),
+                        shape: StadiumBorder(),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      ),
+                      child:
+                          Text("KELUAR", style: TextStyle(color: Colors.white)),
+                    ),
                   ],
                 ),
               ),
-              SizedBox(height: 10),
-              Text(
-                'Butuh Bantuan?',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 10),
-              ListTile(
-                leading: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
-                title: Text('For Customer Service (chat only)'),
-                subtitle: Text('0831 - 8274 - 2991'),
-                trailing: Icon(Icons.arrow_forward_ios),
-                onTap: () {},
-              ),
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () async {
-                  try {
-                    await _account.deleteSession(sessionId: 'current');
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => SplashScreen()),
-                    );
-                  } catch (e) {
-                    print('Logout failed: $e');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to logout, try again.')),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: StadiumBorder(),
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                ),
-                child: Text("KELUAR", style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
