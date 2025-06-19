@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
+import 'package:pemesanan/HomeScreenKaryawan.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'appwrite_service.dart';
@@ -67,28 +68,52 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _login() async {
-    try {
-      await AppwriteService.account.deleteSession(sessionId: 'current');
+ void _login() async {
+  try {
+    await AppwriteService.account.deleteSession(sessionId: 'current');
 
-      await AppwriteService.account.createEmailPasswordSession(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+    await AppwriteService.account.createEmailPasswordSession(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    final user = await AppwriteService.account.get();
+    print("Login berhasil: ${user.email}");
+
+    
+    final userId = user.$id;
+    final response = await database.getDocument(
+      databaseId: databaseId,
+      collectionId: collectionId,
+      documentId: userId,
+    );
+
+   
+    print("Response data: ${response.data}"); 
+    final roles = List<String>.from(response.data['roles'] ?? []);
+    print("Roles pengguna: $roles"); 
+
+    if (roles.contains('karyawan')) {
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreenKaryawan()),
       );
-
-      final user = await AppwriteService.account.get();
-      print("Login berhasil: ${user.email}");
-
+    } else {
+      
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
-    } on AppwriteException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login gagal: ${e.message}')),
-      );
     }
+  } on AppwriteException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Login gagal: ${e.message}')),
+    );
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -209,38 +234,56 @@ class _SplashScreenState extends State<SplashScreen>
                               ],
                             ),
                             SizedBox(height: 10),
-                            ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  final session =
-                                      await account.createEmailPasswordSession(
-                                    email: _emailController.text.trim(),
-                                    password: _passwordController.text.trim(),
-                                  );
+                           ElevatedButton(
+  onPressed: () async {
+    
+    try {
+      final session = await account.createEmailPasswordSession(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-                                  Navigator.pushReplacementNamed(
-                                      context, '/home');
-                                } on AppwriteException catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content:
-                                            Text('Login gagal: ${e.message}')),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                shape: StadiumBorder(),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 40, vertical: 12),
-                              ),
-                              child: Text(
-                                "MASUK",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+    
+      final user = await account.get();
+      final userId = user.$id;
+
+      
+      final Databases databases = Databases(client);
+      final response = await databases!.getDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: '684083800031dfaaecad', 
+        documentId: userId,
+      );
+
+      final roles = List<String>.from(response.data['roles'] ?? []);
+
+      
+      if (roles.contains('karyawan')) {
+       
+        Navigator.pushReplacementNamed(context, '/home_karyawan');
+      } else {
+        
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on AppwriteException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login gagal: ${e.message}')),
+      );
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.blue,
+    shape: StadiumBorder(),
+    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+  ),
+  child: Text(
+    "MASUK",
+    style: TextStyle(
+      color: Colors.white,
+    ),
+  ),
+),
+
                           ],
                         ),
                       ),

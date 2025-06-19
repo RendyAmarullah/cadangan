@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:pemesanan/HomeScreenKaryawan.dart';
 import 'package:pemesanan/ProfilScreen.dart';
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
+import 'package:pemesanan/StatusPesananScreen.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Appwrite config
+
 Client client = Client()
   ..setEndpoint('https://cloud.appwrite.io/v1')
   ..setProject('681aa0b70002469fc157')
   ..setSelfSigned(status: true);
 Account account = Account(client);
-
+final Databases databases = Databases(client);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -25,16 +28,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aplikasi Pemesanan',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primaryColor: Color(0xFF8DC63F)),
-      home: AuthWrapper(),
-      routes: {
-        '/signup': (context) => SignUpScreen(),
-        '/signin': (context) => SplashScreen(),
-        '/home': (context) => HomeScreen(),
-      },
+    title: 'Aplikasi Pemesanan',
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData(primaryColor: Color(0xFF8DC63F)),
+    home: AuthWrapper(),
+    routes: {
+      '/signup': (context) => SignUpScreen(),
+      '/signin': (context) => SplashScreen(),
+      '/home': (context) => HomeScreen(),
+      '/home_karyawan': (context) => HomeScreenKaryawan(),
+    },
     );
+
   }
 }
 
@@ -44,31 +49,93 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  Future<models.User?> checkLoginStatus() async {
-    try {
-      final user = await account.get();
-      return user;
-    } catch (e) {
-      return null;
-    }
+  @override
+  void initState() {
+    super.initState();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<models.User?>(
-      future: checkLoginStatus(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
-        } else if (snapshot.hasData) {
-          return MainScreen(userId: snapshot.data!.$id);
-        } else {
-          return SplashScreen();
-        }
-      },
-    );
+  
+  Future<models.User?> checkLoginStatus() async {
+  try {
+    final session = await account.getSession(sessionId: 'current');  // Check if there's an active session
+    if (session != null) {
+      final user = await account.get();
+      final userId = user.$id;
+
+      // Save the userId in SharedPreferences to persist login state
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', userId);  // Save the userId for future use
+
+      // Get roles from the database for the user
+      final response = await databases.getDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: '684083800031dfaaecad',
+        documentId: userId,
+      );
+
+      final roles = List<String>.from(response.data['roles'] ?? []);
+      if (roles.contains('karyawan')) {
+        return user;  // If user has 'karyawan' role, return user data
+      }
+      else
+      {
+        return user;
+      }
+    }
+    return null;  // If no session or no "karyawan" role, return null (not logged in)
+  } catch (e) {
+    print('Error checking login status: $e');
+    return null;
   }
 }
+
+   @override
+Widget build(BuildContext context) {
+  return FutureBuilder<models.User?>(
+    future: checkLoginStatus(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Scaffold(body: Center(child: CircularProgressIndicator())); // Show loading while checking
+      } else if (snapshot.hasData) {
+        final user = snapshot.data!;
+        
+        // Menunggu sesaat dan kemudian memeriksa role untuk navigasi yang sesuai
+        Future.delayed(Duration.zero, () async {
+          // Periksa roles user setelah login
+          final response = await databases.getDocument(
+            databaseId: '681aa33a0023a8c7eb1f',
+            collectionId: '684083800031dfaaecad',
+            documentId: user.$id,
+          );
+
+          final roles = List<String>.from(response.data['roles'] ?? []);
+          
+          // Jika user memiliki role 'karyawan', arahkan ke MainScreenKaryawan
+          if (roles.contains('karyawan')) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainScreenKaryawan(userId: user.$id)),
+            );
+          } else {
+            // Jika bukan 'karyawan', arahkan ke MainScreen untuk user biasa
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainScreen(userId: user.$id)),
+            );
+          }
+        });
+
+        return Scaffold(body: Center(child: CircularProgressIndicator())); // Temporary loading state after navigation
+      } else {
+        return SplashScreen();  // User is not logged in, show splash screen
+      }
+    },
+  );
+}
+}
+
+
+
 
 class MainScreen extends StatefulWidget {
   final String userId;
@@ -89,14 +156,21 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // Initialize widget options first
-    _widgetOptions = <Widget>[
-      HomeScreen(),
-      RiwayatTransaksiScreen(userId: widget.userId),
-      ProfileScreen(),
-    ];
-
-    // Initialize animation controllers for each nav item
+    
+     if (widget.userId == 'karyawan') {
+      _widgetOptions = <Widget>[
+        HomeScreenKaryawan(),
+        StatusPesanaScreen(orderId: 'orderId'), // Anda bisa mengganti 'orderId' dengan nilai dinamis
+        ProfileScreen(),
+      ];
+    } else {
+      _widgetOptions = <Widget>[
+        HomeScreen(),
+        RiwayatTransaksiScreen(userId: widget.userId),
+        ProfileScreen(),
+      ];
+    }
+  
     _animationControllers = List.generate(
       3,
       (index) => AnimationController(
@@ -105,14 +179,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       ),
     );
 
-    // Initialize animations
+   
     _animations = _animationControllers.map((controller) {
       return Tween<double>(begin: 0.0, end: -15.0).animate(
         CurvedAnimation(parent: controller, curve: Curves.easeInOut),
       );
     }).toList();
 
-    // Animate the first item by default
+   
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _animationControllers[0].forward();
@@ -132,22 +206,29 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
         children: _widgetOptions,
       ),
-      bottomNavigationBar: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Color(0xFF8DC63F),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-        ),
+      bottomNavigationBar: widget.userId == 'karyawan' 
+          ? CustomElevatedBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onItemTapped,
+              animationControllers: _animationControllers,
+              animations: _animations,
+            ) 
+          : Container( // Default navbar if not 'karyawan'
+              height: 60,
+              decoration: BoxDecoration(
+                color: Color(0xFF8DC63F),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+              ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -217,7 +298,158 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     }
   }
 }
+class MainScreenKaryawan extends StatefulWidget {
+  final String userId;
 
+  MainScreenKaryawan({required this.userId});
+
+  @override
+  _MainScreenKaryawanState createState() => _MainScreenKaryawanState();
+}
+class _MainScreenKaryawanState extends State<MainScreenKaryawan> with TickerProviderStateMixin {
+  int _selectedIndex = 0;
+  late List<AnimationController> _animationControllers;
+  late List<Animation<double>> _animations;
+  late List<Widget> _widgetOptions;
+
+  @override
+  void initState() {
+    super.initState();
+
+    
+     _widgetOptions = <Widget>[
+      HomeScreenKaryawan() ,
+      StatusPesanaScreen(orderId: 'orderId'),
+      ProfileScreen(),
+    ];
+  
+    _animationControllers = List.generate(
+      3,
+      (index) => AnimationController(
+        duration: Duration(milliseconds: 200),
+        vsync: this,
+      ),
+    );
+
+   
+    _animations = _animationControllers.map((controller) {
+      return Tween<double>(begin: 0.0, end: -15.0).animate(
+        CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+      );
+    }).toList();
+
+   
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _animationControllers[0].forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose animation controllers properly
+    for (var controller in _animationControllers) {
+      if (controller.isAnimating) {
+        controller.stop();
+      }
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+    @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _widgetOptions,
+      ),
+      bottomNavigationBar: widget.userId == 'karyawan' 
+          ? CustomElevatedBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onItemTapped,
+              animationControllers: _animationControllers,
+              animations: _animations,
+            ) 
+          : Container( // Default navbar if not 'karyawan'
+              height: 60,
+              decoration: BoxDecoration(
+                color: Color(0xFF8DC63F),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+              ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildAnimatedNavItem(0, Icons.home),
+            _buildAnimatedNavItem(1, Icons.receipt_long),
+            _buildAnimatedNavItem(2, Icons.person),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedNavItem(int index, IconData icon) {
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      child: AnimatedBuilder(
+        animation: _animations[index],
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _animations[index].value),
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color:
+                    _selectedIndex == index ? Colors.white : Colors.transparent,
+                boxShadow: _selectedIndex == index
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                icon,
+                color:
+                    _selectedIndex == index ? Color(0xFF8DC63F) : Colors.white,
+                size: 28,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _onItemTapped(int index) {
+    if (_selectedIndex != index && mounted) {
+      // Reset previous animation safely
+      if (_animationControllers[_selectedIndex].isAnimating) {
+        _animationControllers[_selectedIndex].stop();
+      }
+      _animationControllers[_selectedIndex].reverse();
+
+      setState(() {
+        _selectedIndex = index;
+      });
+
+      // Start new animation safely
+      if (mounted) {
+        _animationControllers[index].forward();
+      }
+    }
+  }
+}
 // Alternative Custom Bottom Navigation Bar Widget
 class CustomElevatedBottomNavBar extends StatelessWidget {
   final int selectedIndex;
