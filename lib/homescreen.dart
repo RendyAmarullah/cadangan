@@ -36,39 +36,26 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProfileData();
   }
 
-  @override
-  void dispose() {
-    // Dispose resources to prevent memory leaks
-    super.dispose();
-  }
-
   List<Map<String, dynamic>> cartItems = [];
-
   Future<void> _saveCartItems() async {
-    try {
-      String userId = FirebaseAuth.instance.currentUser!.uid;
-      CollectionReference cartCollection =
-          FirebaseFirestore.instance.collection('carts');
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    CollectionReference cartCollection =
+        FirebaseFirestore.instance.collection('carts');
 
-      await cartCollection.doc(userId).set({
-        'cartItems': cartItems,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+    await cartCollection.doc(userId).set({
+      'cartItems': cartItems,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
 
-      print('Data keranjang berhasil disimpan ke Firestore');
-    } catch (e) {
-      print('Error saving cart items: $e');
-    }
+    print('Data keranjang berhasil disimpan ke Firestore');
   }
 
   Future<void> _loadProfileData() async {
     try {
       final user = await account!.get();
-      if (mounted) {
-        setState(() {
-          _email = user.email;
-        });
-      }
+      setState(() {
+        _email = user.email;
+      });
       print('User loaded: ${user.name} - ${user.email}');
 
       String userId = user.$id;
@@ -77,19 +64,12 @@ class _HomeScreenState extends State<HomeScreen> {
         collectionId: profil,
         documentId: userId,
       );
-      if (mounted) {
-        setState(() {
-          _userName = profileDoc.data['name'] ?? 'No name';
-        });
-      }
+      setState(() {
+        _userName = profileDoc.data['name'] ?? 'No name';
+      });
       print('Nama pengguna: ${profileDoc.data['name']}');
     } catch (e) {
       print('Failed to load user profile: $e');
-      if (mounted) {
-        setState(() {
-          _userName = 'Guest';
-        });
-      }
     }
   }
 
@@ -118,15 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Icon(Icons.restaurant, color: Colors.white),
               ),
               SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '안녕하세요, ${_userName ?? 'Guest'}',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                '안녕하세요, ${_userName ?? 'Guest'}',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
               Spacer(),
@@ -177,7 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _refreshData,
         child: ListView(
-          padding: EdgeInsets.only(bottom: 20),
           children: [
             // Banner section
             Container(
@@ -295,6 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+
+            SizedBox(height: 20), // Reduced space since no bottom navigation
           ],
         ),
       ),
