@@ -5,6 +5,7 @@ import 'package:pemesanan/ProfilScreen.dart';
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
+import 'package:pemesanan/StatusPesananKaryawan.dart';
 import 'package:pemesanan/StatusPesananScreen.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:appwrite/appwrite.dart';
@@ -160,7 +161,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
      if (widget.userId == 'karyawan') {
       _widgetOptions = <Widget>[
         HomeScreenKaryawan(),
-        StatusPesanaScreen(orderId: 'orderId'), // Anda bisa mengganti 'orderId' dengan nilai dinamis
+        StatusPesanaScreen(orderId: 'orderId'),
         ProfileScreen(),
       ];
     } else {
@@ -319,7 +320,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan> with TickerProv
     
      _widgetOptions = <Widget>[
       HomeScreenKaryawan() ,
-      StatusPesanaScreen(orderId: 'orderId'),
+      StatusPesananKaryawanScreen(userId: widget.userId),
       ProfileScreen(),
     ];
   

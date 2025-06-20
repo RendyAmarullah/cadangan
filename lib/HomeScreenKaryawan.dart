@@ -1,13 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pemesanan/BunsikScreen.dart';
-import 'package:pemesanan/KeranjangScreen.dart';
-import 'package:pemesanan/MarketScreen.dart';
-import 'package:pemesanan/MinumanScreen.dart';
-import 'package:pemesanan/NonHalalScreen.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
+import 'dart:convert';
 
 class HomeScreenKaryawan extends StatefulWidget {
   @override
@@ -20,73 +14,65 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   Databases? databases;
   String? _userName;
   String? _email;
-  int _cartItemCount = 0;
-  Stream<DocumentSnapshot>? _cartStream;
-
+  List<Map<String, dynamic>> _orders = [];
   final String profil = '684083800031dfaaecad';
+  final String ordersCollectionId = '684b33e80033b767b024';
+  String userId = '';  // Variable to store userId
 
   @override
   void initState() {
     super.initState();
-    client
-        .setEndpoint('https://cloud.appwrite.io/v1')
-        .setProject('681aa0b70002469fc157');
-
+    client.setEndpoint('https://cloud.appwrite.io/v1').setProject('681aa0b70002469fc157');
     account = Account(client);
     databases = Databases(client);
-
     _loadProfileData();
-    _initializeCartStream();
+    _loadOrders();
   }
 
-  List<Map<String, dynamic>> cartItems = [];
+  // Function to load orders with 'pending' status
+  Future<void> _loadOrders() async {
+    try {
+      final response = await databases!.listDocuments(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: ordersCollectionId,
+        queries: [
+           // Use userId here
+          Query.equal('status', 'pending'), // Only fetch orders with 'pending' status
+        ],
+      );
 
-  Future<void> _saveCartItems() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    CollectionReference cartCollection =
-        FirebaseFirestore.instance.collection('carts');
+      setState(() {
+        _orders = response.documents.map((doc) {
+          List<dynamic> products = [];
+          if (doc.data['produk'] is String) {
+            products = jsonDecode(doc.data['produk']);
+          } else if (doc.data['produk'] is List) {
+            products = doc.data['produk'];
+          }
 
-    await cartCollection.doc(userId).set({
-      'cartItems': cartItems,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    print('Data keranjang berhasil disimpan ke Firestore');
-  }
-
-  void _initializeCartStream() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _cartStream = FirebaseFirestore.instance
-          .collection('carts')
-          .doc(user.uid)
-          .snapshots();
+          return {
+            'userId': doc.data['userId'],
+            'alamat': doc.data['alamat'],
+            'produk': products,
+            'metodePembayaran': doc.data['metodePembayaran'],
+            'total': doc.data['total'],
+            'orderId': doc.$id,
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Gagal mengambil data pesanan: $e');
     }
   }
 
-  int _calculateCartItemCount(List<dynamic>? cartItems) {
-    if (cartItems == null) return 0;
-
-    int totalCount = 0;
-    for (var item in cartItems) {
-      // Asumsi setiap item memiliki field 'quantity' atau 'jumlah'
-      if (item is Map<String, dynamic>) {
-        int quantity = item['quantity'] ?? item['jumlah'] ?? 1;
-        totalCount += quantity;
-      }
-    }
-    return totalCount;
-  }
-
+  // Function to load profile data and get userId
   Future<void> _loadProfileData() async {
     try {
       final user = await account!.get();
       setState(() {
         _email = user.email;
       });
-      print('User loaded: ${user.name} - ${user.email}');
-
-      String userId = user.$id;
+      String userId = user.$id;  // Get userId from account
       final profileDoc = await databases!.getDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: profil,
@@ -94,236 +80,168 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       );
       setState(() {
         _userName = profileDoc.data['name'] ?? 'No name';
+        this.userId = userId;  // Set userId for future reference
       });
-      print('Nama pengguna: ${profileDoc.data['name']}');
     } catch (e) {
       print('Failed to load user profile: $e');
     }
   }
 
-  Future<void> _refreshData() async {
-    await _loadProfileData();
+  // Accept order and save products to 'accepted_orders'
+  Future<void> _acceptOrder(String orderId, int index) async {
+    try {
+      final orderDoc = await databases!.getDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: ordersCollectionId,
+        documentId: orderId,
+      );
+
+      List<dynamic> products = [];
+      if (orderDoc.data['produk'] is String) {
+        products = jsonDecode(orderDoc.data['produk']);
+      } else if (orderDoc.data['produk'] is List) {
+        products = orderDoc.data['produk'];
+      }
+      
+      // Save products to the 'accepted_orders' collection
+      for (var product in products) {
+        await databases!.createDocument(
+          databaseId: '681aa33a0023a8c7eb1f',
+          collectionId: '6854b40600020e4a49aa',
+          documentId: ID.unique(),
+          data: {
+            'userId': userId,  // Use the correct userId
+            'orderId': orderId,
+            'alamat' : orderDoc.data['alamat'],
+            'nama': product['nama'] ?? 'Unknown Product',
+            'jumlah': product['jumlah'] ?? 0,
+            'harga': product['harga'] ?? 0.0,
+            'total': orderDoc.data['total'],
+            'status': 'accepted',
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+        );
+      }
+
+      // Update order status to 'accepted'
+      await databases!.updateDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: ordersCollectionId,
+        documentId: orderId,
+        data: {'status': 'accepted'},
+      );
+
+      // Remove the accepted order from the list and refresh UI
+      setState(() {
+        _orders.removeAt(index);
+      });
+
+      print('Pesanan #$orderId diterima dan produk ditambahkan ke koleksi');
+    } catch (e) {
+      print('Gagal menerima pesanan dan menambahkan produk: $e');
+    }
+  }
+
+  // Reject order and save products to 'rejected_orders'
+  Future<void> _rejectOrder(String orderId, int index) async {
+    try {
+      final orderDoc = await databases!.getDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: ordersCollectionId,
+        documentId: orderId,
+      );
+
+      List<dynamic> products = [];
+      if (orderDoc.data['produk'] is String) {
+        products = jsonDecode(orderDoc.data['produk']);
+      } else if (orderDoc.data['produk'] is List) {
+        products = orderDoc.data['produk'];
+      }
+
+      // Save rejected products to the 'rejected_orders' collection
+      for (var product in products) {
+        await databases!.createDocument(
+          databaseId: '681aa33a0023a8c7eb1f',
+          collectionId: '6854ba6e003bad3da579',
+          documentId: ID.unique(),
+          data: {
+            'orderId': orderId,
+            'nama': product['nama'] ?? 'Unknown Product',
+            'jumlah': product['jumlah'] ?? 0,
+            'harga': product['harga'] ?? 0.0,
+            'status': 'rejected',
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+        );
+      }
+
+      // Update order status to 'rejected'
+      await databases!.updateDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: ordersCollectionId,
+        documentId: orderId,
+        data: {'status': 'rejected'},
+      );
+
+      // Remove the rejected order from the list and refresh UI
+      setState(() {
+        _orders.removeAt(index);
+      });
+
+      print('Pesanan #$orderId ditolak dan produk ditambahkan ke koleksi');
+    } catch (e) {
+      print('Gagal menolak pesanan dan menambahkan produk: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(55),
-        child: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Row(
-            children: [
-              Container(
-                width: 35,
-                height: 35,
-                child: Image.asset('images/logotanpanama.png'),
-              ),
-              SizedBox(width: 8),
-              Text(
-                '안녕하세요, ${_userName ?? 'Guest'}',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Spacer(),
-              // Realtime Cart Icon with Badge
-              StreamBuilder<DocumentSnapshot>(
-                stream: _cartStream,
-                builder: (context, snapshot) {
-                  int cartCount = 0;
+      appBar: AppBar(
+        title: Text('Daftar Pesanan'),
+      ),
+      body: _orders.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _orders.length,
+              itemBuilder: (context, index) {
+                var order = _orders[index];
+                List<dynamic> products = order['produk'];
 
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    Map<String, dynamic>? data =
-                        snapshot.data!.data() as Map<String, dynamic>?;
-                    if (data != null && data.containsKey('cartItems')) {
-                      cartCount = _calculateCartItemCount(data['cartItems']);
-                    }
-                  }
-
-                  return Stack(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.shopping_bag_rounded,
-                            color: Color(0xFF0072BC), size: 28),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => KeranjangScreen(),
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.all(10),
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Alamat: ${order['alamat']}'),
+                        Text('Metode Pembayaran: ${order['metodePembayaran']}'),
+                        Text('Total: ${order['total']}'),
+                        SizedBox(height: 10),
+                        Text('Produk:'),
+                        for (var product in products)
+                          Text('Nama: ${product['nama']}, Jumlah: ${product['jumlah']}'),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton(
+                              onPressed: () => _acceptOrder(order['orderId'], index),
+                              child: Text('Terima', style: TextStyle(color: Colors.green)),
                             ),
-                          );
-                        },
-                      ),
-                      if (cartCount > 0) 
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
+                            TextButton(
+                              onPressed: () => _rejectOrder(order['orderId'], index),
+                              child: Text('Tolak', style: TextStyle(color: Colors.red)),
                             ),
-                            constraints: BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              cartCount > 99 ? '99+' : cartCount.toString(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                          ],
                         ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshData,
-        child: ListView(
-          children: [
-            // Banner section
-            Container(
-              margin: EdgeInsets.all(20),
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Center(
-                child: Text(
-                  'Banner Area',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 16,
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
-
-            // Category icons - First row (4 items)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                 
-                ],
-              ),
-            ),
-
-            SizedBox(height: 20),
-
-            // Category icons - Second row (2 items)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                children: [
-                  
-                ],
-              ),
-            ),
-
-            SizedBox(height: 30),
-
-            // Menu Popular section
-           
-
-            SizedBox(height: 15),
-
-            // Popular menu items
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildMenuItem('Tteokbokki', 'Rp 30.000'),
-                  _buildMenuItem('Kimchi', 'Rp 30.000'),
-                  _buildMenuItem('Jjajangmyeon', 'Rp 42.000'),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIconButton(
-      IconData icon, String label, Color color, VoidCallback onPressed) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white, size: 30),
-          ),
-          SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuItem(String name, String price) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        SizedBox(height: 8),
-        Text(
-          name,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Text(
-          price,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 }

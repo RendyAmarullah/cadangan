@@ -67,6 +67,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             'metodePembayaran': doc.data['metodePembayaran'],
             'alamat': doc.data['alamat'],
             'createdAt': doc.data['createdAt'],
+            'status' : doc.data['status'],
           };
         }).toList();
         _isLoading = false;
@@ -197,7 +198,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         String paymentMethod = order['metodePembayaran'];
         String address = order['alamat'];
         String createdAt = order['createdAt'];
-
+        String status = order['status'];
         return Card(
           margin: EdgeInsets.only(bottom: 12.0),
           elevation: 2,
@@ -364,6 +365,26 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                     Text(
                       _formatCurrency(totalPrice),
+                      style: TextStyle(
+                        color: Color(0xFF8DC63F),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Status Pesanan:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      status,
                       style: TextStyle(
                         color: Color(0xFF8DC63F),
                         fontWeight: FontWeight.bold,

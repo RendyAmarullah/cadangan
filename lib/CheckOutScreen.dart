@@ -419,6 +419,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'metodePembayaran': _metodePembayaran,
         'total': totalPrice2,
         'createdAt': DateTime.now().toUtc().toIso8601String(),
+        'status' : 'menunggu'
       };
 
 
