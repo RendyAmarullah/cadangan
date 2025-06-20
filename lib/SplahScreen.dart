@@ -17,6 +17,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<Offset> _animation;
   bool _showImage = false;
   bool _showForm = false;
+  bool _isLoading = false;
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -48,6 +49,9 @@ class _SplashScreenState extends State<SplashScreen>
       end: Offset(0, 0),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
+    // Check if user is already logged in
+    _checkExistingSession();
+
     Future.delayed(Duration(seconds: 2), () {
       setState(() {
         _showImage = true;
@@ -59,7 +63,56 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkExistingSession() async {
+    try {
+      final user = await account.get();
+      if (user != null) {
+        print("User sudah login: ${user.email}");
+        await _navigateBasedOnRole(user);
+      }
+    } catch (e) {
+      print("Tidak ada session aktif: $e");
+      // Tidak ada session aktif, lanjutkan ke login screen
+    }
+  }
+
+  Future<void> _navigateBasedOnRole(models.User user) async {
+    try {
+      final userId = user.$id;
+      final response = await database.getDocument(
+        databaseId: databaseId,
+        collectionId: collectionId,
+        documentId: userId,
+      );
+
+      print("Response data: ${response.data}");
+      final roles = List<String>.from(response.data['roles'] ?? []);
+      print("Roles pengguna: $roles");
+
+      if (roles.contains('karyawan')) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreenKaryawan()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      }
+    } catch (e) {
+      print("Error getting user role: $e");
+      // Default ke home screen biasa jika error
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+    }
   }
 
   void _toggleForm() {
@@ -68,52 +121,75 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
- void _login() async {
-  try {
-    await AppwriteService.account.deleteSession(sessionId: 'current');
+  Future<void> _login() async {
+    if (_isLoading) return;
 
-    await AppwriteService.account.createEmailPasswordSession(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-
-    final user = await AppwriteService.account.get();
-    print("Login berhasil: ${user.email}");
-
-    
-    final userId = user.$id;
-    final response = await database.getDocument(
-      databaseId: databaseId,
-      collectionId: collectionId,
-      documentId: userId,
-    );
-
-   
-    print("Response data: ${response.data}"); 
-    final roles = List<String>.from(response.data['roles'] ?? []);
-    print("Roles pengguna: $roles"); 
-
-    if (roles.contains('karyawan')) {
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreenKaryawan()),
+    // Validation
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email dan password harus diisi')),
       );
-    } else {
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
+      return;
     }
-  } on AppwriteException catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Login gagal: ${e.message}')),
-    );
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Hapus session yang ada terlebih dahulu
+      try {
+        await account.deleteSession(sessionId: 'current');
+        print("Session lama berhasil dihapus");
+      } catch (e) {
+        print("Tidak ada session aktif untuk dihapus: $e");
+      }
+
+      // Buat session baru
+      final session = await account.createEmailPasswordSession(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      print("Login berhasil, session ID: ${session.$id}");
+
+      // Dapatkan user info
+      final user = await account.get();
+      print("User info: ${user.email}");
+
+      await _navigateBasedOnRole(user);
+    } on AppwriteException catch (e) {
+      print("Login error: ${e.message} (Code: ${e.code})");
+
+      String errorMessage;
+      switch (e.code) {
+        case 401:
+          errorMessage = 'Email atau password salah';
+          break;
+        case 429:
+          errorMessage = 'Terlalu banyak percobaan login. Coba lagi nanti';
+          break;
+        default:
+          errorMessage = 'Login gagal: ${e.message}';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      print("Unexpected error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan tidak terduga')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +197,7 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
       body: GestureDetector(
-        onTap: _toggleForm,
+        onTap: _showForm ? null : _toggleForm,
         child: Stack(
           children: [
             Positioned.fill(
@@ -202,8 +278,10 @@ class _SplashScreenState extends State<SplashScreen>
                             SizedBox(height: 20),
                             TextFormField(
                               controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
                               style: TextStyle(color: Colors.black),
                               decoration: _inputDecoration("Email"),
+                              enabled: !_isLoading,
                             ),
                             SizedBox(height: 15),
                             TextFormField(
@@ -211,79 +289,72 @@ class _SplashScreenState extends State<SplashScreen>
                               controller: _passwordController,
                               style: TextStyle(color: Colors.black),
                               decoration: _inputDecoration("Password"),
+                              enabled: !_isLoading,
+                              onFieldSubmitted: (_) => _login(),
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 TextButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => SignUpScreen()),
-                                    );
-                                  },
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    SignUpScreen()),
+                                          );
+                                        },
                                   child: Text("Daftar",
                                       style: TextStyle(color: Colors.green)),
                                 ),
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () {
+                                          // Implement forgot password
+                                        },
                                   child: Text("Lupa Password",
                                       style: TextStyle(color: Colors.black)),
                                 ),
                               ],
                             ),
                             SizedBox(height: 10),
-                           ElevatedButton(
-  onPressed: () async {
-    
-    try {
-      final session = await account.createEmailPasswordSession(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-    
-      final user = await account.get();
-      final userId = user.$id;
-
-      
-      final Databases databases = Databases(client);
-      final response = await databases!.getDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: '684083800031dfaaecad', 
-        documentId: userId,
-      );
-
-      final roles = List<String>.from(response.data['roles'] ?? []);
-
-      
-      if (roles.contains('karyawan')) {
-       
-        Navigator.pushReplacementNamed(context, '/home_karyawan');
-      } else {
-        
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } on AppwriteException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login gagal: ${e.message}')),
-      );
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blue,
-    shape: StadiumBorder(),
-    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-  ),
-  child: Text(
-    "MASUK",
-    style: TextStyle(
-      color: Colors.white,
-    ),
-  ),
-),
-
+                            ElevatedButton(
+                              onPressed: _isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                shape: StadiumBorder(),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 40, vertical: 12),
+                              ),
+                              child: _isLoading
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      "MASUK",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                            if (_isLoading) ...[
+                              SizedBox(height: 10),
+                              Text(
+                                "Sedang masuk...",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -300,13 +371,17 @@ class _SplashScreenState extends State<SplashScreen>
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.black),
+      hintStyle: TextStyle(color: Colors.black54),
       filled: true,
       fillColor: Colors.grey[300],
       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: Colors.blue, width: 2),
       ),
     );
   }

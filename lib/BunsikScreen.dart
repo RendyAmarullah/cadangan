@@ -144,7 +144,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: PreferredSize(
+      appBar: PreferredSize(
         preferredSize: Size.fromHeight(90),
         child: AppBar(
           backgroundColor: Colors.blue,
@@ -252,7 +252,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TambahMinumanScreen(),
+              builder: (context) => KeranjangScreen(),
             ),
           );
         },

@@ -18,6 +18,7 @@ Client client = Client()
   ..setSelfSigned(status: true);
 Account account = Account(client);
 final Databases databases = Databases(client);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -53,7 +54,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.initState();
   }
 
-  Future<models.User?> checkLoginStatus() async {
+  Future<Map<String, dynamic>?> checkLoginStatus() async {
     try {
       final session = await account.getSession(
           sessionId: 'current'); // Check if there's an active session
@@ -74,13 +75,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
         );
 
         final roles = List<String>.from(response.data['roles'] ?? []);
-        if (roles.contains('karyawan')) {
-          return user; // If user has 'karyawan' role, return user data
-        } else {
-          return user;
-        }
+
+        // Return user data with role information
+        return {'user': user, 'isKaryawan': roles.contains('karyawan')};
       }
-      return null; // If no session or no "karyawan" role, return null (not logged in)
+      return null; // If no session, return null (not logged in)
     } catch (e) {
       print('Error checking login status: $e');
       return null;
@@ -89,7 +88,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<models.User?>(
+    return FutureBuilder<Map<String, dynamic>?>(
       future: checkLoginStatus(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -97,41 +96,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
               body: Center(
                   child:
                       CircularProgressIndicator())); // Show loading while checking
-        } else if (snapshot.hasData) {
-          final user = snapshot.data!;
+        } else if (snapshot.hasData && snapshot.data != null) {
+          final userData = snapshot.data!;
+          final user = userData['user'] as models.User;
+          final isKaryawan = userData['isKaryawan'] as bool;
 
-          // Menunggu sesaat dan kemudian memeriksa role untuk navigasi yang sesuai
-          Future.delayed(Duration.zero, () async {
-            // Periksa roles user setelah login
-            final response = await databases.getDocument(
-              databaseId: '681aa33a0023a8c7eb1f',
-              collectionId: '684083800031dfaaecad',
-              documentId: user.$id,
-            );
-
-            final roles = List<String>.from(response.data['roles'] ?? []);
-
-            // Jika user memiliki role 'karyawan', arahkan ke MainScreenKaryawan
-            if (roles.contains('karyawan')) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => MainScreenKaryawan(userId: user.$id)),
-              );
-            } else {
-              // Jika bukan 'karyawan', arahkan ke MainScreen untuk user biasa
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => MainScreen(userId: user.$id)),
-              );
-            }
-          });
-
-          return Scaffold(
-              body: Center(
-                  child:
-                      CircularProgressIndicator())); // Temporary loading state after navigation
+          // Langsung return MainScreen yang sesuai tanpa navigasi tambahan
+          if (isKaryawan) {
+            return MainScreenKaryawan(userId: user.$id);
+          } else {
+            return MainScreen(userId: user.$id);
+          }
         } else {
           return SplashScreen(); // User is not logged in, show splash screen
         }
@@ -159,19 +134,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    if (widget.userId == 'karyawan') {
-      _widgetOptions = <Widget>[
-        HomeScreenKaryawan(),
-        StatusPesanaScreen(orderId: 'orderId'),
-        ProfileScreen(),
-      ];
-    } else {
-      _widgetOptions = <Widget>[
-        HomeScreen(),
-        RiwayatTransaksiScreen(userId: widget.userId),
-        ProfileScreen(),
-      ];
-    }
+    _widgetOptions = <Widget>[
+      HomeScreen(),
+      RiwayatTransaksiScreen(userId: widget.userId),
+      ProfileScreen(),
+    ];
 
     _animationControllers = List.generate(
       3,
@@ -213,32 +180,24 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         index: _selectedIndex,
         children: _widgetOptions,
       ),
-      bottomNavigationBar: widget.userId == 'karyawan'
-          ? CustomElevatedBottomNavBar(
-              selectedIndex: _selectedIndex,
-              onItemTapped: _onItemTapped,
-              animationControllers: _animationControllers,
-              animations: _animations,
-            )
-          : Container(
-              // Default navbar if not 'karyawan'
-              height: 60,
-              decoration: BoxDecoration(
-                color: Color(0xFF8DC63F),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildAnimatedNavItem(0, Icons.home),
-                  _buildAnimatedNavItem(1, Icons.receipt_long),
-                  _buildAnimatedNavItem(2, Icons.person),
-                ],
-              ),
-            ),
+      bottomNavigationBar: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: Color(0xFF8DC63F),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildAnimatedNavItem(0, Icons.home),
+            _buildAnimatedNavItem(1, Icons.receipt_long),
+            _buildAnimatedNavItem(2, Icons.person),
+          ],
+        ),
+      ),
     );
   }
 
@@ -366,69 +325,11 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
         index: _selectedIndex,
         children: _widgetOptions,
       ),
-      bottomNavigationBar: widget.userId == 'karyawan'
-          ? CustomElevatedBottomNavBar(
-              selectedIndex: _selectedIndex,
-              onItemTapped: _onItemTapped,
-              animationControllers: _animationControllers,
-              animations: _animations,
-            )
-          : Container(
-              // Default navbar if not 'karyawan'
-              height: 60,
-              decoration: BoxDecoration(
-                color: Color(0xFF8DC63F),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildAnimatedNavItem(0, Icons.home),
-                  _buildAnimatedNavItem(1, Icons.receipt_long),
-                  _buildAnimatedNavItem(2, Icons.person),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildAnimatedNavItem(int index, IconData icon) {
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: AnimatedBuilder(
-        animation: _animations[index],
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _animations[index].value),
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color:
-                    _selectedIndex == index ? Colors.white : Colors.transparent,
-                boxShadow: _selectedIndex == index
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Icon(
-                icon,
-                color:
-                    _selectedIndex == index ? Color(0xFF8DC63F) : Colors.white,
-                size: 28,
-              ),
-            ),
-          );
-        },
+      bottomNavigationBar: CustomElevatedBottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+        animationControllers: _animationControllers,
+        animations: _animations,
       ),
     );
   }

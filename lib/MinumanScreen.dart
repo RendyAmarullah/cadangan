@@ -144,7 +144,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: PreferredSize(
+      appBar: PreferredSize(
         preferredSize: Size.fromHeight(90),
         child: AppBar(
           backgroundColor: Colors.blue,
@@ -252,7 +252,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TambahMinumanScreen(),
+              builder: (context) => KeranjangScreen(),
             ),
           );
         },
