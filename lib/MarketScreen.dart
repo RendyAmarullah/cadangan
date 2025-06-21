@@ -180,7 +180,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               SizedBox(height: 16),
               Text(
-                'Deskripsi: ${product['description'] ?? 'No description available'}',
+                'Deskripsi: ${product['deskripsi'] ?? 'No description available'}',
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 20),

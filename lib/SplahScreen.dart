@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
       end: Offset(0, 0),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    // Check if user is already logged in
+    
     _checkExistingSession();
 
     Future.delayed(Duration(seconds: 2), () {

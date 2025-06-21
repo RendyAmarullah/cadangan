@@ -26,6 +26,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String usersCollectionId = '684083800031dfaaecad';
+  String status = 'Aktif';
+  List<String> roles = ['pelanggan'];
+
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
@@ -47,6 +50,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         data: {
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
+          'status' : status,
+          'roles' : roles,
           'createdAt': DateTime.now().toIso8601String(),
         },
       );
