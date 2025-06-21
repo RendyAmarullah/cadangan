@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildIconButton(
-                      Icons.shopping_cart, 'Makanan', Color(0xFF0072BC), () {
+                      Icons.shopping_cart, 'Market', Color(0xFF0072BC), () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => MarketScreen()),
@@ -251,7 +251,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => NonHalalScreen()),
                     );
                   }),
-                  
                 ],
               ),
             ),
@@ -269,17 +268,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _buildIconButton(
                             Icons.inventory_2, 'Barang', Color(0xFF0072BC), () {
-                         Navigator.push(
-                              context,
-                            MaterialPageRoute(builder: (context) => BarangScreen()),
-                                  );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => BarangScreen()),
+                          );
                         }),
                         _buildIconButton(Icons.face_retouching_natural,
                             'Beauty', Color(0xFF8DC63F), () {
-                           Navigator.push(
-                              context,
-                            MaterialPageRoute(builder: (context) => BeautyScreen()),
-                    );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => BeautyScreen()),
+                          );
                         }),
                       ],
                     ),
