@@ -21,11 +21,31 @@ final Databases databases = Databases(client);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
   await Firebase.initializeApp();
-  runApp(MyApp());
+  
+  // Initialize Appwrite
+  final client = Client();
+  client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject('681aa0b70002469fc157');
+  final account = Account(client);
+  
+  // Retrieve user ID asynchronously
+  try {
+    final user = await account.get();
+    runApp(MyApp(userId: user.$id));
+  } catch (e) {
+    print("Error fetching user ID: $e");
+    runApp(MyApp(userId: '')); // Provide a fallback empty string if fetching user ID fails
+  }
 }
 
 class MyApp extends StatelessWidget {
+
+  final String userId;
+
+  MyApp({required this.userId});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -36,8 +56,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/signup': (context) => SignUpScreen(),
         '/signin': (context) => SplashScreen(),
-        '/home': (context) => HomeScreen(),
-        '/home_karyawan': (context) => HomeScreenKaryawan(),
+        '/home': (context) => MainScreen(userId: userId),
+        '/home_karyawan': (context) => MainScreenKaryawan(userId: userId),
       },
     );
   }
@@ -95,7 +115,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           return Scaffold(
               body: Center(
                   child:
-                      CircularProgressIndicator())); // Show loading while checking
+                      CircularProgressIndicator()));
         } else if (snapshot.hasData && snapshot.data != null) {
           final userData = snapshot.data!;
           final user = userData['user'] as models.User;
@@ -108,7 +128,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
             return MainScreen(userId: user.$id);
           }
         } else {
-          return SplashScreen(); // User is not logged in, show splash screen
+          return SplashScreen(); 
         }
       },
     );

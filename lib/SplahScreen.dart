@@ -4,6 +4,7 @@ import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/HomeScreenKaryawan.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/homescreen.dart';
+import 'package:pemesanan/main.dart';
 import 'appwrite_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -97,12 +98,12 @@ class _SplashScreenState extends State<SplashScreen>
       if (roles.contains('karyawan')) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreenKaryawan()),
+          MaterialPageRoute(builder: (context) => MainScreenKaryawan(userId: userId)),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreen()),
+          MaterialPageRoute(builder: (context) => MainScreen(userId: userId)),
         );
       }
     } catch (e) {
@@ -138,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
     });
 
     try {
-      // Hapus session yang ada terlebih dahulu
+      
       try {
         await account.deleteSession(sessionId: 'current');
         print("Session lama berhasil dihapus");
@@ -146,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen>
         print("Tidak ada session aktif untuk dihapus: $e");
       }
 
-      // Buat session baru
+     
       final session = await account.createEmailPasswordSession(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -154,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       print("Login berhasil, session ID: ${session.$id}");
 
-      // Dapatkan user info
+      
       final user = await account.get();
       print("User info: ${user.email}");
 
