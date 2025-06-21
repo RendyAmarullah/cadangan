@@ -21,27 +21,30 @@ final Databases databases = Databases(client);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase
   await Firebase.initializeApp();
-  
+
   // Initialize Appwrite
   final client = Client();
-  client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject('681aa0b70002469fc157');
+  client
+      .setEndpoint('https://fra.cloud.appwrite.io/v1')
+      .setProject('681aa0b70002469fc157');
   final account = Account(client);
-  
+
   // Retrieve user ID asynchronously
   try {
     final user = await account.get();
     runApp(MyApp(userId: user.$id));
   } catch (e) {
     print("Error fetching user ID: $e");
-    runApp(MyApp(userId: '')); // Provide a fallback empty string if fetching user ID fails
+    runApp(MyApp(
+        userId:
+            '')); // Provide a fallback empty string if fetching user ID fails
   }
 }
 
 class MyApp extends StatelessWidget {
-
   final String userId;
 
   MyApp({required this.userId});
@@ -76,18 +79,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   Future<Map<String, dynamic>?> checkLoginStatus() async {
     try {
-      final session = await account.getSession(
-          sessionId: 'current'); 
+      final session = await account.getSession(sessionId: 'current');
       if (session != null) {
         final user = await account.get();
         final userId = user.$id;
 
-      
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-            'userId', userId); 
+        await prefs.setString('userId', userId);
 
-        
         final response = await databases.getDocument(
           databaseId: '681aa33a0023a8c7eb1f',
           collectionId: '684083800031dfaaecad',
@@ -96,7 +95,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         final roles = List<String>.from(response.data['roles'] ?? []);
 
-       
         return {'user': user, 'isKaryawan': roles.contains('karyawan')};
       }
       return null;
@@ -112,23 +110,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
       future: checkLoginStatus(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-              body: Center(
-                  child:
-                      CircularProgressIndicator()));
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
         } else if (snapshot.hasData && snapshot.data != null) {
           final userData = snapshot.data!;
           final user = userData['user'] as models.User;
           final isKaryawan = userData['isKaryawan'] as bool;
 
-          
           if (isKaryawan) {
             return MainScreenKaryawan(userId: user.$id);
           } else {
             return MainScreen(userId: user.$id);
           }
         } else {
-          return SplashScreen(); 
+          return SplashScreen();
         }
       },
     );

@@ -240,7 +240,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          product['description'] ?? 'Tidak ada deskripsi',
+                          product['description'] ?? '-',
                           style: TextStyle(color: Colors.black87),
                         ),
                         SizedBox(height: 16),
