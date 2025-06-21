@@ -184,9 +184,18 @@ class _MarketScreenState extends State<MarketScreen> {
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 20),
-              ElevatedButton(
+             ElevatedButton(
                 onPressed: () {
+                 
                   tambahKeranjang(product);
+
+                 
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Barang berhasil ditambahkan ke keranjang'),
+                      duration: Duration(seconds: 7),  
+                    ),
+                  );
                 },
                 child: Text('Tambahkan Ke Keranjang'),
                 style: ElevatedButton.styleFrom(
@@ -196,6 +205,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   ),
                 ),
               ),
+
             ],
           ),
         );
@@ -218,7 +228,7 @@ class _MarketScreenState extends State<MarketScreen> {
             ),
           ),
           title: Text(
-            'Market',
+            'Makanan',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,

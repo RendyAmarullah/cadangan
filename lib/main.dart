@@ -57,17 +57,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<Map<String, dynamic>?> checkLoginStatus() async {
     try {
       final session = await account.getSession(
-          sessionId: 'current'); // Check if there's an active session
+          sessionId: 'current'); 
       if (session != null) {
         final user = await account.get();
         final userId = user.$id;
 
-        // Save the userId in SharedPreferences to persist login state
+      
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString(
-            'userId', userId); // Save the userId for future use
+            'userId', userId); 
 
-        // Get roles from the database for the user
+        
         final response = await databases.getDocument(
           databaseId: '681aa33a0023a8c7eb1f',
           collectionId: '684083800031dfaaecad',
@@ -76,10 +76,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         final roles = List<String>.from(response.data['roles'] ?? []);
 
-        // Return user data with role information
+       
         return {'user': user, 'isKaryawan': roles.contains('karyawan')};
       }
-      return null; // If no session, return null (not logged in)
+      return null;
     } catch (e) {
       print('Error checking login status: $e');
       return null;
@@ -101,7 +101,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           final user = userData['user'] as models.User;
           final isKaryawan = userData['isKaryawan'] as bool;
 
-          // Langsung return MainScreen yang sesuai tanpa navigasi tambahan
+          
           if (isKaryawan) {
             return MainScreenKaryawan(userId: user.$id);
           } else {
@@ -137,7 +137,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     _widgetOptions = <Widget>[
       HomeScreen(),
       RiwayatTransaksiScreen(userId: widget.userId),
-      ProfileScreen(),
+      ProfileScreen(userId: widget.userId),
     ];
 
     _animationControllers = List.generate(
@@ -282,7 +282,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
     _widgetOptions = <Widget>[
       HomeScreenKaryawan(),
       StatusPesananKaryawanScreen(userId: widget.userId),
-      ProfileScreen(),
+      ProfileScreen(userId: widget.userId),
     ];
 
     _animationControllers = List.generate(

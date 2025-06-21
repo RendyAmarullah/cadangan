@@ -1,13 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
-import 'package:flutter/widgets.dart';
-import 'dart:convert';
-
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
+import 'package:pemesanan/main.dart';
 
 final client = Client()
-  ..setEndpoint('https://fra.cloud.appwrite.io/v1') 
+  ..setEndpoint('https://fra.cloud.appwrite.io/v1')
   ..setProject('681aa0b70002469fc157')
   ..setSelfSigned(status: true);
 
@@ -42,7 +45,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _initAppwrite();
   }
 
- 
   void _initAppwrite() async {
     _client = Client();
     _client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject(projectId).setSelfSigned(status: true);
@@ -61,6 +63,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
   }
   
+  Future<bool?> _notifCheckout(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false, 
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Konfirmasi Pesanan'),
+        content: Text('Apakah Anda yakin ingin membuat pesanan?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(false);
+            },
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true); 
+            },
+            child: Text('Ya'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
   Future<void> _getCurrentUser() async {
     try {
       final models.User user = await _account.get();
@@ -73,29 +102,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> clearCartItems(String userId) async {
-  try {
-    final result = await _databases.listDocuments(
-      databaseId: databaseId,
-      collectionId: cartsCollectionId,
-      queries: [
-        Query.equal('userId', userId),
-      ],
-    );
-
-    for (var doc in result.documents) {
-      await _databases.deleteDocument(
+    try {
+      final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        documentId: doc.$id,
+        queries: [
+          Query.equal('userId', userId),
+        ],
       );
+
+      for (var doc in result.documents) {
+        await _databases.deleteDocument(
+          databaseId: databaseId,
+          collectionId: cartsCollectionId,
+          documentId: doc.$id,
+        );
+      }
+
+      print('Cart cleared successfully.');
+    } catch (e) {
+      print('Error clearing cart: $e');
     }
-
-    print('Cart cleared successfully.');
-  } catch (e) {
-    print('Error clearing cart: $e');
   }
-}
-
 
   Future<void> _fetchUserAddress() async {
     try {
@@ -130,7 +158,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
 
     int totalPrice2 = widget.cartItems.fold<int>(0, (sum, item) {
-      
       return totalPrice + 10000;
     });
 
@@ -167,7 +194,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // Alamat Pengiriman Section
               Align(
                 alignment: Alignment.topLeft,
                 child: Text('Alamat Pengiriman', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -177,8 +203,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Text(address),
               ),
               SizedBox(height: 16),
-        
-             
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black, width: 2.0),
@@ -197,16 +221,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       child: Row(
                         children: [
                           Container(
-                            
                             width: 100,
                             height: 100,
-                            
-                           child: ClipOval(
-                            child: Image.network(
-                              widget.cartItems[index]['productImageUrl'] ?? '',
-                              fit: BoxFit.cover,
+                            child: ClipOval(
+                              child: Image.network(
+                                widget.cartItems[index]['productImageUrl'] ?? '',
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                          ),
                           ),
                           SizedBox(width: 16),
                           Expanded(
@@ -216,7 +238,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 Text(widget.cartItems[index]['name'] ?? 'Product'),
                                 SizedBox(height: 10,),
                                 Text('Rp ${widget.cartItems[index]['price'] ?? 0}',style: TextStyle(color: Colors.green),),
-                                
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
@@ -228,10 +249,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         ),
                                         child: Icon(
                                           Icons.remove,
-                                          color: Colors.white,  // Icon color (white in this case)
+                                          color: Colors.white,  
                                         ),
-                                        
-                                        ),
+                                      ),
                                       onPressed: () {
                                         if (quantity > 1) {
                                           _updateQuantity(index, quantity - 1);
@@ -247,10 +267,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         ),
                                         child: Icon(
                                           Icons.add,
-                                          color: Colors.white,  // Icon color (white in this case)
+                                          color: Colors.white,  
                                         ),
-                                        
-                                        ),
+                                      ),
                                       onPressed: () {
                                         _updateQuantity(index, quantity + 1);
                                       },
@@ -266,187 +285,149 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   },
                 ),
               ),
-        
-              // Total Price and Checkout Button
               SizedBox(height: 20),
-             Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.black, width: 2.0),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(  // Use Column to arrange items vertically
-        crossAxisAlignment: CrossAxisAlignment.start, // Align content to the start (left)
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Catatan Tambahan:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              // Add your text or input field here
-              Text('Tinggalkan catatan'),
-            ],
-          ),
-          SizedBox(height: 10),
-          Divider(),
-           SizedBox(height: 10),
-          // First line for Total
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text('Rp $totalPrice', style: TextStyle(color: Colors.green), ),
-            ],
-          ),
-           // Add space between the Total and Catatan Tambahan
-          // Second line for Catatan Tambahan
-          
-        ],
-            ),
-          ),
-        ),
-        SizedBox(height: 10,),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.black, width: 2.0),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(  // Use Column to arrange items vertically
-        crossAxisAlignment: CrossAxisAlignment.start, // Align content to the start (left)
-        children: [
-         Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('Pilih Pembayaran:',
-                style: TextStyle(fontWeight: FontWeight.bold),),
-                PopupMenuButton<String>(
-                  onSelected: (String value) {
-                    setState(() {
-                      _metodePembayaran = value;
-                    });
-                  },
-                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'COD',
-                      child: Text('COD'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'QRIS',
-                      child: Text('QRIS'),
-                    ),
-                  ],
-                  child: Text(
-                    '$_metodePembayaran >',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 2.0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Catatan Tambahan:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Tinggalkan catatan'),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Divider(),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp $totalPrice', style: TextStyle(color: Colors.green)),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-
-          SizedBox(height: 10),
-          Divider(),
-           SizedBox(height: 10),
-          // First line for Total
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total Pesanan:',
-                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text('Rp $totalPrice', style: TextStyle(color: Colors.green), ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total Biaya Pengiriman:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              SizedBox(height: 10,),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 2.0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Pilih Pembayaran:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          PopupMenuButton<String>(
+                            onSelected: (String value) {
+                              setState(() {
+                                _metodePembayaran = value;
+                              });
+                            },
+                            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                              const PopupMenuItem<String>(
+                                value: 'COD',
+                                child: Text('COD'),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'QRIS',
+                                child: Text('QRIS'),
+                              ),
+                            ],
+                            child: Text('$_metodePembayaran >', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Divider(),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Pesanan:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp $totalPrice', style: TextStyle(color: Colors.green)),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Biaya Pengiriman:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp 10000', style: TextStyle(color: Colors.green)),
+                        ],
+                      ),
+                      Divider(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp $totalPrice2', style: TextStyle(color: Colors.green)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              Text('Rp 10000', style: TextStyle(color: Colors.green), ),
-            ],
-          ),
-          Divider(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text('Rp $totalPrice2', style: TextStyle(color: Colors.green), ),
-            ],
-          ),
-           // Add space between the Total and Catatan Tambahan
-          // Second line for Catatan Tambahan
-          
-        ],
-            ),
-          ),
-        ),
-        
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
-       try {
-   
-      final user = await account.get();
-      final produkList = widget.cartItems.map((item) => {
-        'nama': item['name'],
-        'jumlah': item['quantity'],
-        'harga': item['price'],
-        'productImageUrl': item['productImageUrl']
-      }).toList();
-      final produkJsonString = jsonEncode(produkList);
-          
-        final data = {
-        'userId': user.$id,
-        
-        'alamat': address,
-        'produk': produkJsonString, // simpan sebagai string
-        'metodePembayaran': _metodePembayaran,
-        'total': totalPrice2,
-        'createdAt': DateTime.now().toUtc().toIso8601String(),
-        'status' : 'menunggu'
-      };
 
+                  bool? isConfirmed = await _notifCheckout(context);
 
-  
-        final response = await databases.createDocument(
-          databaseId: '681aa33a0023a8c7eb1f', // Ganti
-          collectionId: '684b33e80033b767b024', // Ganti
-          documentId: ID.unique(),
-          data: data,
-        );
+                  try {
+                    final user = await account.get();
+                    final produkList = widget.cartItems.map((item) => {
+                      'nama': item['name'],
+                      'jumlah': item['quantity'],
+                      'harga': item['price'],
+                      'productImageUrl': item['productImageUrl']
+                    }).toList();
+                    final produkJsonString = jsonEncode(produkList);
+                    
+                    final data = {
+                      'userId': user.$id,
+                      'alamat': address,
+                      'produk': produkJsonString,
+                      'metodePembayaran': _metodePembayaran,
+                      'total': totalPrice2,
+                      'createdAt': DateTime.now().toUtc().toIso8601String(),
+                      'status' : 'menunggu'
+                    };
 
-         await clearCartItems(userId);
+                    final response = await databases.createDocument(
+                      databaseId: '681aa33a0023a8c7eb1f',
+                      collectionId: '684b33e80033b767b024',
+                      documentId: ID.unique(),
+                      data: data,
+                    );
 
-        print('Pesanan berhasil dibuat: ${response.$id}');
-   
-           Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RiwayatTransaksiScreen(userId: user.$id), // Passing the userId
-        ),
-      );
-      
-    } catch (e) {
-      print('Gagal membuat pesanan: $e');
-    }
-  },
-  child: Text('Buat Pesanan'),
+                    await clearCartItems(user.$id);
+
+                    print('Pesanan berhasil dibuat: ${response.$id}');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MainScreen(userId: user.$id),
+                      ),
+                    );
+                  } catch (e) {
+                    print('Gagal membuat pesanan: $e');
+                  }
+                },
+                child: Text('Buat Pesanan'),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               ),
             ],

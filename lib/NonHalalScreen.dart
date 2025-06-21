@@ -3,7 +3,6 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/KeranjangScreen.dart';
 import 'package:pemesanan/TambahBarangScreen.dart';
-import 'package:pemesanan/TambahMinumanScreen.dart';
 
 class NonHalalScreen extends StatefulWidget {
   @override
@@ -17,7 +16,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String productsCollectionId = '6840abc70007d81ad734';
+  final String productsCollectionId = '68407bab00235ecda20d';
   final String cartsCollectionId = '68407db7002d8716c9d0';
   final String bucketId = '681aa16f003054da8969';
 
@@ -61,6 +60,9 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
+        queries: [
+          Query.equal('category', 'non-halal'),
+        ],
       );
 
       setState(() {
@@ -141,11 +143,84 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
     return fileId;
   }
 
+  void _showProductDetail(Map<String, dynamic> product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    product['name'],
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Image.network(
+                product['productImageUrl'],
+                fit: BoxFit.cover,
+                height: 350,
+                width: double.infinity,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Rp ${product['price']}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Deskripsi: ${product['description'] ?? 'No description available'}',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                 
+                  tambahKeranjang(product);
+
+                 
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Barang berhasil ditambahkan ke keranjang'),
+                      duration: Duration(seconds: 7),  
+                    ),
+                  );
+                },
+                child: Text('Tambahkan Ke Keranjang'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(60),
         child: AppBar(
           backgroundColor: Colors.blue,
           elevation: 0,
@@ -156,7 +231,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
             ),
           ),
           title: Text(
-            'Non-Halal',
+            'Non-halal',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -188,60 +263,66 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
                   String imageUrl =
                       getImageUrl(products[index]['productImageUrl']);
 
-                  return Card(
-                    color: Color(0xFF81C784),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          color: Colors.white,
-                          height: 50,
-                          width: double.infinity,
-                          child: Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            products[index]['name'],
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                  return GestureDetector(
+                    onTap: () {
+                      _showProductDetail(products[index]);
+                    },
+                    child: Card(
+                      color: Color(0xFF81C784),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            color: Colors.white,
+                            height: 110,
+                            width: double.infinity,
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            'Rp ${products[index]['price']}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Spacer(),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              tambahKeranjang(products[index]);
-                            },
-                            child: Text('Keranjang'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              products[index]['name'],
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Text(
+                              'Rp ${products[index]['price']}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Spacer(),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            // child: ElevatedButton(
+                            //   onPressed: () {
+                            //     tambahKeranjang(products[index]);
+                            //   },
+                            //   child: Text('Keranjang'),
+                            //   style: ElevatedButton.styleFrom(
+                            //     backgroundColor: Colors.blue,
+                            //     shape: RoundedRectangleBorder(
+                            //       borderRadius: BorderRadius.circular(8),
+                            //     ),
+                            //   ),
+                            // ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -252,12 +333,12 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TambahMinumanScreen(),
+              builder: (context) => KeranjangScreen(),
             ),
           );
         },
         child: Icon(Icons.shopping_cart),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(0xFF0072BC),
       ),
     );
   }

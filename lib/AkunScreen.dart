@@ -19,6 +19,7 @@ class _AkunScreenState extends State<AkunScreen> {
   String? _profileImageUrl;
   String? _userName;
   String? _userEmail;
+   String? _noHp;
   String? _gender;
   models.Session? _session;
   models.User? _currentUser;
@@ -31,7 +32,7 @@ class _AkunScreenState extends State<AkunScreen> {
 
   TextEditingController _nameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
-  TextEditingController _genderController = TextEditingController();
+  TextEditingController _noHandPhoneController = TextEditingController();
 
   bool _isEditing = false;
 
@@ -75,11 +76,11 @@ class _AkunScreenState extends State<AkunScreen> {
       }
 
       
-      final userGender = profileDoc.data['gender'];
+   
 
       setState(() {
         
-        _gender = userGender;
+    
       });
 
       // Fetch username from a different collection
@@ -91,15 +92,18 @@ class _AkunScreenState extends State<AkunScreen> {
 
       final userName = userNameDoc.data['name'];
       final userEmail = userNameDoc.data['email'];
+      final noHp = userNameDoc.data['noHandphone'];
+
       setState(() {
         _userName = userName;
         _userEmail = userEmail;
+        _noHp = noHp;
       });
 
       // Set the text fields with the fetched data
       _nameController.text = _userName ?? '';
       _emailController.text = _userEmail ?? '';
-      _genderController.text = _gender ?? '';
+      _noHandPhoneController.text = _gender ?? '';
     }
   } catch (e) {
     print('Error loading profile data: $e');
@@ -111,6 +115,7 @@ class _AkunScreenState extends State<AkunScreen> {
     try {
       final updatedName = _nameController.text;
       final updatedEmail = _emailController.text;
+      final updatedNoHandphone = _noHandPhoneController.text;
       
 
       final user = await _account.get();
@@ -122,6 +127,7 @@ class _AkunScreenState extends State<AkunScreen> {
           data: {
             'name': updatedName,
             'email': updatedEmail,
+            'noHandphone' : updatedNoHandphone,
           },
         );
 
@@ -228,10 +234,14 @@ class _AkunScreenState extends State<AkunScreen> {
                         controller: _emailController,
                         decoration: InputDecoration(labelText: 'Email'),
                       ),
+                      TextField(
+                        controller: _noHandPhoneController,
+                        decoration: InputDecoration(labelText: 'No Handphone'),
+                      ),
                       SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _updateProfile,
-                        child: Text('Save Changes'),
+                        child: Text('Simpan Perubahan'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                       ),
                     ],
@@ -258,7 +268,15 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         _buildMenuItem(_userEmail ?? 'Guest'),
                         Divider(color: Colors.black, indent: 15, endIndent: 15),
-                       
+                       Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'No Handphone',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                          ),
+                        ),
+                        _buildMenuItem(_noHp ?? '-'),
+                         Divider(color: Colors.black, indent: 15, endIndent: 15),
                        
                         SizedBox(height: 40),
                         ElevatedButton(

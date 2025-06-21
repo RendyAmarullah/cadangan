@@ -36,8 +36,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
         queries: [
-           // Use userId here
-          Query.equal('status', 'pending'), // Only fetch orders with 'pending' status
+          Query.equal('status', 'menunggu'), // Only fetch orders with 'pending' status
         ],
       );
 
@@ -87,7 +86,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-  // Accept order and save products to 'accepted_orders'
+  // Accept order and save products to 'accepted_orders' as JSON string
   Future<void> _acceptOrder(String orderId, int index) async {
     try {
       final orderDoc = await databases!.getDocument(
@@ -103,25 +102,25 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         products = orderDoc.data['produk'];
       }
       
-      // Save products to the 'accepted_orders' collection
-      for (var product in products) {
-        await databases!.createDocument(
-          databaseId: '681aa33a0023a8c7eb1f',
-          collectionId: '6854b40600020e4a49aa',
-          documentId: ID.unique(),
-          data: {
-            'userId': userId,  // Use the correct userId
-            'orderId': orderId,
-            'alamat' : orderDoc.data['alamat'],
-            'nama': product['nama'] ?? 'Unknown Product',
-            'jumlah': product['jumlah'] ?? 0,
-            'harga': product['harga'] ?? 0.0,
-            'total': orderDoc.data['total'],
-            'status': 'accepted',
-            'createdAt': DateTime.now().toIso8601String(),
-          },
-        );
-      }
+      // Encode products to JSON string
+      String productsJson = jsonEncode(products);
+
+      // Save products to the 'accepted_orders' collection with JSON-encoded products
+      await databases!.createDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: '6854b40600020e4a49aa',
+        documentId: ID.unique(),
+        data: {
+          'userId': userId,  // Use the correct userId
+          'orderId': orderId,
+          'alamat' : orderDoc.data['alamat'],
+          'produk': productsJson,  // Save as JSON string
+          'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'Unknown',
+          'total': orderDoc.data['total'],
+          'status': 'accepted',
+          'createdAt': DateTime.now().toIso8601String(),
+        },
+      );
 
       // Update order status to 'accepted'
       await databases!.updateDocument(
@@ -142,7 +141,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-  // Reject order and save products to 'rejected_orders'
+  // Reject order and save products to 'rejected_orders' as JSON string
   Future<void> _rejectOrder(String orderId, int index) async {
     try {
       final orderDoc = await databases!.getDocument(
@@ -158,22 +157,25 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         products = orderDoc.data['produk'];
       }
 
-      // Save rejected products to the 'rejected_orders' collection
-      for (var product in products) {
-        await databases!.createDocument(
-          databaseId: '681aa33a0023a8c7eb1f',
-          collectionId: '6854ba6e003bad3da579',
-          documentId: ID.unique(),
-          data: {
-            'orderId': orderId,
-            'nama': product['nama'] ?? 'Unknown Product',
-            'jumlah': product['jumlah'] ?? 0,
-            'harga': product['harga'] ?? 0.0,
-            'status': 'rejected',
-            'createdAt': DateTime.now().toIso8601String(),
-          },
-        );
-      }
+      // Encode products to JSON string
+      String productsJson = jsonEncode(products);
+
+      // Save rejected products to the 'rejected_orders' collection as JSON string
+      await databases!.createDocument(
+        databaseId: '681aa33a0023a8c7eb1f',
+        collectionId: '6854ba6e003bad3da579',
+        documentId: ID.unique(),
+        data: {
+          'userId': userId,  // Use the correct userId
+          'orderId': orderId,
+          'alamat' : orderDoc.data['alamat'],
+          'produk': productsJson,  // Save as JSON string
+          'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'Unknown',
+          'total': orderDoc.data['total'],
+          'status': 'accepted',
+          'createdAt': DateTime.now().toIso8601String(),
+        },
+      );
 
       // Update order status to 'rejected'
       await databases!.updateDocument(
@@ -198,8 +200,28 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Daftar Pesanan'),
-      ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Row(
+            children: [
+              Container(
+                width: 35,
+                height: 35,
+                child: Image.asset('images/logotanpanama.png'),
+              ),
+              SizedBox(width: 8),
+              Text(
+                '안녕하세요, ${_userName ?? 'Guest'}',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Spacer(),
+            ],
+          ),
+        ),
       body: _orders.isEmpty
           ? Center(child: CircularProgressIndicator())
           : ListView.builder(

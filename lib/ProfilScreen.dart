@@ -6,12 +6,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/AlamatScreen.dart';
+import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/AkunScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
 import 'package:geolocator/geolocator.dart';
 
 class ProfileScreen extends StatefulWidget {
+  final String userId;
+
+  ProfileScreen({required this.userId});
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -63,6 +68,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _uploadImage();
     }
   }
+
+  Future<bool?> _notifLogout(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false, // Prevent dismissing by tapping outside the dialog
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Konfirmasi Logout'),
+        content: Text('Apakah Anda yakin ingin keluar?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(false); // Dismiss dialog with false (no logout)
+            },
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true); // Dismiss dialog with true (proceed with logout)
+            },
+            child: Text('Keluar'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _uploadImage() async {
     if (_imageFile == null) return;
@@ -336,12 +368,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontSize: 20,
             ),
           ),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
+          
         ),
       ),
       body: RefreshIndicator(
@@ -419,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => AkunScreen()),
+                                  builder: (context) => RiwayatTransaksiScreen(userId: widget.userId)),
                             );
                           }),
                           Divider(
@@ -444,31 +471,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     SizedBox(height: 30),
                     ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await _account.deleteSession(sessionId: 'current');
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => SplashScreen()),
-                          );
-                        } catch (e) {
-                          print('Logout failed: $e');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Failed to logout, try again.')),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0072BC),
-                        shape: StadiumBorder(),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                        onPressed: () async {
+                          
+                          bool? isConfirmed = await _notifLogout(context);
+
+                         
+                          if (isConfirmed == true) {
+                            try {
+                              await _account.deleteSession(sessionId: 'current');
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => SplashScreen()),
+                              );
+                            } catch (e) {
+                              print('Logout failed: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to logout, try again.')),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF0072BC),
+                          shape: StadiumBorder(),
+                          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                        ),
+                        child: Text("KELUAR", style: TextStyle(color: Colors.white)),
                       ),
-                      child:
-                          Text("KELUAR", style: TextStyle(color: Colors.white)),
-                    ),
                   ],
                 ),
               ),

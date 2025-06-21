@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pemesanan/BarangScreen.dart';
+import 'package:pemesanan/BeautyScreen.dart';
 import 'package:pemesanan/BunsikScreen.dart';
 import 'package:pemesanan/KeranjangScreen.dart';
 import 'package:pemesanan/MarketScreen.dart';
@@ -249,6 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => NonHalalScreen()),
                     );
                   }),
+                  
                 ],
               ),
             ),
@@ -266,13 +269,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _buildIconButton(
                             Icons.inventory_2, 'Barang', Color(0xFF0072BC), () {
-                          // Add navigation for Barang screen
-                          print('Barang tapped');
+                         Navigator.push(
+                              context,
+                            MaterialPageRoute(builder: (context) => BarangScreen()),
+                                  );
                         }),
                         _buildIconButton(Icons.face_retouching_natural,
                             'Beauty', Color(0xFF8DC63F), () {
-                          // Add navigation for Beauty screen
-                          print('Beauty tapped');
+                           Navigator.push(
+                              context,
+                            MaterialPageRoute(builder: (context) => BeautyScreen()),
+                    );
                         }),
                       ],
                     ),

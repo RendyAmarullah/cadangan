@@ -4,12 +4,12 @@ import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/KeranjangScreen.dart';
 import 'package:pemesanan/TambahBarangScreen.dart';
 
-class MinumanScreen extends StatefulWidget {
+class BarangScreen extends StatefulWidget {
   @override
-  _MinumanScreenState createState() => _MinumanScreenState();
+  _BarangScreenState createState() => _BarangScreenState();
 }
 
-class _MinumanScreenState extends State<MinumanScreen> {
+class _BarangScreenState extends State<BarangScreen> {
   final Client _client = Client();
   late Databases _databases;
   late Account _account;
@@ -61,7 +61,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
         databaseId: databaseId,
         collectionId: productsCollectionId,
         queries: [
-          Query.equal('category', 'minuman'),
+          Query.equal('category', 'Barang'),
         ],
       );
 
@@ -231,7 +231,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
             ),
           ),
           title: Text(
-            'Minuman',
+            'Beauty',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
