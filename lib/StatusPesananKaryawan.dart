@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 
 final client = Client()
-  ..setEndpoint('https://fra.cloud.appwrite.io/v1') 
+  ..setEndpoint('https://fra.cloud.appwrite.io/v1')
   ..setProject('681aa0b70002469fc157')
   ..setSelfSigned(status: true);
 
@@ -29,8 +29,10 @@ class _StatusPesananKaryawanScreenState
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String acceptedOrdersCollectionId = '6854b40600020e4a49aa'; // Koleksi pesanan diterima
-  final String rejectedOrdersCollectionId = '6854ba6e003bad3da579'; // Koleksi pesanan ditolak
+  final String acceptedOrdersCollectionId =
+      '6854b40600020e4a49aa'; // Koleksi pesanan diterima
+  final String rejectedOrdersCollectionId =
+      '6854ba6e003bad3da579'; // Koleksi pesanan ditolak
 
   @override
   void initState() {
@@ -172,7 +174,6 @@ class _StatusPesananKaryawanScreenState
               fontSize: 20,
             ),
           ),
-          
         ),
       ),
       body: RefreshIndicator(
@@ -275,7 +276,8 @@ class _StatusPesananKaryawanScreenState
                       SizedBox(height: 10),
                       Text('Produk:'),
                       ...products.map((product) {
-                        return Text('Nama: ${product['nama']}, Jumlah: ${product['jumlah']}');
+                        return Text(
+                            'Nama: ${product['nama']}, Jumlah: ${product['jumlah']}');
                       }).toList(),
                     ],
                   ),

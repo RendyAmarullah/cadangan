@@ -6,7 +6,6 @@ import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
 import 'package:pemesanan/StatusPesananKaryawan.dart';
-import 'package:pemesanan/StatusPesananScreen.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;

@@ -378,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Text(
-                'Menu Popular',
+                'Menu',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -390,14 +390,27 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 15),
 
             // Popular menu items
+            // Ganti bagian Padding menu items dengan ini:
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildMenuItem('Tteokbokki', 'Rp 30.000'),
-                  _buildMenuItem('Kimchi', 'Rp 30.000'),
-                  _buildMenuItem('Jjajangmyeon', 'Rp 42.000'),
+                  _buildMenuItem(
+                    'Tteokbokki',
+                    'Rp 30.000',
+                    'images/tteokbokki.jpg', // Tambahkan parameter gambar
+                  ),
+                  _buildMenuItem(
+                    'Kimchi',
+                    'Rp 30.000',
+                    'images/kimchi.png', // Tambahkan parameter gambar
+                  ),
+                  _buildMenuItem(
+                    'Jjajangmyeon',
+                    'Rp 42.000',
+                    'images/jjajangmyeon.jpg', // Tambahkan parameter gambar
+                  ),
                 ],
               ),
             ),
@@ -440,7 +453,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMenuItem(String name, String price) {
+  // Pastikan method _buildMenuItem Anda seperti ini:
+  Widget _buildMenuItem(String name, String price, String imagePath) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -448,8 +462,32 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
             borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 1,
+                blurRadius: 3,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey[300],
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: Colors.grey[600],
+                    size: 30,
+                  ),
+                );
+              },
+            ),
           ),
         ),
         SizedBox(height: 8),

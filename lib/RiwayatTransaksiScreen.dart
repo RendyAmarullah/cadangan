@@ -67,7 +67,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             'metodePembayaran': doc.data['metodePembayaran'],
             'alamat': doc.data['alamat'],
             'createdAt': doc.data['createdAt'],
-            'status' : doc.data['status'],
+            'status': doc.data['status'],
           };
         }).toList();
         _isLoading = false;
@@ -116,7 +116,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
               fontSize: 20,
             ),
           ),
-          
         ),
       ),
       body: RefreshIndicator(

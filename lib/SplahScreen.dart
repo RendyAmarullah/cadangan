@@ -50,7 +50,6 @@ class _SplashScreenState extends State<SplashScreen>
       end: Offset(0, 0),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    
     _checkExistingSession();
 
     Future.delayed(Duration(seconds: 2), () {
@@ -98,7 +97,8 @@ class _SplashScreenState extends State<SplashScreen>
       if (roles.contains('karyawan')) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MainScreenKaryawan(userId: userId)),
+          MaterialPageRoute(
+              builder: (context) => MainScreenKaryawan(userId: userId)),
         );
       } else {
         Navigator.pushReplacement(
@@ -139,7 +139,6 @@ class _SplashScreenState extends State<SplashScreen>
     });
 
     try {
-      
       try {
         await account.deleteSession(sessionId: 'current');
         print("Session lama berhasil dihapus");
@@ -147,7 +146,6 @@ class _SplashScreenState extends State<SplashScreen>
         print("Tidak ada session aktif untuk dihapus: $e");
       }
 
-     
       final session = await account.createEmailPasswordSession(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -155,7 +153,6 @@ class _SplashScreenState extends State<SplashScreen>
 
       print("Login berhasil, session ID: ${session.$id}");
 
-      
       final user = await account.get();
       print("User info: ${user.email}");
 
@@ -308,7 +305,8 @@ class _SplashScreenState extends State<SplashScreen>
                                           );
                                         },
                                   child: Text("Daftar",
-                                      style: TextStyle(color: Colors.green)),
+                                      style:
+                                          TextStyle(color: Color(0xFF8DC63F))),
                                 ),
                                 TextButton(
                                   onPressed: _isLoading
@@ -317,7 +315,8 @@ class _SplashScreenState extends State<SplashScreen>
                                           // Implement forgot password
                                         },
                                   child: Text("Lupa Password",
-                                      style: TextStyle(color: Colors.black)),
+                                      style:
+                                          TextStyle(color: Color(0xFF8DC63F))),
                                 ),
                               ],
                             ),
