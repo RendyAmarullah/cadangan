@@ -19,7 +19,7 @@ class _AkunScreenState extends State<AkunScreen> {
   String? _profileImageUrl;
   String? _userName;
   String? _userEmail;
-   String? _noHp;
+  String? _noHp;
   String? _gender;
   models.Session? _session;
   models.User? _currentUser;
@@ -53,70 +53,64 @@ class _AkunScreenState extends State<AkunScreen> {
   }
 
   Future<void> _loadProfileData() async {
-  try {
-    _session = await _account.getSession(sessionId: 'current');
-    _currentUser = await _account.get();
+    try {
+      _session = await _account.getSession(sessionId: 'current');
+      _currentUser = await _account.get();
 
-    final userId = _currentUser?.$id;
-    if (userId != null) {
-      // Fetch profile data (image, email, gender) from the current collection
-      final profileDoc = await _databases.getDocument(
-        databaseId: databaseId,
-        collectionId: collectionId,  // Collection containing profile image, email, gender
-        documentId: userId,
-      );
+      final userId = _currentUser?.$id;
+      if (userId != null) {
+        // Fetch profile data (image, email, gender) from the current collection
+        final profileDoc = await _databases.getDocument(
+          databaseId: databaseId,
+          collectionId:
+              collectionId, // Collection containing profile image, email, gender
+          documentId: userId,
+        );
 
-      final profileImageId = profileDoc.data['profile_image'];
-      if (profileImageId != null) {
-        final fileViewUrl =
-            'https://fra.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/$profileImageId/view?project=$projectId';
+        final profileImageId = profileDoc.data['profile_image'];
+        if (profileImageId != null) {
+          final fileViewUrl =
+              'https://fra.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/$profileImageId/view?project=$projectId';
+          setState(() {
+            _profileImageUrl = fileViewUrl;
+          });
+        }
+
+        setState(() {});
+
+        // Fetch username from a different collection
+        final userNameDoc = await _databases.getDocument(
+          databaseId: databaseId,
+          collectionId:
+              '684083800031dfaaecad', // Different collection for username
+          documentId: userId,
+        );
+
+        final userName = userNameDoc.data['name'];
+        final userEmail = userNameDoc.data['email'];
+        final noHp = userNameDoc.data['noHandphone'];
+
         setState(() {
-          _profileImageUrl = fileViewUrl;
+          _userName = userName;
+          _userEmail = userEmail;
+          _noHp = noHp;
         });
+
+        // Set the text fields with the fetched data
+        _nameController.text = _userName ?? '';
+        _emailController.text = _userEmail ?? '';
+        _noHandPhoneController.text = _gender ?? '';
       }
-
-      
-   
-
-      setState(() {
-        
-    
-      });
-
-      // Fetch username from a different collection
-      final userNameDoc = await _databases.getDocument(
-        databaseId: databaseId,
-        collectionId: '684083800031dfaaecad', // Different collection for username
-        documentId: userId,
-      );
-
-      final userName = userNameDoc.data['name'];
-      final userEmail = userNameDoc.data['email'];
-      final noHp = userNameDoc.data['noHandphone'];
-
-      setState(() {
-        _userName = userName;
-        _userEmail = userEmail;
-        _noHp = noHp;
-      });
-
-      // Set the text fields with the fetched data
-      _nameController.text = _userName ?? '';
-      _emailController.text = _userEmail ?? '';
-      _noHandPhoneController.text = _gender ?? '';
+    } catch (e) {
+      print('Error loading profile data: $e');
     }
-  } catch (e) {
-    print('Error loading profile data: $e');
   }
-}
-
 
   Future<void> _updateProfile() async {
     try {
       final updatedName = _nameController.text;
       final updatedEmail = _emailController.text;
       final updatedNoHandphone = _noHandPhoneController.text;
-      
 
       final user = await _account.get();
       if (user != null) {
@@ -127,15 +121,15 @@ class _AkunScreenState extends State<AkunScreen> {
           data: {
             'name': updatedName,
             'email': updatedEmail,
-            'noHandphone' : updatedNoHandphone,
+            'noHandphone': updatedNoHandphone,
           },
         );
 
         setState(() {
           _userName = updatedName;
           _userEmail = updatedEmail;
-          
-          _isEditing = false;  // Close editing mode
+
+          _isEditing = false; // Close editing mode
         });
         print("Profile updated successfully.");
       }
@@ -146,7 +140,8 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -217,8 +212,11 @@ class _AkunScreenState extends State<AkunScreen> {
                 child: CircleAvatar(
                   radius: 60,
                   child: _profileImageUrl != null
-                      ? CircleAvatar(radius: 60, backgroundImage: NetworkImage(_profileImageUrl!))
-                      : const CircleAvatar(radius: 60, child: Icon(Icons.person)),
+                      ? CircleAvatar(
+                          radius: 60,
+                          backgroundImage: NetworkImage(_profileImageUrl!))
+                      : const CircleAvatar(
+                          radius: 60, child: Icon(Icons.person)),
                 ),
               ),
             ),
@@ -242,7 +240,8 @@ class _AkunScreenState extends State<AkunScreen> {
                       ElevatedButton(
                         onPressed: _updateProfile,
                         child: Text('Simpan Perubahan'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue),
                       ),
                     ],
                   )
@@ -254,7 +253,10 @@ class _AkunScreenState extends State<AkunScreen> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Nama',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Colors.green),
                           ),
                         ),
                         _buildMenuItem(_userName ?? 'Guest'),
@@ -263,21 +265,26 @@ class _AkunScreenState extends State<AkunScreen> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Email',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Colors.green),
                           ),
                         ),
                         _buildMenuItem(_userEmail ?? 'Guest'),
                         Divider(color: Colors.black, indent: 15, endIndent: 15),
-                       Align(
+                        Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'No Handphone',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Colors.green),
                           ),
                         ),
                         _buildMenuItem(_noHp ?? '-'),
-                         Divider(color: Colors.black, indent: 15, endIndent: 15),
-                       
+                        Divider(color: Colors.black, indent: 15, endIndent: 15),
                         SizedBox(height: 40),
                         ElevatedButton(
                           onPressed: () {
@@ -286,7 +293,8 @@ class _AkunScreenState extends State<AkunScreen> {
                             });
                           },
                           child: Text('Edit Profile'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue),
                         ),
                       ],
                     ),
@@ -301,7 +309,10 @@ class _AkunScreenState extends State<AkunScreen> {
   Widget _buildMenuItem(String title, {Function()? onTap}) {
     return ListTile(
       title: Text(title),
-      trailing: Icon(Icons.arrow_forward_ios),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        color: Colors.white,
+      ),
       onTap: onTap,
     );
   }

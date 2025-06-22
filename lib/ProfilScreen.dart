@@ -418,23 +418,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     SizedBox(height: 20),
                     Container(
-                      padding: const EdgeInsets.all(4.0),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 2.0),
-                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.black, width: 1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         children: [
-                          SizedBox(height: 10),
-                          _buildMenuItem('Alamat Tersimpan', onTap: () {
+                          _buildMenuItem('Alamat', onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => AlamatScreen()),
                             );
                           }),
-                          Divider(
-                              color: Colors.black, indent: 15, endIndent: 15),
                           _buildMenuItem('Akun Saya', onTap: () {
                             Navigator.push(
                               context,
@@ -442,22 +438,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   builder: (context) => AkunScreen()),
                             );
                           }),
-                          Divider(
-                              color: Colors.black, indent: 15, endIndent: 15),
                           _buildMenuItem('Pesanan', onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => RiwayatTransaksiScreen(
-                                      userId: widget.userId)),
+                                builder: (context) => RiwayatTransaksiScreen(
+                                    userId: widget.userId),
+                              ),
                             );
                           }),
-                          Divider(
-                              color: Colors.black, indent: 15, endIndent: 15),
                         ],
                       ),
                     ),
-                    SizedBox(height: 10),
+                    SizedBox(height: 30),
                     Text(
                       'Butuh Bantuan?',
                       style:
@@ -467,9 +460,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ListTile(
                       leading: FaIcon(FontAwesomeIcons.whatsapp,
                           color: Color(0xFF8DC63F)),
-                      title: Text('For Customer Service (chat only)'),
-                      subtitle: Text('0831 - 8274 - 2991'),
-                      trailing: Icon(Icons.arrow_forward_ios),
+                      title: Text(
+                        'For Customer Service (chat only)',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight:
+                                FontWeight.bold), // Ukuran font untuk title
+                      ),
+                      subtitle: Text(
+                        '0831 - 8274 - 2991',
+                        style: TextStyle(
+                            fontSize: 14), // Ukuran font untuk subtitle
+                      ),
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                      ),
                       onTap: () {},
                     ),
                     SizedBox(height: 30),
@@ -512,10 +518,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMenuItem(String title, {VoidCallback? onTap}) {
-    return ListTile(
-      title: Text(title),
-      trailing: Icon(Icons.arrow_forward_ios),
-      onTap: onTap,
+    return Column(
+      children: [
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          visualDensity: VisualDensity(horizontal: 0, vertical: -4),
+          title: Text(
+            title,
+            style: TextStyle(fontSize: 18),
+          ),
+          trailing: Icon(Icons.chevron_right, size: 20),
+          onTap: onTap,
+          minVerticalPadding: 0,
+        ),
+        Divider(height: 1, thickness: 0.8),
+      ],
     );
   }
 }
