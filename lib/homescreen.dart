@@ -10,6 +10,7 @@ import 'package:pemesanan/MinumanScreen.dart';
 import 'package:pemesanan/NonHalalScreen.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -25,6 +26,19 @@ class _HomeScreenState extends State<HomeScreen> {
   int _cartItemCount = 0;
   Stream<DocumentSnapshot>? _cartStream;
 
+  // Banner carousel variables
+  PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _timer;
+
+  // List banner images (ganti dengan path gambar Anda)
+  final List<String> _bannerImages = [
+    'images/banner1.jpg', // Gambar Mu Gung Hwa
+    'images/banner2.jpg',
+    'images/banner3.jpg', // Gambar Jinro
+    // Tambahkan lebih banyak gambar banner jika diperlukan
+  ];
+
   final String profil = '684083800031dfaaecad';
 
   @override
@@ -39,6 +53,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _loadProfileData();
     _initializeCartStream();
+    _startAutoSlider();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoSlider() {
+    _timer = Timer.periodic(Duration(seconds: 2), (Timer timer) {
+      if (_currentPage < _bannerImages.length - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   List<Map<String, dynamic>> cartItems = [];
@@ -198,22 +238,63 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: _refreshData,
         child: ListView(
           children: [
-            // Banner section
+            // Banner Carousel section
             Container(
               margin: EdgeInsets.all(20),
               height: 150,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Center(
-                child: Text(
-                  'Banner Area',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 16,
+              child: Stack(
+                children: [
+                  // PageView untuk banner carousel
+                  PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (int page) {
+                      setState(() {
+                        _currentPage = page;
+                      });
+                    },
+                    itemCount: _bannerImages.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
+                          image: DecorationImage(
+                            image: AssetImage(_bannerImages[index]),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
+
+                  // Dot indicator
+                  Positioned(
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: _bannerImages.asMap().entries.map((entry) {
+                        return Container(
+                          width: 8.0,
+                          height: 8.0,
+                          margin: EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 4.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color:
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : Colors.white)
+                                    .withOpacity(
+                                        _currentPage == entry.key ? 0.9 : 0.4),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
 

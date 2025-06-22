@@ -4,7 +4,7 @@ import 'package:appwrite/models.dart' as models;
 import 'dart:convert';
 
 final client = Client()
-  ..setEndpoint('https://fra.cloud.appwrite.io/v1') 
+  ..setEndpoint('https://fra.cloud.appwrite.io/v1')
   ..setProject('681aa0b70002469fc157')
   ..setSelfSigned(status: true);
 
@@ -29,7 +29,8 @@ class _StatusPesanaScreenState extends State<StatusPesanaScreen> {
   String orderDetails = '';
 
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String ordersCollectionId = '684b33e80033b767b024'; // Change to your order collection ID
+  final String ordersCollectionId =
+      '684b33e80033b767b024'; // Change to your order collection ID
 
   @override
   void initState() {
@@ -40,7 +41,10 @@ class _StatusPesanaScreenState extends State<StatusPesanaScreen> {
 
   void _initAppwrite() {
     _client = Client();
-    _client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject('681aa0b70002469fc157').setSelfSigned(status: true);
+    _client
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
+        .setProject('681aa0b70002469fc157')
+        .setSelfSigned(status: true);
     _databases = Databases(_client);
     _account = Account(_client);
   }
@@ -55,7 +59,8 @@ class _StatusPesanaScreenState extends State<StatusPesanaScreen> {
 
       setState(() {
         status = result.data['status'] ?? 'Unknown';
-        orderDetails = result.data['produk']; // Assuming 'produk' is the order's details
+        orderDetails =
+            result.data['produk']; // Assuming 'produk' is the order's details
       });
     } catch (e) {
       setState(() {
@@ -82,7 +87,8 @@ class _StatusPesanaScreenState extends State<StatusPesanaScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 20),
-            Text('Order Details:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('Order Details:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             Text(orderDetails),
             SizedBox(height: 20),
