@@ -37,7 +37,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String cartsCollectionId = '68407db7002d8716c9d0';
-  final String addressCollectionId = '68447d3d0007b5f75cc5'; 
+  final String addressCollectionId = '68447d3d0007b5f75cc5';
 
   @override
   void initState() {
@@ -47,14 +47,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _initAppwrite() async {
     _client = Client();
-    _client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject(projectId).setSelfSigned(status: true);
-    
+    _client
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
+        .setProject(projectId)
+        .setSelfSigned(status: true);
+
     _databases = Databases(_client);
     _account = Account(_client);
 
     await _getCurrentUser();
     await _fetchUserAddress();
   }
+
   void _updateQuantity(int index, int newQuantity) {
     if (newQuantity < 1) return;
 
@@ -62,33 +66,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       widget.cartItems[index]['quantity'] = newQuantity;
     });
   }
-  
+
   Future<bool?> _notifCheckout(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    barrierDismissible: false, 
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Konfirmasi Pesanan'),
-        content: Text('Apakah Anda yakin ingin membuat pesanan?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(false);
-            },
-            child: Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true); 
-            },
-            child: Text('Ya'),
-          ),
-        ],
-      );
-    },
-  );
-}
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Konfirmasi Pesanan'),
+          content: Text('Apakah Anda yakin ingin membuat pesanan?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: Text('Ya'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _getCurrentUser() async {
     try {
@@ -131,13 +135,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         databaseId: databaseId,
         collectionId: addressCollectionId,
         queries: [
-          Query.equal('user_id', userId), 
+          Query.equal('user_id', userId),
         ],
       );
 
       if (result.documents.isNotEmpty) {
         setState(() {
-          address = result.documents.first.data['address'] ?? 'Alamat tidak tersedia';
+          address =
+              result.documents.first.data['address'] ?? 'Alamat tidak tersedia';
         });
       } else {
         setState(() {
@@ -196,7 +201,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Align(
                 alignment: Alignment.topLeft,
-                child: Text('Alamat Pengiriman', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('Alamat Pengiriman',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               Align(
                 alignment: Alignment.topLeft,
@@ -215,7 +221,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   itemCount: widget.cartItems.length,
                   itemBuilder: (context, index) {
                     int quantity = widget.cartItems[index]['quantity'] ?? 1;
-        
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Row(
@@ -225,7 +231,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             height: 100,
                             child: ClipOval(
                               child: Image.network(
-                                widget.cartItems[index]['productImageUrl'] ?? '',
+                                widget.cartItems[index]['productImageUrl'] ??
+                                    '',
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -235,21 +242,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(widget.cartItems[index]['name'] ?? 'Product'),
-                                SizedBox(height: 10,),
-                                Text('Rp ${widget.cartItems[index]['price'] ?? 0}',style: TextStyle(color: Colors.green),),
+                                Text(widget.cartItems[index]['name'] ??
+                                    'Product'),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                Text(
+                                  'Rp ${widget.cartItems[index]['price'] ?? 0}',
+                                  style: TextStyle(color: Colors.green),
+                                ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     IconButton(
-                                      icon: Container( padding: EdgeInsets.all(1),  
+                                      icon: Container(
+                                        padding: EdgeInsets.all(1),
                                         decoration: BoxDecoration(
-                                          color: Colors.green,  
-                                           borderRadius: BorderRadius.zero,  
+                                          color: Colors.green,
+                                          borderRadius: BorderRadius.zero,
                                         ),
                                         child: Icon(
                                           Icons.remove,
-                                          color: Colors.white,  
+                                          color: Colors.white,
                                         ),
                                       ),
                                       onPressed: () {
@@ -260,14 +274,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     ),
                                     Text(quantity.toString()),
                                     IconButton(
-                                      icon: Container( padding: EdgeInsets.all(1),  
+                                      icon: Container(
+                                        padding: EdgeInsets.all(1),
                                         decoration: BoxDecoration(
-                                          color: Colors.blue,  
-                                           borderRadius: BorderRadius.zero,
+                                          color: Colors.blue,
+                                          borderRadius: BorderRadius.zero,
                                         ),
                                         child: Icon(
                                           Icons.add,
-                                          color: Colors.white,  
+                                          color: Colors.white,
                                         ),
                                       ),
                                       onPressed: () {
@@ -299,7 +314,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Catatan Tambahan:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Catatan Tambahan:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           Text('Tinggalkan catatan'),
                         ],
                       ),
@@ -309,15 +325,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp $totalPrice', style: TextStyle(color: Colors.green)),
+                          Text('Total:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp $totalPrice',
+                              style: TextStyle(color: Colors.green)),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: 10,),
+              SizedBox(
+                height: 10,
+              ),
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black, width: 2.0),
@@ -331,14 +351,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Pilih Pembayaran:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Pilih Pembayaran:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           PopupMenuButton<String>(
                             onSelected: (String value) {
                               setState(() {
                                 _metodePembayaran = value;
                               });
                             },
-                            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
                               const PopupMenuItem<String>(
                                 value: 'COD',
                                 child: Text('COD'),
@@ -348,7 +370,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 child: Text('QRIS'),
                               ),
                             ],
-                            child: Text('$_metodePembayaran >', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                            child: Text('$_metodePembayaran >',
+                                style: TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -358,23 +383,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total Pesanan:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp $totalPrice', style: TextStyle(color: Colors.green)),
+                          Text('Total Pesanan:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp $totalPrice',
+                              style: TextStyle(color: Colors.green)),
                         ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total Biaya Pengiriman:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp 10000', style: TextStyle(color: Colors.green)),
+                          Text('Total Biaya Pengiriman:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp 10000',
+                              style: TextStyle(color: Colors.green)),
                         ],
                       ),
                       Divider(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp $totalPrice2', style: TextStyle(color: Colors.green)),
+                          Text('Total:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Rp $totalPrice2',
+                              style: TextStyle(color: Colors.green)),
                         ],
                       ),
                     ],
@@ -384,19 +415,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
-
                   bool? isConfirmed = await _notifCheckout(context);
 
                   try {
                     final user = await account.get();
-                    final produkList = widget.cartItems.map((item) => {
-                      'nama': item['name'],
-                      'jumlah': item['quantity'],
-                      'harga': item['price'],
-                      'productImageUrl': item['productImageUrl']
-                    }).toList();
+                    final produkList = widget.cartItems
+                        .map((item) => {
+                              'nama': item['name'],
+                              'jumlah': item['quantity'],
+                              'harga': item['price'],
+                              'productImageUrl': item['productImageUrl']
+                            })
+                        .toList();
                     final produkJsonString = jsonEncode(produkList);
-                    
+
                     final data = {
                       'userId': user.$id,
                       'alamat': address,
@@ -404,7 +436,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       'metodePembayaran': _metodePembayaran,
                       'total': totalPrice2,
                       'createdAt': DateTime.now().toUtc().toIso8601String(),
-                      'status' : 'menunggu'
+                      'status': 'menunggu'
                     };
 
                     final response = await databases.createDocument(

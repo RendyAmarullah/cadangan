@@ -429,7 +429,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF8DC63F), // Checkout button color
-                  padding: EdgeInsets.symmetric(vertical: 15),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                 ),
               ),
             )
