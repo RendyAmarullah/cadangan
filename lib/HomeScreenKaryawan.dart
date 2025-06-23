@@ -23,11 +23,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   @override
   void initState() {
     super.initState();
-    
+
     client
-        .setEndpoint('https://fra.cloud.appwrite.io/v1') 
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject('681aa0b70002469fc157')
-        .setSelfSigned(status: true); 
+        .setSelfSigned(status: true);
     account = Account(client);
     databases = Databases(client);
     _loadProfileData();
@@ -56,7 +56,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     });
 
     try {
-      
       bool hasConnection = await _checkConnection();
       if (!hasConnection) {
         throw Exception('Tidak ada koneksi internet');
@@ -68,7 +67,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         queries: [
           Query.equal('status', 'menunggu'),
           Query.orderDesc('\$createdAt'),
-          Query.limit(50), 
+          Query.limit(50),
         ],
       );
 
@@ -217,11 +216,9 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       String productsJson = jsonEncode(products);
 
-     
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
-        collectionId:
-            '6854b40600020e4a49aa',
+        collectionId: '6854b40600020e4a49aa',
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -232,12 +229,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'total': orderDoc.data['total'] ?? 0,
           'status': 'sedang diproses',
           'createdAt': DateTime.now().toIso8601String(),
-          'acceptedByy': userId, 
+          'acceptedByy': userId,
           'acceptedAt': DateTime.now().toIso8601String(),
         },
       );
 
-      
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -249,15 +245,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         },
       );
 
-      
       Navigator.pop(context);
 
-     
       setState(() {
         _orders.removeAt(index);
       });
 
-     
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
@@ -269,14 +262,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       print(
           'Pesanan #$orderId berhasil diterima dan dipindahkan ke sedang diproses');
     } catch (e) {
-     
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
       print('Error menerima pesanan: $e');
 
-     
       String errorMessage = 'Gagal menerima pesanan';
       if (e.toString().contains('User ID tidak valid')) {
         errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
@@ -299,10 +290,8 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-
   Future<void> _rejectOrder(String orderId, int index) async {
     try {
-     
       bool? confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -324,9 +313,8 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       if (confirmed != true) return;
 
-      print('Rejecting order: $orderId with userId: $userId'); 
+      print('Rejecting order: $orderId with userId: $userId');
 
-      
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -341,26 +329,22 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         ),
       );
 
-     
       if (userId.isEmpty) {
         Navigator.pop(context);
         throw Exception('User ID tidak valid. Silakan login ulang.');
       }
 
-     
       final orderDoc = await databases!.getDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
         documentId: orderId,
       );
 
-     
       if (orderDoc.data['status'] != 'menunggu') {
         Navigator.pop(context);
         throw Exception('Order sudah diproses oleh orang lain');
       }
 
-     
       List<dynamic> products = [];
       if (orderDoc.data['produk'] != null) {
         if (orderDoc.data['produk'] is String) {
@@ -377,11 +361,9 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       String productsJson = jsonEncode(products);
 
-    
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
-        collectionId:
-            '6854ba6e003bad3da579',
+        collectionId: '6854ba6e003bad3da579',
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -392,12 +374,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'total': orderDoc.data['total'] ?? 0,
           'status': 'ditolak',
           'createdAt': DateTime.now().toIso8601String(),
-          'rejectedBy': userId, 
+          'rejectedBy': userId,
           'rejectedAt': DateTime.now().toIso8601String(),
         },
       );
 
-      
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -409,15 +390,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         },
       );
 
-    
       Navigator.pop(context);
 
-      
       setState(() {
         _orders.removeAt(index);
       });
 
-     
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil ditolak'),
@@ -428,14 +406,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       print('Pesanan #$orderId berhasil ditolak');
     } catch (e) {
-      
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
       print('Error menolak pesanan: $e');
 
-      
       String errorMessage = 'Gagal menolak pesanan';
       if (e.toString().contains('User ID tidak valid')) {
         errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
@@ -556,7 +532,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,

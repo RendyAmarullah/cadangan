@@ -433,12 +433,6 @@ class _StatusPesananKaryawanScreenState
                   onRefresh: _fetchOrders,
                   child: _buildOrderList(),
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _fetchOrders,
-        backgroundColor: Color(0xFF0072BC),
-        child: Icon(Icons.refresh, color: Colors.white),
-        tooltip: 'Refresh',
-      ),
     );
   }
 }
