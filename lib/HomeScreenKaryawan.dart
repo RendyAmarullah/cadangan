@@ -23,11 +23,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   @override
   void initState() {
     super.initState();
-    // Gunakan endpoint yang sama dengan StatusPesananKaryawanScreen
+    
     client
-        .setEndpoint('https://fra.cloud.appwrite.io/v1') // Changed endpoint
+        .setEndpoint('https://fra.cloud.appwrite.io/v1') 
         .setProject('681aa0b70002469fc157')
-        .setSelfSigned(status: true); // Added setSelfSigned
+        .setSelfSigned(status: true); 
     account = Account(client);
     databases = Databases(client);
     _loadProfileData();
@@ -56,7 +56,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     });
 
     try {
-      // Cek koneksi terlebih dahulu
+      
       bool hasConnection = await _checkConnection();
       if (!hasConnection) {
         throw Exception('Tidak ada koneksi internet');
@@ -68,7 +68,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         queries: [
           Query.equal('status', 'menunggu'),
           Query.orderDesc('\$createdAt'),
-          Query.limit(50), // Batasi jumlah data untuk performa
+          Query.limit(50), 
         ],
       );
 
@@ -217,11 +217,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       String productsJson = jsonEncode(products);
 
-      // Buat dokumen baru di collection 'sedang diproses'
+     
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId:
-            '6854b40600020e4a49aa', // Collection untuk pesanan yang sedang diproses
+            '6854b40600020e4a49aa',
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -232,32 +232,32 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'total': orderDoc.data['total'] ?? 0,
           'status': 'sedang diproses',
           'createdAt': DateTime.now().toIso8601String(),
-          'acceptedBy': userId, // Tambahkan info siapa yang menerima
+          'acceptedByy': userId, 
           'acceptedAt': DateTime.now().toIso8601String(),
         },
       );
 
-      // Update status order asli
+      
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
         documentId: orderId,
         data: {
           'status': 'sedang diproses',
-          'acceptedBy': userId,
+          'acceptedByy': userId,
           'acceptedAt': DateTime.now().toIso8601String(),
         },
       );
 
-      // Tutup loading dialog
+      
       Navigator.pop(context);
 
-      // Update UI
+     
       setState(() {
         _orders.removeAt(index);
       });
 
-      // Tampilkan success message
+     
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
@@ -269,14 +269,14 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       print(
           'Pesanan #$orderId berhasil diterima dan dipindahkan ke sedang diproses');
     } catch (e) {
-      // Tutup loading dialog jika masih terbuka
+     
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
       print('Error menerima pesanan: $e');
 
-      // Tampilkan error message yang lebih spesifik
+     
       String errorMessage = 'Gagal menerima pesanan';
       if (e.toString().contains('User ID tidak valid')) {
         errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
@@ -299,10 +299,10 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-  // Fungsi reject order dengan perbaikan
+
   Future<void> _rejectOrder(String orderId, int index) async {
     try {
-      // Tampilkan konfirmasi dialog
+     
       bool? confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -324,9 +324,9 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       if (confirmed != true) return;
 
-      print('Rejecting order: $orderId with userId: $userId'); // Debug log
+      print('Rejecting order: $orderId with userId: $userId'); 
 
-      // Tampilkan loading dialog
+      
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -341,26 +341,26 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         ),
       );
 
-      // Validasi userId
+     
       if (userId.isEmpty) {
         Navigator.pop(context);
         throw Exception('User ID tidak valid. Silakan login ulang.');
       }
 
-      // Ambil data order yang akan ditolak
+     
       final orderDoc = await databases!.getDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
         documentId: orderId,
       );
 
-      // Validasi apakah order masih ada dan statusnya masih 'menunggu'
+     
       if (orderDoc.data['status'] != 'menunggu') {
         Navigator.pop(context);
         throw Exception('Order sudah diproses oleh orang lain');
       }
 
-      // Proses data produk dengan validasi
+     
       List<dynamic> products = [];
       if (orderDoc.data['produk'] != null) {
         if (orderDoc.data['produk'] is String) {
@@ -377,11 +377,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       String productsJson = jsonEncode(products);
 
-      // Buat dokumen baru di collection 'pesanan ditolak'
+    
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId:
-            '6854ba6e003bad3da579', // Collection untuk pesanan yang ditolak
+            '6854ba6e003bad3da579',
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -392,12 +392,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'total': orderDoc.data['total'] ?? 0,
           'status': 'ditolak',
           'createdAt': DateTime.now().toIso8601String(),
-          'rejectedBy': userId, // Tambahkan info siapa yang menolak
+          'rejectedBy': userId, 
           'rejectedAt': DateTime.now().toIso8601String(),
         },
       );
 
-      // Update status order asli
+      
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -409,15 +409,15 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         },
       );
 
-      // Tutup loading dialog
+    
       Navigator.pop(context);
 
-      // Update UI
+      
       setState(() {
         _orders.removeAt(index);
       });
 
-      // Tampilkan success message
+     
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil ditolak'),
@@ -428,14 +428,14 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
       print('Pesanan #$orderId berhasil ditolak');
     } catch (e) {
-      // Tutup loading dialog jika masih terbuka
+      
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
       print('Error menolak pesanan: $e');
 
-      // Tampilkan error message yang lebih spesifik
+      
       String errorMessage = 'Gagal menolak pesanan';
       if (e.toString().contains('User ID tidak valid')) {
         errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
@@ -556,7 +556,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Header dengan Order ID dan Status
+                              
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,

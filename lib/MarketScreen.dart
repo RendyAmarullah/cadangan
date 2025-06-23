@@ -72,6 +72,10 @@ class _MarketScreenState extends State<MarketScreen> {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
+        queries: [
+         Query.equal('category', ['snack', 'frozen', 'mie']),
+          
+        ],
       );
 
       setState(() {
