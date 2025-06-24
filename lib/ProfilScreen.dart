@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/AlamatScreen.dart';
+import 'package:pemesanan/FavoritScreen.dart';
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/AkunScreen.dart';
@@ -438,12 +439,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   builder: (context) => AkunScreen()),
                             );
                           }),
-                          _buildMenuItem('Pesanan', onTap: () {
+                          _buildMenuItem('Favorit', onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => RiwayatTransaksiScreen(
-                                    userId: widget.userId),
+                                builder: (context) => FavoriteScreen(
+                                    ),
                               ),
                             );
                           }),

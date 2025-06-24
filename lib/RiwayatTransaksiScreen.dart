@@ -54,7 +54,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         collectionId: ordersCollectionId,
         queries: [
           Query.equal('userId', widget.userId),
-          Query.orderDesc('\$createdAt'), // Urutkan berdasarkan tanggal terbaru
+          Query.orderDesc('\$createdAt'),
         ],
       );
 
@@ -78,6 +78,35 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         _errorMessage = 'Gagal memuat riwayat pesanan. Silakan coba lagi.';
         _isLoading = false;
       });
+    }
+  }
+
+  // Fungsi untuk membatalkan pesanan
+  Future<void> _cancelOrder(String orderId) async {
+    try {
+      await _databases.updateDocument(
+        databaseId: databaseId,
+        collectionId: ordersCollectionId,
+        documentId: orderId,
+        data: {'status': 'Dibatalkan'}, // Ubah status pesanan menjadi Dibatalkan
+      );
+
+      setState(() {
+        _orders = _orders.map((order) {
+          if (order['orderId'] == orderId) {
+            order['status'] = 'Dibatalkan'; // Update status di UI
+          }
+          return order;
+        }).toList();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pesanan telah dibatalkan')),
+      );
+    } catch (e) {
+      print('Error canceling order: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membatalkan pesanan.')),
+      );
     }
   }
 
@@ -226,9 +255,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 12), 
 
-                // Alamat dan Metode Pembayaran
+                
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -268,7 +297,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 ),
                 SizedBox(height: 16),
 
-                // Daftar Produk
+                
                 Text(
                   'Produk (${produkList.length} item)',
                   style: TextStyle(
@@ -278,7 +307,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 ),
                 SizedBox(height: 8),
 
-                // Gunakan Column alih-alih ListView untuk menghindari masalah nested scroll
+                // Produk List
                 ...produkList.map((product) {
                   return Container(
                     margin: EdgeInsets.only(bottom: 8),
@@ -387,6 +416,19 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                   ],
                 ),
+
+                
+                if (status == 'Menunggu' || status == 'sedang diproses')
+                  SizedBox(
+                    height: 16,
+                    child: ElevatedButton(
+                      onPressed: () => _cancelOrder(order['orderId']),
+                      child: Text('Batalkan Pesanan'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white, backgroundColor: Colors.red,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
