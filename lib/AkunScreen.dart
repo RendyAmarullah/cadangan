@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
+import 'package:pemesanan/SplahScreen.dart';
 
 class AkunScreen extends StatefulWidget {
   @override
@@ -33,6 +34,7 @@ class _AkunScreenState extends State<AkunScreen> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
   TextEditingController _noHandPhoneController = TextEditingController();
+  TextEditingController _passwordController = TextEditingController();
 
   bool _isEditing = false;
 
@@ -107,36 +109,62 @@ class _AkunScreenState extends State<AkunScreen> {
   }
 
   Future<void> _updateProfile() async {
-    try {
-      final updatedName = _nameController.text;
-      final updatedEmail = _emailController.text;
-      final updatedNoHandphone = _noHandPhoneController.text;
+  try {
+    final updatedName = _nameController.text;
+    final updatedEmail = _emailController.text;
+    final updatedNoHandphone = _noHandPhoneController.text;
+    final updatedPassword = _passwordController.text;
 
-      final user = await _account.get();
-      if (user != null) {
-        await _databases.updateDocument(
-          databaseId: databaseId,
-          collectionId: profil,
-          documentId: user.$id,
-          data: {
-            'name': updatedName,
-            'email': updatedEmail,
-            'noHandphone': updatedNoHandphone,
-          },
-        );
+    final user = await _account.get();
+    if (user != null) {
+      // Update the email in Appwrite's authentication system
+      await _account.updateEmail(
+        
+        email: updatedEmail,
+        password: _passwordController.text, 
+      );
 
-        setState(() {
-          _userName = updatedName;
-          _userEmail = updatedEmail;
+      // Update the email and name in your custom database
+      await _databases.updateDocument(
+        databaseId: databaseId,
+        collectionId: profil,
+        documentId: user.$id,
+        data: {
+          'name': updatedName,
+          'email': updatedEmail, // Update the email in the collection too
+          'noHandphone': updatedNoHandphone,
+        },
+      );
 
-          _isEditing = false; // Close editing mode
-        });
-        print("Profile updated successfully.");
-      }
-    } catch (e) {
-      print('Error updating profile: $e');
+      setState(() {
+        _userName = updatedName;
+        _userEmail = updatedEmail;
+
+        _isEditing = false; 
+      });
+
+     
+      await _account.deleteSession(sessionId: 'current');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile updated and logged out. Please log in again.')),
+      );
+
+     
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SplashScreen()), 
+      );
+
+      print("Profile updated successfully.");
     }
+  } catch (e) {
+    print('Error updating profile: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error updating profile: $e')),
+    );
   }
+}
+
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
@@ -201,106 +229,112 @@ class _AkunScreenState extends State<AkunScreen> {
         elevation: 0,
         title: Text('Akun', style: TextStyle(color: Colors.white)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 60,
-                  child: _profileImageUrl != null
-                      ? CircleAvatar(
-                          radius: 60,
-                          backgroundImage: NetworkImage(_profileImageUrl!))
-                      : const CircleAvatar(
-                          radius: 60, child: Icon(Icons.person)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: CircleAvatar(
+                    radius: 60,
+                    child: _profileImageUrl != null
+                        ? CircleAvatar(
+                            radius: 60,
+                            backgroundImage: NetworkImage(_profileImageUrl!))
+                        : const CircleAvatar(
+                            radius: 60, child: Icon(Icons.person)),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 10),
-            _isEditing
-                ? Column(
-                    children: [
-                      TextField(
-                        controller: _nameController,
-                        decoration: InputDecoration(labelText: 'Name'),
-                      ),
-                      TextField(
-                        controller: _emailController,
-                        decoration: InputDecoration(labelText: 'Email'),
-                      ),
-                      TextField(
-                        controller: _noHandPhoneController,
-                        decoration: InputDecoration(labelText: 'No Handphone'),
-                      ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _updateProfile,
-                        child: Text('Simpan Perubahan'),
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue),
-                      ),
-                    ],
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
+              SizedBox(height: 10),
+              _isEditing
+                  ? Column(
                       children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Nama',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                                color: Colors.green),
-                          ),
+                        TextField(
+                          controller: _nameController,
+                          decoration: InputDecoration(labelText: 'Name'),
                         ),
-                        _buildMenuItem(_userName ?? 'Guest'),
-                        Divider(color: Colors.black, indent: 15, endIndent: 15),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Email',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                                color: Colors.green),
-                          ),
+                        TextField(
+                          controller: _emailController,
+                          decoration: InputDecoration(labelText: 'Email'),
                         ),
-                        _buildMenuItem(_userEmail ?? 'Guest'),
-                        Divider(color: Colors.black, indent: 15, endIndent: 15),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'No Handphone',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                                color: Colors.green),
-                          ),
+                        TextField(
+                          controller: _noHandPhoneController,
+                          decoration: InputDecoration(labelText: 'No Handphone'),
                         ),
-                        _buildMenuItem(_noHp ?? '-'),
-                        Divider(color: Colors.black, indent: 15, endIndent: 15),
-                        SizedBox(height: 40),
+                        TextField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(labelText: 'Konfirmasi Password'),
+                        ),
+                        SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _isEditing = true;
-                            });
-                          },
-                          child: Text('Edit Profile'),
+                          onPressed: _updateProfile,
+                          child: Text('Simpan Perubahan'),
                           style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue),
                         ),
                       ],
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Nama',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: Colors.green),
+                            ),
+                          ),
+                          _buildMenuItem(_userName ?? 'Guest'),
+                          Divider(color: Colors.black, indent: 15, endIndent: 15),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Email',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: Colors.green),
+                            ),
+                          ),
+                          _buildMenuItem(_userEmail ?? 'Guest'),
+                          Divider(color: Colors.black, indent: 15, endIndent: 15),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'No Handphone',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: Colors.green),
+                            ),
+                          ),
+                          _buildMenuItem(_noHp ?? '-'),
+                          Divider(color: Colors.black, indent: 15, endIndent: 15),
+                          SizedBox(height: 40),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isEditing = true;
+                              });
+                            },
+                            child: Text('Edit Profile'),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-            SizedBox(height: 20),
-          ],
+              SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
