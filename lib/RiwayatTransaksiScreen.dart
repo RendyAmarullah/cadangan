@@ -17,6 +17,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   late Databases _databases;
   late Account _account;
   List<Map<String, dynamic>> _orders = [];
+  List<Map<String, dynamic>> _filteredOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -70,6 +71,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             'status': doc.data['status'],
           };
         }).toList();
+        _filteredOrders = List.from(_orders);
         _isLoading = false;
       });
     } catch (e) {
@@ -81,20 +83,20 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  // Fungsi untuk membatalkan pesanan
+  
   Future<void> _cancelOrder(String orderId) async {
     try {
       await _databases.updateDocument(
         databaseId: databaseId,
         collectionId: ordersCollectionId,
         documentId: orderId,
-        data: {'status': 'Dibatalkan'}, // Ubah status pesanan menjadi Dibatalkan
+        data: {'status': 'Dibatalkan'}, 
       );
 
       setState(() {
         _orders = _orders.map((order) {
           if (order['orderId'] == orderId) {
-            order['status'] = 'Dibatalkan'; // Update status di UI
+            order['status'] = 'Dibatalkan'; 
           }
           return order;
         }).toList();
@@ -110,6 +112,36 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
+  
+  Future<void> _completeOrder(String orderId) async {
+    try {
+      await _databases.updateDocument(
+        databaseId: databaseId,
+        collectionId: ordersCollectionId,
+        documentId: orderId,
+        data: {'status': 'Selesai'}, 
+      );
+
+      setState(() {
+        _orders = _orders.map((order) {
+          if (order['orderId'] == orderId) {
+            order['status'] = 'Selesai';
+          }
+          return order;
+        }).toList();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pesanan selesai')),
+      );
+    } catch (e) {
+      print('Error completing order: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyelesaikan pesanan.')),
+      );
+    }
+  }
+
   String _formatCurrency(int amount) {
     return 'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
   }
@@ -121,6 +153,20 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     } catch (e) {
       return dateString;
     }
+  }
+
+  
+  void _filterCompletedOrders() {
+    setState(() {
+      _filteredOrders = _orders.where((order) => order['status'] == 'Selesai').toList();
+    });
+  }
+
+  
+  void _showAllOrders() {
+    setState(() {
+      _filteredOrders = List.from(_orders);
+    });
   }
 
   @override
@@ -149,7 +195,29 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _fetchOrders,
-        child: _buildBody(),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: _showAllOrders,
+                    child: Text('Semua Pesanan'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _filterCompletedOrders,
+                    child: Text('Pesanan Selesai'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _buildBody(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -190,7 +258,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       );
     }
 
-    if (_orders.isEmpty) {
+    if (_filteredOrders.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -213,9 +281,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
     return ListView.builder(
       padding: EdgeInsets.all(8.0),
-      itemCount: _orders.length,
+      itemCount: _filteredOrders.length,
       itemBuilder: (context, index) {
-        var order = _orders[index];
+        var order = _filteredOrders[index];
         var produkList = List<Map<String, dynamic>>.from(order['produk']);
         int totalPrice = order['total'];
         String paymentMethod = order['metodePembayaran'];
@@ -233,7 +301,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header dengan Order ID dan Tanggal
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -255,9 +322,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 12), 
+                SizedBox(height: 12),
 
-                
+                // Alamat dan Metode Pembayaran
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -297,7 +364,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 ),
                 SizedBox(height: 16),
 
-                
+                // Produk List
                 Text(
                   'Produk (${produkList.length} item)',
                   style: TextStyle(
@@ -307,7 +374,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 ),
                 SizedBox(height: 8),
 
-                // Produk List
+                // Produk
                 ...produkList.map((product) {
                   return Container(
                     margin: EdgeInsets.only(bottom: 8),
@@ -418,7 +485,18 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 ),
 
                 
-                if (status == 'Menunggu' || status == 'sedang diproses')
+                if (status == 'Pesanan Telah Diterima')
+                  SizedBox(
+                    height: 16,
+                    child: ElevatedButton(
+                      onPressed: () => _completeOrder(order['orderId']),
+                      child: Text('Selesaikan Pesanan'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white, backgroundColor: Colors.green,
+                      ),
+                    ),
+                  ),
+                   if (status == 'Menunggu' || status == 'sedang diproses')
                   SizedBox(
                     height: 16,
                     child: ElevatedButton(

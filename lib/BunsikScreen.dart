@@ -17,10 +17,12 @@ class _BunsikScreenState extends State<BunsikScreen> {
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String productsCollectionId = '68407bab00235ecda20d';
   final String cartsCollectionId = '68407db7002d8716c9d0';
-  final String bucketId = '681aa16f003054da8969';
+   final String favoritesCollectionId = '685adb7f00015bc4ec5f';
+
 
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> cartItems = [];
+  List<Map<String, dynamic>> favoriteItems = [];
   Map<String, int> productQuantities = {};
   String userId = '';
   String searchQuery = '';
@@ -51,7 +53,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
     await _getCurrentUser();
     await _fetchProducts();
     await _fetchCart();
-
+    await _fetchFavorites();
     setState(() {
       isLoading = false;
     });
@@ -68,13 +70,84 @@ class _BunsikScreenState extends State<BunsikScreen> {
     }
   }
 
+  Future<void> _fetchFavorites() async {
+    try {
+      final result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: favoritesCollectionId,
+        queries: [
+          Query.equal('userIds', userId),
+        ],
+      );
+
+      setState(() {
+        favoriteItems = result.documents.map((doc) => doc.data).toList();
+      });
+    } catch (e) {
+      print('Error fetching favorites: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite(Map<String, dynamic> product) async {
+    try {
+      final existingFavorites = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: favoritesCollectionId,
+        queries: [
+          Query.equal('userIds', userId),
+          Query.equal('productId', product['\$id']),
+        ],
+      );
+
+      if (existingFavorites.documents.isNotEmpty) {
+        // Jika sudah ada, hapus dari favorit
+        final docId = existingFavorites.documents.first.$id;
+        await _databases.deleteDocument(
+          databaseId: databaseId,
+          collectionId: favoritesCollectionId,
+          documentId: docId,
+        );
+        setState(() {
+          favoriteItems.removeWhere((item) => item['\$id'] == product['\$id']);
+        });
+      } else {
+        // Jika belum ada, tambahkan ke favorit
+        await _databases.createDocument(
+          databaseId: databaseId,
+          collectionId: favoritesCollectionId,
+          documentId: ID.unique(),
+          data: {
+            'userIds': userId,
+            'productId': product['\$id'],
+            'name': product['name'],
+            'price': product['price'],
+            'productImageUrl': product['productImageUrl'],
+          },
+        );
+        setState(() {
+          favoriteItems.add({
+            'userIds': userId,
+            'productId': product['\$id'],
+            'name': product['name'],
+            'price': product['price'],
+            'productImageUrl': product['productImageUrl'],
+          });
+        });
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+    }
+  }
+
+
   Future<void> _fetchProducts() async {
     try {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
         queries: [
-          Query.equal('category', 'bunsik'),
+         Query.equal('category','bunsik'),
+          
         ],
       );
 
@@ -108,7 +181,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
     }
   }
 
-  // Fungsi untuk menambah/update produk dengan quantity tertentu
+  
   Future<void> addToCartWithQuantity(
       Map<String, dynamic> product, int quantity) async {
     try {
@@ -201,7 +274,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
   }
 
   void _showProductDetail(Map<String, dynamic> product) async {
-    // Refresh cart data sebelum membuka modal
+    
     await _fetchCart();
 
     showModalBottomSheet(
@@ -212,7 +285,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        // Inisialisasi quantity sesuai dengan yang ada di keranjang, atau 1 jika belum ada
+        
         int displayQty = productQuantities[product['\$id']] ?? 1;
 
         return StatefulBuilder(
@@ -244,7 +317,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          product['description'] ?? 'Tidak ada deskripsi',
+                          product['description'] ?? '-',
                           style: TextStyle(color: Colors.black87),
                         ),
                         SizedBox(height: 16),
@@ -360,45 +433,44 @@ class _BunsikScreenState extends State<BunsikScreen> {
       body: Column(
         children: [
           Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-              child: SizedBox(
-                height: 45,
-                child: TextField(
-                  controller: searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Cari produk...',
-                    prefixIcon: Icon(Icons.search, size: 20),
-                    suffixIcon: searchQuery.isNotEmpty
-                        ? GestureDetector(
-                            onTap: () {
-                              searchController.clear();
-                              setState(() {
-                                searchQuery = '';
-                              });
-                            },
-                            child:
-                                Icon(Icons.clear, color: Colors.grey, size: 20),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.black, width: 1),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.black, width: 1),
-                    ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+            child: SizedBox(
+              height: 45,
+              child: TextField(
+                controller: searchController,
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Cari produk...',
+                  prefixIcon: Icon(Icons.search, size: 20),
+                  suffixIcon: searchQuery.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () {
+                            searchController.clear();
+                            setState(() {
+                              searchQuery = '';
+                            });
+                          },
+                          child: Icon(Icons.clear, color: Colors.grey, size: 20),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.black, width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.black, width: 1),
                   ),
                 ),
-              )),
+              ),
+            ),
+          ),
           Expanded(
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
@@ -409,8 +481,8 @@ class _BunsikScreenState extends State<BunsikScreen> {
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           var product = filteredProducts[index];
-                          int quantity =
-                              productQuantities[product['\$id']] ?? 0;
+                          bool isFavorite =
+                              favoriteItems.any((item) => item['productId'] == product['\$id']);
 
                           return GestureDetector(
                             onTap: () => _showProductDetail(product),
@@ -431,7 +503,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
-                                        getImageUrl(product['productImageUrl']),
+                                        product['productImageUrl'],
                                         width: 60,
                                         height: 60,
                                         fit: BoxFit.cover,
@@ -440,13 +512,14 @@ class _BunsikScreenState extends State<BunsikScreen> {
                                     SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(product['name'],
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 20)),
+                                          Text(
+                                            product['name'],
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 20),
+                                          ),
                                           Text(
                                             'Rp ${product['price']}',
                                             style: TextStyle(fontSize: 15),
@@ -454,8 +527,20 @@ class _BunsikScreenState extends State<BunsikScreen> {
                                         ],
                                       ),
                                     ),
-                                    Icon(Icons.add_circle_outline,
-                                        color: Color(0xFF8DC63F), size: 28),
+                                    IconButton(
+                                      icon: Icon(
+                                        isFavorite
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: isFavorite
+                                            ? Colors.red
+                                            : Colors.grey,
+                                        size: 28,
+                                      ),
+                                      onPressed: () {
+                                        _toggleFavorite(product);
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),
@@ -468,12 +553,10 @@ class _BunsikScreenState extends State<BunsikScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Navigasi ke KeranjangScreen dan refresh data saat kembali
           await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => KeranjangScreen()),
           );
-          // Refresh cart data setelah kembali dari KeranjangScreen
           await _fetchCart();
         },
         child: Icon(

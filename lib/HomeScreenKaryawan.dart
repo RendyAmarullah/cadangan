@@ -34,7 +34,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     _loadOrders();
   }
 
-  // Fungsi untuk validasi koneksi
+  
   Future<bool> _checkConnection() async {
     try {
       await databases!.listDocuments(
@@ -49,7 +49,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-  // Fungsi load orders dengan error handling yang lebih baik
+  
   Future<void> _loadOrders() async {
     setState(() {
       _isLoading = true;
@@ -108,7 +108,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         _isLoading = false;
       });
 
-      // Tampilkan error message
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -130,10 +130,10 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       final user = await account!.get();
       setState(() {
         _email = user.email;
-        userId = user.$id; // Set userId here
+        userId = user.$id; 
       });
 
-      print('User ID: $userId'); // Debug log
+      print('User ID: $userId'); 
 
       final profileDoc = await databases!.getDocument(
         databaseId: '681aa33a0023a8c7eb1f',
@@ -145,7 +145,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       });
     } catch (e) {
       print('Failed to load user profile: $e');
-      // Jika gagal load profile, tetap coba ambil user ID
+      
       try {
         final user = await account!.get();
         setState(() {
@@ -158,281 +158,280 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-  // Fungsi accept order dengan perbaikan
+  
   Future<void> _acceptOrder(String orderId, int index) async {
-    try {
-      print('Accepting order: $orderId with userId: $userId'); // Debug log
+  try {
+    print('Accepting order: $orderId with userId: $userId'); 
 
-      // Tampilkan loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Text('Memproses pesanan...'),
-            ],
-          ),
-        ),
-      );
-
-      // Validasi userId
-      if (userId.isEmpty) {
-        Navigator.pop(context); // Tutup loading dialog
-        throw Exception('User ID tidak valid. Silakan login ulang.');
-      }
-
-      // Ambil data order yang akan diproses
-      final orderDoc = await databases!.getDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: ordersCollectionId,
-        documentId: orderId,
-      );
-
-      print('Order status: ${orderDoc.data['status']}'); // Debug log
-
-      // Validasi apakah order masih ada dan statusnya masih 'menunggu'
-      if (orderDoc.data['status'] != 'menunggu') {
-        Navigator.pop(context);
-        throw Exception('Order sudah diproses oleh orang lain');
-      }
-
-      // Proses data produk dengan validasi
-      List<dynamic> products = [];
-      if (orderDoc.data['produk'] != null) {
-        if (orderDoc.data['produk'] is String) {
-          try {
-            products = jsonDecode(orderDoc.data['produk']);
-          } catch (e) {
-            print('Error parsing produk JSON: $e');
-            products = [];
-          }
-        } else if (orderDoc.data['produk'] is List) {
-          products = orderDoc.data['produk'];
-        }
-      }
-
-      String productsJson = jsonEncode(products);
-
-      await databases!.createDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: '6854b40600020e4a49aa',
-        documentId: ID.unique(),
-        data: {
-          'userId': userId,
-          'orderId': orderId,
-          'alamat': orderDoc.data['alamat'] ?? '',
-          'produk': productsJson,
-          'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'COD',
-          'total': orderDoc.data['total'] ?? 0,
-          'status': 'sedang diproses',
-          'createdAt': DateTime.now().toIso8601String(),
-          'acceptedByy': userId,
-          'acceptedAt': DateTime.now().toIso8601String(),
-        },
-      );
-
-      await databases!.updateDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: ordersCollectionId,
-        documentId: orderId,
-        data: {
-          'status': 'sedang diproses',
-          'acceptedByy': userId,
-          'acceptedAt': DateTime.now().toIso8601String(),
-        },
-      );
-
-      Navigator.pop(context);
-
-      setState(() {
-        _orders.removeAt(index);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      print(
-          'Pesanan #$orderId berhasil diterima dan dipindahkan ke sedang diproses');
-    } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
-      print('Error menerima pesanan: $e');
-
-      String errorMessage = 'Gagal menerima pesanan';
-      if (e.toString().contains('User ID tidak valid')) {
-        errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
-      } else if (e.toString().contains('sudah diproses')) {
-        errorMessage = 'Pesanan sudah diproses oleh orang lain';
-      } else if (e.toString().contains('network') ||
-          e.toString().contains('connection')) {
-        errorMessage = 'Koneksi bermasalah, coba lagi';
-      } else if (e.toString().contains('AppwriteException')) {
-        errorMessage = 'Error server: ${e.toString()}';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    }
-  }
-
-  Future<void> _rejectOrder(String orderId, int index) async {
-    try {
-      bool? confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Konfirmasi'),
-          content: Text('Apakah Anda yakin ingin menolak pesanan ini?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text('Tolak'),
-            ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Memproses pesanan...'),
           ],
         ),
-      );
+      ),
+    );
 
-      if (confirmed != true) return;
-
-      print('Rejecting order: $orderId with userId: $userId');
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Text('Menolak pesanan...'),
-            ],
-          ),
-        ),
-      );
-
-      if (userId.isEmpty) {
-        Navigator.pop(context);
-        throw Exception('User ID tidak valid. Silakan login ulang.');
-      }
-
-      final orderDoc = await databases!.getDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: ordersCollectionId,
-        documentId: orderId,
-      );
-
-      if (orderDoc.data['status'] != 'menunggu') {
-        Navigator.pop(context);
-        throw Exception('Order sudah diproses oleh orang lain');
-      }
-
-      List<dynamic> products = [];
-      if (orderDoc.data['produk'] != null) {
-        if (orderDoc.data['produk'] is String) {
-          try {
-            products = jsonDecode(orderDoc.data['produk']);
-          } catch (e) {
-            print('Error parsing produk JSON: $e');
-            products = [];
-          }
-        } else if (orderDoc.data['produk'] is List) {
-          products = orderDoc.data['produk'];
-        }
-      }
-
-      String productsJson = jsonEncode(products);
-
-      await databases!.createDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: '6854ba6e003bad3da579',
-        documentId: ID.unique(),
-        data: {
-          'userId': userId,
-          'orderId': orderId,
-          'alamat': orderDoc.data['alamat'] ?? '',
-          'produk': productsJson,
-          'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'COD',
-          'total': orderDoc.data['total'] ?? 0,
-          'status': 'ditolak',
-          'createdAt': DateTime.now().toIso8601String(),
-          'rejectedBy': userId,
-          'rejectedAt': DateTime.now().toIso8601String(),
-        },
-      );
-
-      await databases!.updateDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: ordersCollectionId,
-        documentId: orderId,
-        data: {
-          'status': 'ditolak',
-          'rejectedBy': userId,
-          'rejectedAt': DateTime.now().toIso8601String(),
-        },
-      );
-
-      Navigator.pop(context);
-
-      setState(() {
-        _orders.removeAt(index);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Pesanan ${_formatOrderId(orderId)} berhasil ditolak'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      print('Pesanan #$orderId berhasil ditolak');
-    } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
-      print('Error menolak pesanan: $e');
-
-      String errorMessage = 'Gagal menolak pesanan';
-      if (e.toString().contains('User ID tidak valid')) {
-        errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
-      } else if (e.toString().contains('sudah diproses')) {
-        errorMessage = 'Pesanan sudah diproses oleh orang lain';
-      } else if (e.toString().contains('network') ||
-          e.toString().contains('connection')) {
-        errorMessage = 'Koneksi bermasalah, coba lagi';
-      } else if (e.toString().contains('AppwriteException')) {
-        errorMessage = 'Error server: ${e.toString()}';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
+    if (userId.isEmpty) {
+      Navigator.pop(context); 
+      throw Exception('User ID tidak valid. Silakan login ulang.');
     }
+
+    // Ambil data pesanan yang sesuai dengan orderId
+    final orderDoc = await databases!.getDocument(
+      databaseId: '681aa33a0023a8c7eb1f',
+      collectionId: ordersCollectionId,
+      documentId: orderId,
+    );
+
+    print('Order status: ${orderDoc.data['status']}');
+
+    // Pastikan status pesanan 'menunggu'
+    if (orderDoc.data['status'] != 'menunggu') {
+      Navigator.pop(context);
+      throw Exception('Order sudah diproses oleh orang lain');
+    }
+
+    List<dynamic> products = [];
+    if (orderDoc.data['produk'] != null) {
+      if (orderDoc.data['produk'] is String) {
+        try {
+          products = jsonDecode(orderDoc.data['produk']);
+        } catch (e) {
+          print('Error parsing produk JSON: $e');
+          products = [];
+        }
+      } else if (orderDoc.data['produk'] is List) {
+        products = orderDoc.data['produk'];
+      }
+    }
+
+    String productsJson = jsonEncode(products);
+
+    // Update status pesanan di collection ordersCollectionId menjadi "sedang diproses"
+    await databases!.updateDocument(
+      databaseId: '681aa33a0023a8c7eb1f',
+      collectionId: ordersCollectionId,
+      documentId: orderId,
+      data: {
+        'status': 'sedang diproses',
+        'acceptedByy': userId,
+        'acceptedAt': DateTime.now().toIso8601String(),
+      },
+    );
+
+    // Buat dokumen baru untuk pesanan yang diterima di collection "sedang diproses"
+    await databases!.createDocument(
+      databaseId: '681aa33a0023a8c7eb1f',
+      collectionId: '6854b40600020e4a49aa',
+      documentId: ID.unique(),
+      data: {
+        'userId': userId,
+        'orderId': orderId,
+        'alamat': orderDoc.data['alamat'] ?? '',
+        'produk': productsJson,
+        'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'COD',
+        'total': orderDoc.data['total'] ?? 0,
+        'status': 'sedang diproses',
+        'createdAt': DateTime.now().toIso8601String(),
+        'acceptedByy': userId,
+        'acceptedAt': DateTime.now().toIso8601String(),
+      },
+    );
+
+    Navigator.pop(context);
+
+    setState(() {
+      _orders.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    print('Pesanan #$orderId berhasil diterima dan dipindahkan ke sedang diproses');
+  } catch (e) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+
+    print('Error menerima pesanan: $e');
+
+    String errorMessage = 'Gagal menerima pesanan';
+    if (e.toString().contains('User ID tidak valid')) {
+      errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
+    } else if (e.toString().contains('sudah diproses')) {
+      errorMessage = 'Pesanan sudah diproses oleh orang lain';
+    } else if (e.toString().contains('network') ||
+        e.toString().contains('connection')) {
+      errorMessage = 'Koneksi bermasalah, coba lagi';
+    } else if (e.toString().contains('AppwriteException')) {
+      errorMessage = 'Error server: ${e.toString()}';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 5),
+      ),
+    );
   }
+}
+
+Future<void> _rejectOrder(String orderId, int index) async {
+  try {
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Konfirmasi'),
+        content: Text('Apakah Anda yakin ingin menolak pesanan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('Tolak'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    print('Rejecting order: $orderId with userId: $userId');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Menolak pesanan...'),
+          ],
+        ),
+      ),
+    );
+
+    if (userId.isEmpty) {
+      Navigator.pop(context);
+      throw Exception('User ID tidak valid. Silakan login ulang.');
+    }
+
+    final orderDoc = await databases!.getDocument(
+      databaseId: '681aa33a0023a8c7eb1f',
+      collectionId: ordersCollectionId,
+      documentId: orderId,
+    );
+
+    if (orderDoc.data['status'] != 'menunggu') {
+      Navigator.pop(context);
+      throw Exception('Order sudah diproses oleh orang lain');
+    }
+
+    List<dynamic> products = [];
+    if (orderDoc.data['produk'] != null) {
+      if (orderDoc.data['produk'] is String) {
+        try {
+          products = jsonDecode(orderDoc.data['produk']);
+        } catch (e) {
+          print('Error parsing produk JSON: $e');
+          products = [];
+        }
+      } else if (orderDoc.data['produk'] is List) {
+        products = orderDoc.data['produk'];
+      }
+    }
+
+    String productsJson = jsonEncode(products);
+
+    await databases!.createDocument(
+      databaseId: '681aa33a0023a8c7eb1f',
+      collectionId: '6854ba6e003bad3da579',
+      documentId: ID.unique(),
+      data: {
+        'userId': userId,
+        'orderId': orderId,
+        'alamat': orderDoc.data['alamat'] ?? '',
+        'produk': productsJson,
+        'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'COD',
+        'total': orderDoc.data['total'] ?? 0,
+        'status': 'ditolak',
+        'createdAt': DateTime.now().toIso8601String(),
+        'rejectedBy': userId,
+        'rejectedAt': DateTime.now().toIso8601String(),
+      },
+    );
+
+    await databases!.updateDocument(
+      databaseId: '681aa33a0023a8c7eb1f',
+      collectionId: ordersCollectionId,
+      documentId: orderId,
+      data: {
+        'status': 'ditolak',
+        'rejectedBy': userId,
+        'rejectedAt': DateTime.now().toIso8601String(),
+      },
+    );
+
+    Navigator.pop(context);
+
+    setState(() {
+      _orders.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Pesanan ${_formatOrderId(orderId)} berhasil ditolak'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    print('Pesanan #$orderId berhasil ditolak');
+  } catch (e) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+
+    print('Error menolak pesanan: $e');
+
+    String errorMessage = 'Gagal menolak pesanan';
+    if (e.toString().contains('User ID tidak valid')) {
+      errorMessage = 'Sesi Anda telah berakhir, silakan login ulang';
+    } else if (e.toString().contains('sudah diproses')) {
+      errorMessage = 'Pesanan sudah diproses oleh orang lain';
+    } else if (e.toString().contains('network') ||
+        e.toString().contains('connection')) {
+      errorMessage = 'Koneksi bermasalah, coba lagi';
+    } else if (e.toString().contains('AppwriteException')) {
+      errorMessage = 'Error server: ${e.toString()}';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+}
+
 
   String _formatCurrency(int amount) {
     return 'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';

@@ -429,8 +429,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         .toList();
                     final produkJsonString = jsonEncode(produkList);
 
+                    String orderId = ID.unique();
+
                     final data = {
                       'userId': user.$id,
+                      'orderId': orderId,
                       'alamat': address,
                       'produk': produkJsonString,
                       'metodePembayaran': _metodePembayaran,
