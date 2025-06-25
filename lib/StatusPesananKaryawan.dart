@@ -84,7 +84,7 @@ class _StatusPesananKaryawanScreenState
           'total': doc.data['total'] ?? 0,
           'metodePembayaran': doc.data['metodePembayaran'] ?? 'COD',
           'alamat': doc.data['alamat'] ?? 'No Address',
-          'createdAt': doc.data['createdAt'] ?? '',
+          'tanggal': doc.data['tanggal'] ?? '',
           'status': doc.data['status'] ?? 'Menunggu',
         };
       }).toList();
@@ -294,7 +294,7 @@ class _StatusPesananKaryawanScreenState
                     ),
                     SizedBox(width: 8),
                     Text(
-                      _formatDate(order['createdAt']),
+                      _formatDate(order['tanggal']),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[500],

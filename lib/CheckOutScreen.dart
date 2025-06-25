@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -428,8 +429,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             })
                         .toList();
                     final produkJsonString = jsonEncode(produkList);
+                    String generateOrderId() {
+                          final random = Random();
+                          final randomDigits = random.nextInt(9000) + 1000; 
+                          return 'MGH$randomDigits';
+                        }
 
-                    String orderId = ID.unique();
+
+                    String orderId = generateOrderId();
 
                     final data = {
                       'userId': user.$id,
@@ -438,7 +445,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       'produk': produkJsonString,
                       'metodePembayaran': _metodePembayaran,
                       'total': totalPrice2,
-                      'createdAt': DateTime.now().toUtc().toIso8601String(),
+                      'tanggal': DateTime.now().toUtc().toIso8601String(),
                       'status': 'menunggu'
                     };
 

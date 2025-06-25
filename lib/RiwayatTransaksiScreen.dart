@@ -62,12 +62,12 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       setState(() {
         _orders = result.documents.map((doc) {
           return {
-            'orderId': doc.$id,
+            'orderId': doc.data['orderId'],
             'produk': jsonDecode(doc.data['produk']),
             'total': doc.data['total'],
             'metodePembayaran': doc.data['metodePembayaran'],
             'alamat': doc.data['alamat'],
-            'createdAt': doc.data['createdAt'],
+            'tanggal': doc.data['tanggal'],
             'status': doc.data['status'],
           };
         }).toList();
@@ -288,7 +288,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         int totalPrice = order['total'];
         String paymentMethod = order['metodePembayaran'];
         String address = order['alamat'];
-        String createdAt = order['createdAt'];
+        String createdAt = order['tanggal'];
         String status = order['status'];
         return Card(
           margin: EdgeInsets.only(bottom: 12.0),
@@ -306,7 +306,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Order #${order['orderId'].substring(0, 8)}',
+                        'Order #${order['orderId']}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -496,7 +496,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       ),
                     ),
                   ),
-                   if (status == 'Menunggu' || status == 'sedang diproses')
+                   if (status == 'menunggu' || status == 'sedang diproses')
                   SizedBox(
                     height: 16,
                     child: ElevatedButton(
