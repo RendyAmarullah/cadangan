@@ -79,7 +79,7 @@ class _StatusPesananKaryawanScreenState
 
         return {
           'orderId': doc.$id,
-          'originalOrderId': doc.data['orderId'] ?? doc.$id,
+          'originalOrderId': doc.data['orderId'],
           'produk': products,
           'total': doc.data['total'] ?? 0,
           'metodePembayaran': doc.data['metodePembayaran'] ?? 'COD',
@@ -148,7 +148,7 @@ class _StatusPesananKaryawanScreenState
   }
 
   String _formatOrderId(String orderId) {
-    return '#${orderId.substring(0, 10)}';
+    return '#${orderId}';
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order) {

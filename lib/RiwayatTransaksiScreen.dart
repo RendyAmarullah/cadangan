@@ -62,7 +62,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       setState(() {
         _orders = result.documents.map((doc) {
           return {
-            'orderId': doc.data['orderId'],
+            'orderId': doc.$id,
+            'originalOrderId': doc.data['orderId'],
             'produk': jsonDecode(doc.data['produk']),
             'total': doc.data['total'],
             'metodePembayaran': doc.data['metodePembayaran'],
@@ -306,7 +307,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Order #${order['orderId']}',
+                        'Order #${order['originalOrderId']}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
