@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/HomeScreenKaryawan.dart';
+import 'package:pemesanan/LupaPasswordScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/homescreen.dart';
 import 'package:pemesanan/main.dart';
@@ -73,11 +74,38 @@ class _SplashScreenState extends State<SplashScreen>
       final user = await account.get();
       if (user != null) {
         print("User sudah login: ${user.email}");
+
+        // Cek status akun sebelum navigasi
+        final isAccountActive = await _checkAccountStatus(user.$id);
+        if (!isAccountActive) {
+          // Logout jika akun tidak aktif
+          await account.deleteSession(sessionId: 'current');
+          return;
+        }
+
         await _navigateBasedOnRole(user);
       }
     } catch (e) {
       print("Tidak ada session aktif: $e");
       // Tidak ada session aktif, lanjutkan ke login screen
+    }
+  }
+
+  Future<bool> _checkAccountStatus(String userId) async {
+    try {
+      final response = await database.getDocument(
+        databaseId: databaseId,
+        collectionId: collectionId,
+        documentId: userId,
+      );
+
+      final status = response.data['status'] ?? 'Aktif';
+      print("Status akun: $status");
+
+      return status == 'Aktif';
+    } catch (e) {
+      print("Error checking account status: $e");
+      return true; // Default aktif jika error
     }
   }
 
@@ -156,6 +184,17 @@ class _SplashScreenState extends State<SplashScreen>
       final user = await account.get();
       print("User info: ${user.email}");
 
+      // Cek status akun setelah login berhasil
+      final isAccountActive = await _checkAccountStatus(user.$id);
+      if (!isAccountActive) {
+        // Logout jika akun tidak aktif
+        await account.deleteSession(sessionId: 'current');
+
+        // Tampilkan dialog peringatan
+        _showAccountInactiveDialog();
+        return;
+      }
+
       await _navigateBasedOnRole(user);
     } on AppwriteException catch (e) {
       print("Login error: ${e.message} (Code: ${e.code})");
@@ -187,6 +226,63 @@ class _SplashScreenState extends State<SplashScreen>
         });
       }
     }
+  }
+
+  void _showAccountInactiveDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red, size: 28),
+              SizedBox(width: 10),
+              Text('Akun Nonaktif'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Akun Anda telah dinonaktifkan oleh admin.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Silakan daftar kembali untuk menggunakan aplikasi.',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Tutup'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignUpScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF8DC63F),
+              ),
+              child: Text(
+                'Daftar Kembali',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -312,7 +408,12 @@ class _SplashScreenState extends State<SplashScreen>
                                   onPressed: _isLoading
                                       ? null
                                       : () {
-                                          // Implement forgot password
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    LupaPasswordScreen()),
+                                          );
                                         },
                                   child: Text("Lupa Password",
                                       style:
