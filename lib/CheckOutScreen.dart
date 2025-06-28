@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
+import 'package:pemesanan/AlamatScreen.dart'; // Import AlamatScreen
 import 'package:pemesanan/main.dart';
 
 final client = Client()
@@ -155,6 +156,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  // Method untuk navigate ke halaman alamat dan refresh alamat setelah kembali
+  void _navigateToAddressScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AlamatScreen()),
+    );
+
+    // Refresh alamat setelah kembali dari halaman alamat
+    if (result == true || result == null) {
+      await _fetchUserAddress();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     int totalPrice = widget.cartItems.fold<int>(0, (sum, item) {
@@ -163,15 +177,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return sum + price * quantity;
     });
 
-    int totalPrice2 = widget.cartItems.fold<int>(0, (sum, item) {
-      return totalPrice + 10000;
-    });
+    int totalPrice2 = totalPrice + 5000; // Fixed calculation
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90),
+        preferredSize: Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: Colors.blue,
+          backgroundColor: Color(0xFF0072BC),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
@@ -200,22 +213,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              // Section Alamat Pengiriman dengan tombol Ubah
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Alamat Pengiriman',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  GestureDetector(
+                    onTap: _navigateToAddressScreen,
+                    child: Text(
+                      'Ubah',
+                      style: TextStyle(
+                        color: Color(0xFF0072BC),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 5),
               Align(
                 alignment: Alignment.topLeft,
-                child: Text('Alamat Pengiriman',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  address,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
               ),
-              Align(
-                alignment: Alignment.topLeft,
-                child: Text(address),
-              ),
-              SizedBox(height: 16),
+              SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black, width: 2.0),
-                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.black, width: 1.0),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(10),
                 child: ListView.builder(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
@@ -228,17 +264,57 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       child: Row(
                         children: [
                           Container(
-                            width: 100,
-                            height: 100,
-                            child: ClipOval(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(7),
                               child: Image.network(
                                 widget.cartItems[index]['productImageUrl'] ??
                                     '',
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(7),
+                                    ),
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.grey[400],
+                                      size: 25,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(7),
+                                    ),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF0072BC),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ),
-                          SizedBox(width: 16),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,11 +322,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 Text(widget.cartItems[index]['name'] ??
                                     'Product'),
                                 SizedBox(
-                                  height: 10,
+                                  height: 5,
                                 ),
                                 Text(
                                   'Rp ${widget.cartItems[index]['price'] ?? 0}',
-                                  style: TextStyle(color: Colors.green),
+                                  style: TextStyle(color: Color(0xFF8DC63F)),
                                 ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
@@ -259,7 +335,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       icon: Container(
                                         padding: EdgeInsets.all(1),
                                         decoration: BoxDecoration(
-                                          color: Colors.green,
+                                          color: Color(0xFF8DC63F),
                                           borderRadius: BorderRadius.zero,
                                         ),
                                         child: Icon(
@@ -278,7 +354,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       icon: Container(
                                         padding: EdgeInsets.all(1),
                                         decoration: BoxDecoration(
-                                          color: Colors.blue,
+                                          color: Color(0xFF0072BC),
                                           borderRadius: BorderRadius.zero,
                                         ),
                                         child: Icon(
@@ -304,7 +380,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black, width: 2.0),
+                  border: Border.all(color: Colors.black, width: 1.0),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Padding(
@@ -329,7 +405,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text('Total:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           Text('Rp $totalPrice',
-                              style: TextStyle(color: Colors.green)),
+                              style: TextStyle(color: Color(0xFF8DC63F))),
                         ],
                       ),
                     ],
@@ -341,7 +417,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black, width: 2.0),
+                  border: Border.all(color: Colors.black, width: 1.0),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Padding(
@@ -373,7 +449,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ],
                             child: Text('$_metodePembayaran >',
                                 style: TextStyle(
-                                    color: Colors.blue,
+                                    color: Color(0xFF0072BC),
                                     fontWeight: FontWeight.bold)),
                           ),
                         ],
@@ -387,7 +463,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text('Total Pesanan:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           Text('Rp $totalPrice',
-                              style: TextStyle(color: Colors.green)),
+                              style: TextStyle(color: Color(0xFF8DC63F))),
                         ],
                       ),
                       Row(
@@ -395,8 +471,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           Text('Total Biaya Pengiriman:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp 10000',
-                              style: TextStyle(color: Colors.green)),
+                          Text('Rp 5000',
+                              style: TextStyle(color: Color(0xFF8DC63F))),
                         ],
                       ),
                       Divider(),
@@ -406,7 +482,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text('Total:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           Text('Rp $totalPrice2',
-                              style: TextStyle(color: Colors.green)),
+                              style: TextStyle(color: Color(0xFF8DC63F))),
                         ],
                       ),
                     ],
@@ -418,59 +494,64 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 onPressed: () async {
                   bool? isConfirmed = await _notifCheckout(context);
 
-                  try {
-                    final user = await account.get();
-                    final produkList = widget.cartItems
-                        .map((item) => {
-                              'nama': item['name'],
-                              'jumlah': item['quantity'],
-                              'harga': item['price'],
-                              'productImageUrl': item['productImageUrl']
-                            })
-                        .toList();
-                    final produkJsonString = jsonEncode(produkList);
-                    String generateOrderId() {
-                          final random = Random();
-                          final randomDigits = random.nextInt(9000) + 1000; 
-                          return 'MGH$randomDigits';
-                        }
+                  if (isConfirmed == true) {
+                    try {
+                      final user = await account.get();
+                      final produkList = widget.cartItems
+                          .map((item) => {
+                                'nama': item['name'],
+                                'jumlah': item['quantity'],
+                                'harga': item['price'],
+                                'productImageUrl': item['productImageUrl']
+                              })
+                          .toList();
+                      final produkJsonString = jsonEncode(produkList);
+                      String generateOrderId() {
+                        final random = Random();
+                        final randomDigits = random.nextInt(9000) + 1000;
+                        return 'MGH$randomDigits';
+                      }
 
+                      String orderId = generateOrderId();
 
-                    String orderId = generateOrderId();
+                      final data = {
+                        'userId': user.$id,
+                        'orderId': orderId,
+                        'alamat': address,
+                        'produk': produkJsonString,
+                        'metodePembayaran': _metodePembayaran,
+                        'total': totalPrice2,
+                        'tanggal': DateTime.now().toUtc().toIso8601String(),
+                        'status': 'menunggu'
+                      };
 
-                    final data = {
-                      'userId': user.$id,
-                      'orderId': orderId,
-                      'alamat': address,
-                      'produk': produkJsonString,
-                      'metodePembayaran': _metodePembayaran,
-                      'total': totalPrice2,
-                      'tanggal': DateTime.now().toUtc().toIso8601String(),
-                      'status': 'menunggu'
-                    };
+                      final response = await databases.createDocument(
+                        databaseId: '681aa33a0023a8c7eb1f',
+                        collectionId: '684b33e80033b767b024',
+                        documentId: ID.unique(),
+                        data: data,
+                      );
 
-                    final response = await databases.createDocument(
-                      databaseId: '681aa33a0023a8c7eb1f',
-                      collectionId: '684b33e80033b767b024',
-                      documentId: ID.unique(),
-                      data: data,
-                    );
+                      await clearCartItems(user.$id);
 
-                    await clearCartItems(user.$id);
-
-                    print('Pesanan berhasil dibuat: ${response.$id}');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MainScreen(userId: user.$id),
-                      ),
-                    );
-                  } catch (e) {
-                    print('Gagal membuat pesanan: $e');
+                      print('Pesanan berhasil dibuat: ${response.$id}');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MainScreen(userId: user.$id),
+                        ),
+                      );
+                    } catch (e) {
+                      print('Gagal membuat pesanan: $e');
+                    }
                   }
                 },
-                child: Text('Buat Pesanan'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                child: Text(
+                  'Buat Pesanan',
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0072BC)),
               ),
             ],
           ),

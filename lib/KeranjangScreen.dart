@@ -308,16 +308,71 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                         child: Row(
                           children: [
                             Container(
-                              width: 70, // Reduced from 100 to 70
-                              height: 70, // Reduced from 100 to 70
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
                               child: imageUrl.isNotEmpty
-                                  ? ClipOval(
-                                      child: Image.network(imageUrl,
-                                          fit: BoxFit.cover))
-                                  : Center(
-                                      child: Icon(Icons.image,
-                                          color: Colors.grey,
-                                          size: 30)), // Smaller icon
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(7),
+                                      child: Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[100],
+                                              borderRadius:
+                                                  BorderRadius.circular(7),
+                                            ),
+                                            child: Icon(
+                                              Icons.image_not_supported,
+                                              color: Colors.grey[400],
+                                              size: 30,
+                                            ),
+                                          );
+                                        },
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[100],
+                                              borderRadius:
+                                                  BorderRadius.circular(7),
+                                            ),
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(
+                                                  Color(0xFF0072BC),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(7),
+                                      ),
+                                      child: Icon(
+                                        Icons.image,
+                                        color: Colors.grey[400],
+                                        size: 30,
+                                      ),
+                                    ),
                             ),
                             SizedBox(width: 12), // Reduced spacing
                             Expanded(

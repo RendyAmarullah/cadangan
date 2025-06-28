@@ -14,26 +14,25 @@ class _AlamatScreenState extends State<AlamatScreen> {
   late Client _client;
   late Databases _databases;
 
-  
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String collectionId = '68447d3d0007b5f75cc5'; // Koleksi untuk menyimpan alamat
+  final String collectionId = '68447d3d0007b5f75cc5';
 
   @override
   void initState() {
     super.initState();
     _client = Client();
-    _client.setEndpoint('https://fra.cloud.appwrite.io/v1').setProject('681aa0b70002469fc157');
+    _client
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
+        .setProject('681aa0b70002469fc157');
     _databases = Databases(_client);
 
     _getCurrentLocation();
   }
 
-  
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       setState(() {
@@ -42,7 +41,6 @@ class _AlamatScreenState extends State<AlamatScreen> {
       return;
     }
 
-    
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -55,25 +53,23 @@ class _AlamatScreenState extends State<AlamatScreen> {
       }
     }
 
-   
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
 
-    
     _getAddressFromCoordinates(position.latitude, position.longitude);
   }
 
- 
-  Future<void> _getAddressFromCoordinates(double latitude, double longitude) async {
+  Future<void> _getAddressFromCoordinates(
+      double latitude, double longitude) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(latitude, longitude);
       Placemark place = placemarks[0];
       String fullAddress = "${place.name}, ${place.locality}, ${place.country}";
       setState(() {
         _address = fullAddress;
       });
 
-      
       await _saveAddressToDatabase(fullAddress);
     } catch (e) {
       setState(() {
@@ -82,18 +78,15 @@ class _AlamatScreenState extends State<AlamatScreen> {
     }
   }
 
-  
   Future<void> _saveAddressToDatabase(String address) async {
     try {
-     
       final user = await Account(_client).get();
       final userId = user.$id;
 
-      
       final response = await _databases.createDocument(
         databaseId: databaseId,
         collectionId: collectionId,
-        documentId: userId, 
+        documentId: userId,
         data: {
           'user_id': userId,
           'address': address,
@@ -109,9 +102,9 @@ class _AlamatScreenState extends State<AlamatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90),
+        preferredSize: Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: Colors.blue,
+          backgroundColor: Color(0xFF0072BC),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
@@ -144,7 +137,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
               Icon(
                 Icons.location_on,
                 size: 60,
-                color: Colors.blue,
+                color: Color(0xFF0072BC),
               ),
               SizedBox(height: 20),
               Text(
