@@ -34,9 +34,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late Account _account;
 
   String userId = '';
-  String address = '';
+  String address = 'Memuat alamat...';
   String _metodePembayaran = 'COD';
-  bool _isProcessingOrder = false; // Tambahan untuk mencegah double-tap
+  bool _isProcessingOrder = false;
+  bool _isLoadingAddress = true;
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
@@ -60,7 +61,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _account = Account(_client);
 
     await _getCurrentUser();
-    await _fetchUserAddress();
+    if (userId.isNotEmpty) {
+      await _fetchUserAddress();
+    }
   }
 
   void _updateQuantity(int index, int newQuantity) {
@@ -104,6 +107,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         userId = user.$id;
       });
+      print('User ID: $userId');
     } catch (e) {
       print('Error getting user: $e');
     }
@@ -134,7 +138,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _fetchUserAddress() async {
+    if (userId.isEmpty) {
+      print('User ID kosong, tidak dapat mengambil alamat');
+      return;
+    }
+
+    setState(() {
+      _isLoadingAddress = true;
+    });
+
     try {
+      print('Mencari alamat untuk user ID: $userId');
+
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: addressCollectionId,
@@ -143,18 +158,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       );
 
+      print(
+          'Hasil pencarian alamat: ${result.documents.length} dokumen ditemukan');
+
       if (result.documents.isNotEmpty) {
+        String foundAddress =
+            result.documents.first.data['address'] ?? 'Alamat tidak tersedia';
         setState(() {
-          address =
-              result.documents.first.data['address'] ?? 'Alamat tidak tersedia';
+          address = foundAddress;
+          _isLoadingAddress = false;
         });
+        print('Alamat ditemukan: $foundAddress');
       } else {
         setState(() {
-          address = 'Alamat tidak ditemukan';
+          address = 'Alamat belum diatur';
+          _isLoadingAddress = false;
         });
+        print('Tidak ada alamat ditemukan untuk user ini');
       }
     } catch (e) {
       print('Error fetching address: $e');
+      setState(() {
+        address = 'Error mengambil alamat';
+        _isLoadingAddress = false;
+      });
     }
   }
 
@@ -166,9 +193,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     // Refresh alamat setelah kembali dari halaman alamat
-    if (result == true || result == null) {
-      await _fetchUserAddress();
-    }
+    print('Kembali dari halaman alamat dengan result: $result');
+    await _fetchUserAddress();
   }
 
   // Method untuk membuat pesanan dengan validasi
@@ -182,8 +208,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       // Validasi alamat
       if (address.isEmpty ||
-          address == 'Alamat tidak ditemukan' ||
-          address == 'Alamat tidak tersedia') {
+          address == 'Alamat belum diatur' ||
+          address == 'Alamat tidak tersedia' ||
+          address == 'Error mengambil alamat' ||
+          address == 'Memuat alamat...') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Silakan pilih alamat pengiriman terlebih dahulu'),
@@ -370,13 +398,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               SizedBox(height: 5),
               Align(
                 alignment: Alignment.topLeft,
-                child: Text(
-                  address,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
-                ),
+                child: _isLoadingAddress
+                    ? Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF0072BC),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Memuat alamat...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        address,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: address == 'Alamat belum diatur' ||
+                                  address == 'Error mengambil alamat'
+                              ? Colors.red
+                              : Colors.grey[700],
+                        ),
+                      ),
               ),
               SizedBox(height: 10),
               Container(

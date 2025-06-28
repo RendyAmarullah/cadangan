@@ -17,8 +17,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String productsCollectionId = '68407bab00235ecda20d';
   final String cartsCollectionId = '68407db7002d8716c9d0';
-   final String favoritesCollectionId = '685adb7f00015bc4ec5f';
-
+  final String favoritesCollectionId = '685adb7f00015bc4ec5f';
 
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> cartItems = [];
@@ -139,15 +138,13 @@ class _BeautyScreenState extends State<BeautyScreen> {
     }
   }
 
-
   Future<void> _fetchProducts() async {
     try {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
         queries: [
-         Query.equal('category','beauty'),
-          
+          Query.equal('category', 'beauty'),
         ],
       );
 
@@ -181,7 +178,6 @@ class _BeautyScreenState extends State<BeautyScreen> {
     }
   }
 
-  
   Future<void> addToCartWithQuantity(
       Map<String, dynamic> product, int quantity) async {
     try {
@@ -274,7 +270,6 @@ class _BeautyScreenState extends State<BeautyScreen> {
   }
 
   void _showProductDetail(Map<String, dynamic> product) async {
-    
     await _fetchCart();
 
     showModalBottomSheet(
@@ -285,7 +280,6 @@ class _BeautyScreenState extends State<BeautyScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        
         int displayQty = productQuantities[product['\$id']] ?? 1;
 
         return StatefulBuilder(
@@ -317,7 +311,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          product['description'] ?? '-',
+                          product['deskripsi'] ?? 'Tidak Ada Deskripsi',
                           style: TextStyle(color: Colors.black87),
                         ),
                         SizedBox(height: 16),
@@ -454,7 +448,8 @@ class _BeautyScreenState extends State<BeautyScreen> {
                               searchQuery = '';
                             });
                           },
-                          child: Icon(Icons.clear, color: Colors.grey, size: 20),
+                          child:
+                              Icon(Icons.clear, color: Colors.grey, size: 20),
                         )
                       : null,
                   filled: true,
@@ -481,8 +476,8 @@ class _BeautyScreenState extends State<BeautyScreen> {
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           var product = filteredProducts[index];
-                          bool isFavorite =
-                              favoriteItems.any((item) => item['productId'] == product['\$id']);
+                          bool isFavorite = favoriteItems.any(
+                              (item) => item['productId'] == product['\$id']);
 
                           return GestureDetector(
                             onTap: () => _showProductDetail(product),
@@ -512,7 +507,8 @@ class _BeautyScreenState extends State<BeautyScreen> {
                                     SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             product['name'],

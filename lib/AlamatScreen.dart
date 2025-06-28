@@ -13,6 +13,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
   String _address = "Menunggu lokasi...";
   late Client _client;
   late Databases _databases;
+  late Account _account;
 
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String collectionId = '68447d3d0007b5f75cc5';
@@ -25,6 +26,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject('681aa0b70002469fc157');
     _databases = Databases(_client);
+    _account = Account(_client);
 
     _getCurrentLocation();
   }
@@ -80,21 +82,50 @@ class _AlamatScreenState extends State<AlamatScreen> {
 
   Future<void> _saveAddressToDatabase(String address) async {
     try {
-      final user = await Account(_client).get();
+      final user = await _account.get();
       final userId = user.$id;
 
-      final response = await _databases.createDocument(
-        databaseId: databaseId,
-        collectionId: collectionId,
-        documentId: userId,
-        data: {
-          'user_id': userId,
-          'address': address,
-        },
-      );
-      print("Alamat berhasil disimpan: ${response.data}");
+      // Cek apakah dokumen sudah ada
+      try {
+        final existingDocuments = await _databases.listDocuments(
+          databaseId: databaseId,
+          collectionId: collectionId,
+          queries: [
+            Query.equal('user_id', userId),
+          ],
+        );
+
+        if (existingDocuments.documents.isNotEmpty) {
+          // Update dokumen yang sudah ada
+          final documentId = existingDocuments.documents.first.$id;
+          await _databases.updateDocument(
+            databaseId: databaseId,
+            collectionId: collectionId,
+            documentId: documentId,
+            data: {
+              'user_id': userId,
+              'address': address,
+            },
+          );
+          print("Alamat berhasil diperbarui: $address");
+        } else {
+          // Buat dokumen baru
+          await _databases.createDocument(
+            databaseId: databaseId,
+            collectionId: collectionId,
+            documentId: ID.unique(),
+            data: {
+              'user_id': userId,
+              'address': address,
+            },
+          );
+          print("Alamat berhasil disimpan: $address");
+        }
+      } catch (e) {
+        print("Error saat menyimpan/update alamat: $e");
+      }
     } catch (e) {
-      print("Gagal menyimpan alamat: $e");
+      print("Gagal mendapatkan user: $e");
     }
   }
 
@@ -123,7 +154,8 @@ class _AlamatScreenState extends State<AlamatScreen> {
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () {
-              Navigator.pop(context);
+              // Kembali dengan mengirim signal bahwa alamat telah diperbarui
+              Navigator.pop(context, true);
             },
           ),
         ),
@@ -153,7 +185,14 @@ class _AlamatScreenState extends State<AlamatScreen> {
               SizedBox(height: 30),
               ElevatedButton(
                 onPressed: _getCurrentLocation,
-                child: Text("Perbarui Lokasi"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF0072BC),
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                ),
+                child: Text(
+                  "Perbarui Lokasi",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
