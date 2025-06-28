@@ -36,6 +36,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String userId = '';
   String address = '';
   String _metodePembayaran = 'COD';
+  bool _isProcessingOrder = false; // Tambahan untuk mencegah double-tap
+
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String cartsCollectionId = '68407db7002d8716c9d0';
@@ -166,6 +168,137 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Refresh alamat setelah kembali dari halaman alamat
     if (result == true || result == null) {
       await _fetchUserAddress();
+    }
+  }
+
+  // Method untuk membuat pesanan dengan validasi
+  Future<void> _createOrder() async {
+    if (_isProcessingOrder) return; // Mencegah double-tap
+
+    setState(() {
+      _isProcessingOrder = true;
+    });
+
+    try {
+      // Validasi alamat
+      if (address.isEmpty ||
+          address == 'Alamat tidak ditemukan' ||
+          address == 'Alamat tidak tersedia') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Silakan pilih alamat pengiriman terlebih dahulu'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Validasi cart items
+      if (widget.cartItems.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Keranjang kosong'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final user = await account.get();
+
+      // Siapkan data produk
+      final produkList = widget.cartItems
+          .map((item) => {
+                'name': item['name'] ?? 'Produk',
+                'jumlah': item['quantity'] ?? 1,
+                'harga': item['price'] ?? 0,
+                'productImageUrl': item['productImageUrl'] ?? ''
+              })
+          .toList();
+
+      final produkJsonString = jsonEncode(produkList);
+
+      // Generate order ID
+      String generateOrderId() {
+        final random = Random();
+        final randomDigits = random.nextInt(9000) + 1000;
+        return 'MGH$randomDigits';
+      }
+
+      String orderId = generateOrderId();
+
+      // Hitung total
+      int totalPrice = widget.cartItems.fold<int>(0, (sum, item) {
+        int price = item['price'] is int ? item['price'] : 0;
+        int quantity = item['quantity'] is int ? item['quantity'] : 1;
+        return sum + price * quantity;
+      });
+      int totalPriceWithShipping = totalPrice + 5000;
+
+      // PENTING: Buat timestamp saat pesanan dibuat (saat tombol diklik)
+      String orderTimestamp = DateTime.now().toUtc().toIso8601String();
+
+      final data = {
+        'userId': user.$id,
+        'orderId': orderId,
+        'alamat': address,
+        'produk': produkJsonString,
+        'metodePembayaran': _metodePembayaran,
+        'total': totalPriceWithShipping,
+        'tanggal': orderTimestamp, // Menggunakan timestamp saat pesanan dibuat
+        'status': 'menunggu'
+      };
+
+      // Simpan pesanan ke database
+      final response = await databases.createDocument(
+        databaseId: databaseId,
+        collectionId: '684b33e80033b767b024',
+        documentId: ID.unique(),
+        data: data,
+      );
+
+      // Clear cart setelah pesanan berhasil
+      await clearCartItems(user.$id);
+
+      print('Pesanan berhasil dibuat pada: $orderTimestamp');
+      print('Order ID: $orderId');
+      print('Response ID: ${response.$id}');
+
+      // Tampilkan notifikasi sukses
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pesanan berhasil dibuat! Order ID: $orderId'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Navigate ke main screen
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MainScreen(userId: user.$id),
+          ),
+          (route) => false, // Remove all previous routes
+        );
+      }
+    } catch (e) {
+      print('Gagal membuat pesanan: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuat pesanan. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingOrder = false;
+        });
+      }
     }
   }
 
@@ -491,67 +624,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () async {
-                  bool? isConfirmed = await _notifCheckout(context);
+                onPressed: _isProcessingOrder
+                    ? null
+                    : () async {
+                        bool? isConfirmed = await _notifCheckout(context);
 
-                  if (isConfirmed == true) {
-                    try {
-                      final user = await account.get();
-                      final produkList = widget.cartItems
-                          .map((item) => {
-                                'nama': item['name'],
-                                'jumlah': item['quantity'],
-                                'harga': item['price'],
-                                'productImageUrl': item['productImageUrl']
-                              })
-                          .toList();
-                      final produkJsonString = jsonEncode(produkList);
-                      String generateOrderId() {
-                        final random = Random();
-                        final randomDigits = random.nextInt(9000) + 1000;
-                        return 'MGH$randomDigits';
-                      }
-
-                      String orderId = generateOrderId();
-
-                      final data = {
-                        'userId': user.$id,
-                        'orderId': orderId,
-                        'alamat': address,
-                        'produk': produkJsonString,
-                        'metodePembayaran': _metodePembayaran,
-                        'total': totalPrice2,
-                        'tanggal': DateTime.now().toUtc().toIso8601String(),
-                        'status': 'menunggu'
-                      };
-
-                      final response = await databases.createDocument(
-                        databaseId: '681aa33a0023a8c7eb1f',
-                        collectionId: '684b33e80033b767b024',
-                        documentId: ID.unique(),
-                        data: data,
-                      );
-
-                      await clearCartItems(user.$id);
-
-                      print('Pesanan berhasil dibuat: ${response.$id}');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MainScreen(userId: user.$id),
+                        if (isConfirmed == true) {
+                          await _createOrder();
+                        }
+                      },
+                child: _isProcessingOrder
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
-                      );
-                    } catch (e) {
-                      print('Gagal membuat pesanan: $e');
-                    }
-                  }
-                },
-                child: Text(
-                  'Buat Pesanan',
-                  style: TextStyle(color: Colors.white),
-                ),
+                      )
+                    : Text(
+                        'Buat Pesanan',
+                        style: TextStyle(color: Colors.white),
+                      ),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0072BC)),
+                  backgroundColor:
+                      _isProcessingOrder ? Colors.grey : Color(0xFF0072BC),
+                  minimumSize: Size(double.infinity, 48),
+                ),
               ),
             ],
           ),

@@ -21,6 +21,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // Map untuk menyimpan status expanded untuk setiap order
+  Map<String, bool> _expandedOrders = {};
+
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String ordersCollectionId = '684b33e80033b767b024';
@@ -84,20 +87,19 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  
   Future<void> _cancelOrder(String orderId) async {
     try {
       await _databases.updateDocument(
         databaseId: databaseId,
         collectionId: ordersCollectionId,
         documentId: orderId,
-        data: {'status': 'Dibatalkan'}, 
+        data: {'status': 'Dibatalkan'},
       );
 
       setState(() {
         _orders = _orders.map((order) {
           if (order['orderId'] == orderId) {
-            order['status'] = 'Dibatalkan'; 
+            order['status'] = 'Dibatalkan';
           }
           return order;
         }).toList();
@@ -113,14 +115,13 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  
   Future<void> _completeOrder(String orderId) async {
     try {
       await _databases.updateDocument(
         databaseId: databaseId,
         collectionId: ordersCollectionId,
         documentId: orderId,
-        data: {'status': 'Selesai'}, 
+        data: {'status': 'Selesai'},
       );
 
       setState(() {
@@ -156,18 +157,135 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  
   void _filterCompletedOrders() {
     setState(() {
-      _filteredOrders = _orders.where((order) => order['status'] == 'Selesai').toList();
+      _filteredOrders =
+          _orders.where((order) => order['status'] == 'Selesai').toList();
     });
   }
 
-  
   void _showAllOrders() {
     setState(() {
       _filteredOrders = List.from(_orders);
     });
+  }
+
+  void _toggleExpanded(String orderId) {
+    setState(() {
+      _expandedOrders[orderId] = !(_expandedOrders[orderId] ?? false);
+    });
+  }
+
+  Widget _buildProductList(
+      List<Map<String, dynamic>> produkList, String orderId) {
+    bool isExpanded = _expandedOrders[orderId] ?? false;
+    List<Map<String, dynamic>> displayedProducts;
+
+    if (produkList.length <= 2) {
+      displayedProducts = produkList;
+    } else {
+      displayedProducts = isExpanded ? produkList : produkList.take(2).toList();
+    }
+
+    return Column(
+      children: [
+        ...displayedProducts.map((product) {
+          return Container(
+            margin: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    product['productImageUrl'] ?? '',
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 50,
+                        height: 50,
+                        color: Colors.grey[200],
+                        child:
+                            Icon(Icons.image_not_supported, color: Colors.grey),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product['name'] ?? 'Produk',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '${product['jumlah']} x ${_formatCurrency(product['harga'])}',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  _formatCurrency(product['harga'] * product['jumlah']),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+
+        // Show expand/collapse button if more than 2 products
+        if (produkList.length > 2)
+          Container(
+            width: double.infinity,
+            margin: EdgeInsets.only(top: 8),
+            child: TextButton.icon(
+              onPressed: () => _toggleExpanded(orderId),
+              icon: Icon(
+                isExpanded
+                    ? Icons.keyboard_arrow_up
+                    : Icons.keyboard_arrow_down,
+                color: Color(0xFF0072BC),
+              ),
+              label: Text(
+                isExpanded
+                    ? 'Tampilkan Lebih Sedikit'
+                    : 'Lihat ${produkList.length - 2} Produk Lainnya',
+                style: TextStyle(
+                  color: Color(0xFF0072BC),
+                  fontSize: 12,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                backgroundColor: Colors.grey[50],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: Colors.grey[300]!),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -291,6 +409,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         String address = order['alamat'];
         String createdAt = order['tanggal'];
         String status = order['status'];
+        String orderId = order['orderId'];
+
         return Card(
           margin: EdgeInsets.only(bottom: 12.0),
           elevation: 2,
@@ -365,79 +485,18 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 ),
                 SizedBox(height: 16),
 
-                // Produk List
+                // Produk List dengan header
                 Text(
                   'Produk (${produkList.length} item)',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14,
                   ),
                 ),
                 SizedBox(height: 8),
 
-                // Produk
-                ...produkList.map((product) {
-                  return Container(
-                    margin: EdgeInsets.only(bottom: 8),
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            product['productImageUrl'] ?? '',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 50,
-                                height: 50,
-                                color: Colors.grey[200],
-                                child: Icon(Icons.image_not_supported,
-                                    color: Colors.grey),
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product['name'] ?? 'Produk',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '${product['jumlah']} x ${_formatCurrency(product['harga'])}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          _formatCurrency(product['harga'] * product['jumlah']),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                // Produk dengan dropdown functionality
+                _buildProductList(produkList, orderId),
 
                 SizedBox(height: 16),
                 Divider(),
@@ -451,7 +510,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       'Total Pembayaran:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                     ),
                     Text(
@@ -459,7 +518,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       style: TextStyle(
                         color: Color(0xFF8DC63F),
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -471,7 +530,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       'Status Pesanan:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                     ),
                     Text(
@@ -479,32 +538,39 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       style: TextStyle(
                         color: Color(0xFF8DC63F),
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                     ),
                   ],
                 ),
 
-                
                 if (status == 'Pesanan Telah Diterima')
-                  SizedBox(
-                    height: 16,
-                    child: ElevatedButton(
-                      onPressed: () => _completeOrder(order['orderId']),
-                      child: Text('Selesaikan Pesanan'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white, backgroundColor: Colors.green,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _completeOrder(orderId),
+                        child: Text('Selesaikan Pesanan'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.green,
+                        ),
                       ),
                     ),
                   ),
-                   if (status == 'menunggu' || status == 'sedang diproses')
-                  SizedBox(
-                    height: 16,
-                    child: ElevatedButton(
-                      onPressed: () => _cancelOrder(order['orderId']),
-                      child: Text('Batalkan Pesanan'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white, backgroundColor: Colors.red,
+                if (status == 'menunggu' || status == 'sedang diproses')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _cancelOrder(orderId),
+                        child: Text('Batalkan Pesanan'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.red,
+                        ),
                       ),
                     ),
                   ),
