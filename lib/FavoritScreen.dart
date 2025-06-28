@@ -14,7 +14,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String favoritesCollectionId = '685adb7f00015bc4ec5f'; // Collection untuk favorit
+  final String favoritesCollectionId =
+      '685adb7f00015bc4ec5f'; // Collection untuk favorit
 
   List<Map<String, dynamic>> favoriteItems = [];
   String userId = '';

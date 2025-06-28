@@ -236,7 +236,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       int totalPriceWithShipping = totalPrice + 5000;
 
       // PENTING: Buat timestamp saat pesanan dibuat (saat tombol diklik)
-      String orderTimestamp = DateTime.now().toUtc().toIso8601String();
+      String orderTimestamp = DateTime.now().toIso8601String();
 
       final data = {
         'userId': user.$id,

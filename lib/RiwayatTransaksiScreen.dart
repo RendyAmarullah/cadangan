@@ -20,6 +20,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   List<Map<String, dynamic>> _filteredOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
+  String _currentFilter = 'Pesanan Kamu'; // Track current filter
 
   // Map untuk menyimpan status expanded untuk setiap order
   Map<String, bool> _expandedOrders = {};
@@ -75,7 +76,14 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             'status': doc.data['status'],
           };
         }).toList();
-        _filteredOrders = List.from(_orders);
+
+        // Apply current filter after fetching
+        if (_currentFilter == 'Pesanan Kamu') {
+          _showActiveOrders();
+        } else {
+          _showCompletedOrders();
+        }
+
         _isLoading = false;
       });
     } catch (e) {
@@ -103,7 +111,15 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           }
           return order;
         }).toList();
+
+        // Re-apply current filter after status update
+        if (_currentFilter == 'Pesanan Kamu') {
+          _showActiveOrders();
+        } else {
+          _showCompletedOrders();
+        }
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Pesanan telah dibatalkan')),
       );
@@ -131,6 +147,13 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           }
           return order;
         }).toList();
+
+        // Re-apply current filter after status update
+        if (_currentFilter == 'Pesanan Kamu') {
+          _showActiveOrders();
+        } else {
+          _showCompletedOrders();
+        }
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -157,16 +180,30 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  void _filterCompletedOrders() {
+  // Updated filter functions
+  void _showCompletedOrders() {
     setState(() {
-      _filteredOrders =
-          _orders.where((order) => order['status'] == 'Selesai').toList();
+      _currentFilter = 'Semua Pesanan';
+      _filteredOrders = _orders
+          .where((order) =>
+              order['status'].toString().toLowerCase() == 'dibatalkan' ||
+              order['status'].toString().toLowerCase() == 'selesai' ||
+              order['status'].toString().toLowerCase() == 'ditolak')
+          .toList();
     });
   }
 
-  void _showAllOrders() {
+  void _showActiveOrders() {
     setState(() {
-      _filteredOrders = List.from(_orders);
+      _currentFilter = 'Pesanan Kamu';
+      _filteredOrders = _orders.where((order) {
+        String status = order['status'].toString().toLowerCase();
+        return status == 'menunggu' ||
+            status == 'diproses' ||
+            status == 'diantar' ||
+            status == 'sedang diproses' ||
+            status == 'pesanan telah diterima';
+      }).toList();
     });
   }
 
@@ -288,6 +325,28 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     );
   }
 
+  Color _getStatusColor(String status) {
+    String statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case 'menunggu':
+        return Colors.orange;
+      case 'diproses':
+      case 'sedang diproses':
+        return Colors.blue;
+      case 'diantar':
+        return Colors.purple;
+      case 'selesai':
+        return Colors.green;
+      case 'dibatalkan':
+      case 'ditolak':
+        return Colors.red;
+      case 'pesanan telah diterima':
+        return Colors.teal;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -321,13 +380,34 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ElevatedButton(
-                    onPressed: _showAllOrders,
-                    child: Text('Semua Pesanan'),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _showActiveOrders,
+                      child: Text('Pesanan Kamu'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _currentFilter == 'Pesanan Kamu'
+                            ? Color(0xFF0072BC)
+                            : Colors.grey[300],
+                        foregroundColor: _currentFilter == 'Pesanan Kamu'
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: _filterCompletedOrders,
-                    child: Text('Pesanan Selesai'),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _showCompletedOrders,
+                      child: Text('Semua Pesanan'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _currentFilter == 'Semua Pesanan'
+                            ? Color(0xFF0072BC)
+                            : Colors.grey[300],
+                        foregroundColor: _currentFilter == 'Semua Pesanan'
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -385,12 +465,16 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              'Belum ada riwayat pesanan',
+              _currentFilter == 'Pesanan Kamu'
+                  ? 'Belum ada pesanan'
+                  : 'Belum ada riwayat pesanan selesai',
               style: TextStyle(fontSize: 18, color: Colors.grey[600]),
             ),
             SizedBox(height: 8),
             Text(
-              'Pesanan Anda akan muncul di sini',
+              _currentFilter == 'Pesanan Kamu'
+                  ? 'Pesanan yang sedang diproses akan muncul di sini'
+                  : 'Pesanan yang selesai/dibatalkan akan muncul di sini',
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
           ],
@@ -533,18 +617,27 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    Text(
-                      status,
-                      style: TextStyle(
-                        color: Color(0xFF8DC63F),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(status).withOpacity(0.1),
+                        border: Border.all(color: _getStatusColor(status)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: _getStatusColor(status),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-                if (status == 'Pesanan Telah Diterima')
+                // Action buttons based on status
+                if (status.toLowerCase() == 'pesanan telah diterima')
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: SizedBox(
@@ -559,7 +652,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       ),
                     ),
                   ),
-                if (status == 'menunggu' || status == 'sedang diproses')
+                if (status.toLowerCase() == 'menunggu' ||
+                    status.toLowerCase() == 'sedang diproses' ||
+                    status.toLowerCase() == 'diproses')
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: SizedBox(

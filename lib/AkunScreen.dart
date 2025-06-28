@@ -109,62 +109,60 @@ class _AkunScreenState extends State<AkunScreen> {
   }
 
   Future<void> _updateProfile() async {
-  try {
-    final updatedName = _nameController.text;
-    final updatedEmail = _emailController.text;
-    final updatedNoHandphone = _noHandPhoneController.text;
-    final updatedPassword = _passwordController.text;
+    try {
+      final updatedName = _nameController.text;
+      final updatedEmail = _emailController.text;
+      final updatedNoHandphone = _noHandPhoneController.text;
+      final updatedPassword = _passwordController.text;
 
-    final user = await _account.get();
-    if (user != null) {
-      // Update the email in Appwrite's authentication system
-      await _account.updateEmail(
-        
-        email: updatedEmail,
-        password: _passwordController.text, 
-      );
+      final user = await _account.get();
+      if (user != null) {
+        // Update the email in Appwrite's authentication system
+        await _account.updateEmail(
+          email: updatedEmail,
+          password: _passwordController.text,
+        );
 
-      // Update the email and name in your custom database
-      await _databases.updateDocument(
-        databaseId: databaseId,
-        collectionId: profil,
-        documentId: user.$id,
-        data: {
-          'name': updatedName,
-          'email': updatedEmail, // Update the email in the collection too
-          'noHandphone': updatedNoHandphone,
-        },
-      );
+        // Update the email and name in your custom database
+        await _databases.updateDocument(
+          databaseId: databaseId,
+          collectionId: profil,
+          documentId: user.$id,
+          data: {
+            'name': updatedName,
+            'email': updatedEmail, // Update the email in the collection too
+            'noHandphone': updatedNoHandphone,
+          },
+        );
 
-      setState(() {
-        _userName = updatedName;
-        _userEmail = updatedEmail;
+        setState(() {
+          _userName = updatedName;
+          _userEmail = updatedEmail;
 
-        _isEditing = false; 
-      });
+          _isEditing = false;
+        });
 
-     
-      await _account.deleteSession(sessionId: 'current');
+        await _account.deleteSession(sessionId: 'current');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Profile updated and logged out. Please log in again.')),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SplashScreen()),
+        );
+
+        print("Profile updated successfully.");
+      }
+    } catch (e) {
+      print('Error updating profile: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profile updated and logged out. Please log in again.')),
+        SnackBar(content: Text('Error updating profile: $e')),
       );
-
-     
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SplashScreen()), 
-      );
-
-      print("Profile updated successfully.");
     }
-  } catch (e) {
-    print('Error updating profile: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error updating profile: $e')),
-    );
   }
-}
-
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
@@ -225,8 +223,13 @@ class _AkunScreenState extends State<AkunScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
+        backgroundColor: Color(0xFF0072BC),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+          ),
+        ),
         title: Text('Akun', style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
@@ -263,18 +266,20 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         TextField(
                           controller: _noHandPhoneController,
-                          decoration: InputDecoration(labelText: 'No Handphone'),
+                          decoration:
+                              InputDecoration(labelText: 'No Handphone'),
                         ),
                         TextField(
                           controller: _passwordController,
-                          decoration: InputDecoration(labelText: 'Konfirmasi Password'),
+                          decoration:
+                              InputDecoration(labelText: 'Konfirmasi Password'),
                         ),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: _updateProfile,
                           child: Text('Simpan Perubahan'),
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue),
+                              backgroundColor: Color(0xFF0072BC)),
                         ),
                       ],
                     )
@@ -289,11 +294,12 @@ class _AkunScreenState extends State<AkunScreen> {
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
-                                  color: Colors.green),
+                                  color: Color(0xFF8DC63F)),
                             ),
                           ),
                           _buildMenuItem(_userName ?? 'Guest'),
-                          Divider(color: Colors.black, indent: 15, endIndent: 15),
+                          Divider(
+                              color: Colors.black, indent: 15, endIndent: 15),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -301,11 +307,12 @@ class _AkunScreenState extends State<AkunScreen> {
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
-                                  color: Colors.green),
+                                  color: Color(0xFF8DC63F)),
                             ),
                           ),
                           _buildMenuItem(_userEmail ?? 'Guest'),
-                          Divider(color: Colors.black, indent: 15, endIndent: 15),
+                          Divider(
+                              color: Colors.black, indent: 15, endIndent: 15),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -313,11 +320,12 @@ class _AkunScreenState extends State<AkunScreen> {
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
-                                  color: Colors.green),
+                                  color: Color(0xFF8DC63F)),
                             ),
                           ),
                           _buildMenuItem(_noHp ?? '-'),
-                          Divider(color: Colors.black, indent: 15, endIndent: 15),
+                          Divider(
+                              color: Colors.black, indent: 15, endIndent: 15),
                           SizedBox(height: 40),
                           ElevatedButton(
                             onPressed: () {
@@ -327,7 +335,7 @@ class _AkunScreenState extends State<AkunScreen> {
                             },
                             child: Text('Edit Profile'),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue),
+                                backgroundColor: Color(0xFF0072BC)),
                           ),
                         ],
                       ),
