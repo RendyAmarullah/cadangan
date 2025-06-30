@@ -21,8 +21,9 @@ final account = Account(client);
 
 class CheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
+  final VoidCallback? onCartUpdated; // Add callback
 
-  CheckoutScreen({required this.cartItems});
+  CheckoutScreen({required this.cartItems, this.onCartUpdated});
 
   @override
   _CheckoutScreenState createState() => _CheckoutScreenState();
@@ -66,12 +67,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  void _updateQuantity(int index, int newQuantity) {
+  // Updated method to update both local state and database
+  void _updateQuantity(int index, int newQuantity) async {
     if (newQuantity < 1) return;
 
+    // Update local state immediately for better UX
     setState(() {
       widget.cartItems[index]['quantity'] = newQuantity;
     });
+
+    try {
+      // Update database
+      final docs = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+          Query.equal('productId', widget.cartItems[index]['productId']),
+        ],
+      );
+
+      if (docs.documents.isNotEmpty) {
+        final docId = docs.documents.first.$id;
+
+        await _databases.updateDocument(
+          databaseId: databaseId,
+          collectionId: cartsCollectionId,
+          documentId: docId,
+          data: {
+            'quantity': newQuantity,
+          },
+        );
+
+        // Notify cart screen about the update
+        if (widget.onCartUpdated != null) {
+          widget.onCartUpdated!();
+        }
+      }
+    } catch (e) {
+      print('Error updating cart item quantity: $e');
+      // Revert local state if database update fails
+      setState(() {
+        widget.cartItems[index]['quantity'] = widget.cartItems[index]
+                ['quantity'] -
+            (newQuantity - widget.cartItems[index]['quantity']);
+      });
+    }
   }
 
   Future<bool?> _notifCheckout(BuildContext context) {

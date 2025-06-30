@@ -144,7 +144,7 @@ class _MarketScreenState extends State<MarketScreen> {
         databaseId: databaseId,
         collectionId: productsCollectionId,
         queries: [
-          Query.equal('category', ['snack', 'frozen', 'mie']),
+          Query.equal('category', ['market']),
         ],
       );
 

@@ -215,6 +215,11 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
     }
   }
 
+  // Method untuk refresh cart items setelah kembali dari checkout
+  void _refreshCartItems() async {
+    await _fetchCartItems();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -465,15 +470,20 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
           ? Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: () {
-                  // Navigate to CheckoutScreen and pass cartItems
-                  Navigator.push(
+                onPressed: () async {
+                  // Navigate to CheckoutScreen and wait for result
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          CheckoutScreen(cartItems: cartItems),
+                      builder: (context) => CheckoutScreen(
+                        cartItems: cartItems,
+                        onCartUpdated: _refreshCartItems, // Pass callback
+                      ),
                     ),
                   );
+
+                  // Refresh cart items when returning from checkout
+                  _refreshCartItems();
                 },
                 child: Text(
                   'Check Out',
