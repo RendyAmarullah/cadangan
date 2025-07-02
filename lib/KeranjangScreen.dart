@@ -264,7 +264,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                       ? 'Total Item: '
                       : 'Total Item: ${cartItems.length}',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.black,
                   ),
@@ -316,7 +316,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: Colors.grey[300]!,
                                   width: 1,
@@ -324,7 +324,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                               ),
                               child: imageUrl.isNotEmpty
                                   ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(7),
+                                      borderRadius: BorderRadius.circular(10),
                                       child: Image.network(
                                         imageUrl,
                                         fit: BoxFit.cover,
@@ -334,7 +334,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                             decoration: BoxDecoration(
                                               color: Colors.grey[100],
                                               borderRadius:
-                                                  BorderRadius.circular(7),
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: Icon(
                                               Icons.image_not_supported,
@@ -351,7 +351,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                             decoration: BoxDecoration(
                                               color: Colors.grey[100],
                                               borderRadius:
-                                                  BorderRadius.circular(7),
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: Center(
                                               child: CircularProgressIndicator(
@@ -370,7 +370,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                   : Container(
                                       decoration: BoxDecoration(
                                         color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(7),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
                                         Icons.image,
@@ -397,9 +397,11 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                   SizedBox(height: 2), // Reduced spacing
                                   Text('Rp ${cartItems[index]['price'] ?? '-'}',
                                       style: TextStyle(
-                                        color: Color(0xFF8DC63F),
-                                        fontSize: 12, // Added smaller font size
-                                      )),
+                                          color: Color(0xFF0072BC),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight
+                                              .bold // Added smaller font size
+                                          )),
                                   SizedBox(height: 4), // Reduced spacing
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
@@ -416,7 +418,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                         icon: Icon(
                                           Icons.remove_circle_outline,
                                           color: Color(0xFF0072BC),
-                                          size: 30, // Smaller icon size
+                                          size: 25, // Smaller icon size
                                         ),
                                         onPressed: () {
                                           if (quantity > 0) {
@@ -444,9 +446,9 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                               32, // Smaller minimum height
                                         ),
                                         icon: Icon(
-                                          Icons.add_circle_outline,
-                                          color: Color(0xFF8DC63F),
-                                          size: 30, // Smaller icon size
+                                          Icons.add_circle_outlined,
+                                          color: Color(0xFF0072BC),
+                                          size: 25, // Kembali ke ukuran 30
                                         ),
                                         onPressed: () {
                                           _updateCartItemQuantity(
@@ -490,12 +492,13 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                   style: TextStyle(
                       color: Colors.white, // Set text color to white
                       fontWeight: FontWeight.bold,
-                      fontSize: 18),
+                      fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF8DC63F), // Checkout button color
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                ),
+                    backgroundColor: Color(0xFF8DC63F), // Checkout button color
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10))),
               ),
             )
           : null, // Hide checkout button when cart is empty

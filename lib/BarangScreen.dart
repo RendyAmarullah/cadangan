@@ -20,13 +20,30 @@ class _BarangScreenState extends State<BarangScreen> {
   final String favoritesCollectionId = '685adb7f00015bc4ec5f';
 
   List<Map<String, dynamic>> products = [];
-  List<Map<String, dynamic>> cartItems = [];
   List<Map<String, dynamic>> favoriteItems = [];
+  Set<String> favoriteProductIds = {};
   Map<String, int> productQuantities = {};
   String userId = '';
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
   bool isLoading = true;
+
+  String formatPrice(dynamic price) {
+    String priceStr = price.toString();
+    if (price is double) priceStr = price.toInt().toString();
+
+    String result = '';
+    int count = 0;
+    for (int i = priceStr.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = '.$result';
+        count = 0;
+      }
+      result = '${priceStr[i]}$result';
+      count++;
+    }
+    return result;
+  }
 
   @override
   void initState() {
@@ -53,88 +70,15 @@ class _BarangScreenState extends State<BarangScreen> {
     await _fetchProducts();
     await _fetchCart();
     await _fetchFavorites();
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
   }
 
   Future<void> _getCurrentUser() async {
     try {
       final models.User user = await _account.get();
-      setState(() {
-        userId = user.$id;
-      });
+      setState(() => userId = user.$id);
     } catch (e) {
       print('Error getting user: $e');
-    }
-  }
-
-  Future<void> _fetchFavorites() async {
-    try {
-      final result = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: favoritesCollectionId,
-        queries: [
-          Query.equal('userIds', userId),
-        ],
-      );
-
-      setState(() {
-        favoriteItems = result.documents.map((doc) => doc.data).toList();
-      });
-    } catch (e) {
-      print('Error fetching favorites: $e');
-    }
-  }
-
-  Future<void> _toggleFavorite(Map<String, dynamic> product) async {
-    try {
-      final existingFavorites = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: favoritesCollectionId,
-        queries: [
-          Query.equal('userIds', userId),
-          Query.equal('productId', product['\$id']),
-        ],
-      );
-
-      if (existingFavorites.documents.isNotEmpty) {
-        // Jika sudah ada, hapus dari favorit
-        final docId = existingFavorites.documents.first.$id;
-        await _databases.deleteDocument(
-          databaseId: databaseId,
-          collectionId: favoritesCollectionId,
-          documentId: docId,
-        );
-        setState(() {
-          favoriteItems.removeWhere((item) => item['\$id'] == product['\$id']);
-        });
-      } else {
-        // Jika belum ada, tambahkan ke favorit
-        await _databases.createDocument(
-          databaseId: databaseId,
-          collectionId: favoritesCollectionId,
-          documentId: ID.unique(),
-          data: {
-            'userIds': userId,
-            'productId': product['\$id'],
-            'name': product['name'],
-            'price': product['price'],
-            'productImageUrl': product['productImageUrl'],
-          },
-        );
-        setState(() {
-          favoriteItems.add({
-            'userIds': userId,
-            'productId': product['\$id'],
-            'name': product['name'],
-            'price': product['price'],
-            'productImageUrl': product['productImageUrl'],
-          });
-        });
-      }
-    } catch (e) {
-      print('Error toggling favorite: $e');
     }
   }
 
@@ -143,14 +87,10 @@ class _BarangScreenState extends State<BarangScreen> {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
-        queries: [
-          Query.equal('category', 'barang'),
-        ],
+        queries: [Query.equal('category', 'barang')],
       );
-
-      setState(() {
-        products = result.documents.map((doc) => doc.data).toList();
-      });
+      setState(
+          () => products = result.documents.map((doc) => doc.data).toList());
     } catch (e) {
       print('Error fetching products: $e');
     }
@@ -161,13 +101,11 @@ class _BarangScreenState extends State<BarangScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
+        queries: [Query.equal('userId', userId)],
       );
 
+      final cartItems = result.documents.map((doc) => doc.data).toList();
       setState(() {
-        cartItems = result.documents.map((doc) => doc.data).toList();
         productQuantities.clear();
         for (var item in cartItems) {
           productQuantities[item['productId']] = item['quantity'];
@@ -178,7 +116,93 @@ class _BarangScreenState extends State<BarangScreen> {
     }
   }
 
-  Future<void> addToCartWithQuantity(
+  Future<void> _fetchFavorites() async {
+    try {
+      final result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: favoritesCollectionId,
+        queries: [Query.equal('userIds', userId)],
+      );
+
+      setState(() {
+        favoriteItems = result.documents.map((doc) => doc.data).toList();
+        favoriteProductIds =
+            favoriteItems.map((item) => item['productId'].toString()).toSet();
+      });
+    } catch (e) {
+      print('Error fetching favorites: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite(Map<String, dynamic> product) async {
+    final productId = product['\$id'];
+
+    try {
+      final existingFavorites = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: favoritesCollectionId,
+        queries: [
+          Query.equal('userIds', userId),
+          Query.equal('productId', productId),
+        ],
+      );
+
+      if (existingFavorites.documents.isNotEmpty) {
+        // Remove from favorites
+        await _databases.deleteDocument(
+          databaseId: databaseId,
+          collectionId: favoritesCollectionId,
+          documentId: existingFavorites.documents.first.$id,
+        );
+
+        setState(() {
+          favoriteItems.removeWhere((item) => item['productId'] == productId);
+          favoriteProductIds.remove(productId);
+        });
+
+        _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
+      } else {
+        // Add to favorites
+        final newFavorite = {
+          'userIds': userId,
+          'productId': productId,
+          'name': product['name'],
+          'price': product['price'],
+          'productImageUrl': product['productImageUrl'],
+        };
+
+        await _databases.createDocument(
+          databaseId: databaseId,
+          collectionId: favoritesCollectionId,
+          documentId: ID.unique(),
+          data: newFavorite,
+        );
+
+        setState(() {
+          favoriteItems.add(newFavorite);
+          favoriteProductIds.add(productId);
+        });
+
+        _showSnackBar(
+            '${product['name']} ditambahkan ke favorit', Colors.green);
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      _showSnackBar('Gagal mengubah favorit. Silakan coba lagi.', Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _updateCartQuantity(
       Map<String, dynamic> product, int quantity) async {
     try {
       final existingItems = await _databases.listDocuments(
@@ -191,17 +215,15 @@ class _BarangScreenState extends State<BarangScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        // Update quantity yang sudah ada
-        final docId = existingItems.documents.first.$id;
+        // Update existing item
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
-          documentId: docId,
+          documentId: existingItems.documents.first.$id,
           data: {'quantity': quantity},
         );
-        productQuantities[product['\$id']] = quantity;
       } else {
-        // Buat dokumen baru
+        // Create new cart item
         await _databases.createDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -215,57 +237,11 @@ class _BarangScreenState extends State<BarangScreen> {
             'productImageUrl': product['productImageUrl'],
           },
         );
-        productQuantities[product['\$id']] = quantity;
       }
 
-      setState(() {});
+      setState(() => productQuantities[product['\$id']] = quantity);
     } catch (e) {
-      print('Error adding to cart: $e');
-    }
-  }
-
-  Future<void> tambahKeranjang(Map<String, dynamic> product) async {
-    try {
-      final existingItems = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-          Query.equal('productId', product['\$id']),
-        ],
-      );
-
-      if (existingItems.documents.isNotEmpty) {
-        final docId = existingItems.documents.first.$id;
-        final currentQty = existingItems.documents.first.data['quantity'] ?? 1;
-
-        await _databases.updateDocument(
-          databaseId: databaseId,
-          collectionId: cartsCollectionId,
-          documentId: docId,
-          data: {'quantity': currentQty + 1},
-        );
-        productQuantities[product['\$id']] = currentQty + 1;
-      } else {
-        await _databases.createDocument(
-          databaseId: databaseId,
-          collectionId: cartsCollectionId,
-          documentId: ID.unique(),
-          data: {
-            'userId': userId,
-            'productId': product['\$id'],
-            'name': product['name'],
-            'price': product['price'],
-            'quantity': 1,
-            'productImageUrl': product['productImageUrl'],
-          },
-        );
-        productQuantities[product['\$id']] = 1;
-      }
-
-      setState(() {});
-    } catch (e) {
-      print('Error menyimpan ke keranjang: $e');
+      print('Error updating cart: $e');
     }
   }
 
@@ -317,38 +293,12 @@ class _BarangScreenState extends State<BarangScreen> {
                         SizedBox(height: 16),
                         Row(
                           children: [
-                            Text('Rp ${product['price']}'),
+                            Text('Rp ${formatPrice(product['price'])}'),
                             Spacer(),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.remove),
-                                    onPressed: displayQty > 1
-                                        ? () {
-                                            setModalState(() {
-                                              displayQty--;
-                                            });
-                                          }
-                                        : null,
-                                  ),
-                                  Text('$displayQty'),
-                                  IconButton(
-                                    icon: Icon(Icons.add,
-                                        color: Color(0xFF8DC63F)),
-                                    onPressed: () {
-                                      setModalState(() {
-                                        displayQty++;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildQuantitySelector(displayQty, setModalState,
+                                (newQty) {
+                              displayQty = newQty;
+                            }),
                           ],
                         ),
                         SizedBox(height: 20),
@@ -356,15 +306,14 @@ class _BarangScreenState extends State<BarangScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF0072BC),
+                              backgroundColor: Color(0xFF8DC63F),
                               padding: EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             onPressed: () async {
-                              // Tambahkan ke keranjang dengan quantity yang dipilih
-                              await addToCartWithQuantity(product, displayQty);
+                              await _updateCartQuantity(product, displayQty);
                               Navigator.pop(context);
                             },
                             child: Text(
@@ -387,13 +336,55 @@ class _BarangScreenState extends State<BarangScreen> {
     );
   }
 
-  String getImageUrl(String fileId) => fileId;
+  Widget _buildQuantitySelector(int quantity, StateSetter setModalState,
+      Function(int) onQuantityChanged) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            iconSize: 25,
+            padding: EdgeInsets.all(4),
+            constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(Icons.remove_circle_outline, color: Color(0xFF0072BC)),
+            onPressed: quantity > 1
+                ? () {
+                    setModalState(() {
+                      onQuantityChanged(quantity - 1);
+                    });
+                  }
+                : null,
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Text(quantity.toString(), style: TextStyle(fontSize: 14)),
+          ),
+          IconButton(
+            iconSize: 25,
+            padding: EdgeInsets.all(4),
+            constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(Icons.add_circle_outlined, color: Color(0xFF0072BC)),
+            onPressed: () {
+              setModalState(() {
+                onQuantityChanged(quantity + 1);
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   List<Map<String, dynamic>> get filteredProducts {
     if (searchQuery.isEmpty) return products;
     return products.where((product) {
-      final name = product['name'].toString().toLowerCase();
-      return name.contains(searchQuery.toLowerCase());
+      return product['name']
+          .toString()
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase());
     }).toList();
   }
 
@@ -419,9 +410,7 @@ class _BarangScreenState extends State<BarangScreen> {
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
@@ -432,11 +421,7 @@ class _BarangScreenState extends State<BarangScreen> {
               height: 45,
               child: TextField(
                 controller: searchController,
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
+                onChanged: (value) => setState(() => searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Cari produk...',
                   prefixIcon: Icon(Icons.search, size: 20),
@@ -444,9 +429,7 @@ class _BarangScreenState extends State<BarangScreen> {
                       ? GestureDetector(
                           onTap: () {
                             searchController.clear();
-                            setState(() {
-                              searchQuery = '';
-                            });
+                            setState(() => searchQuery = '');
                           },
                           child:
                               Icon(Icons.clear, color: Colors.grey, size: 20),
@@ -476,8 +459,8 @@ class _BarangScreenState extends State<BarangScreen> {
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           var product = filteredProducts[index];
-                          bool isFavorite = favoriteItems.any(
-                              (item) => item['productId'] == product['\$id']);
+                          bool isFavorite =
+                              favoriteProductIds.contains(product['\$id']);
 
                           return GestureDetector(
                             onTap: () => _showProductDetail(product),
@@ -489,10 +472,6 @@ class _BarangScreenState extends State<BarangScreen> {
                               elevation: 0,
                               child: Container(
                                 padding: const EdgeInsets.all(8.0),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Colors.white,
-                                ),
                                 child: Row(
                                   children: [
                                     ClipRRect(
@@ -517,7 +496,7 @@ class _BarangScreenState extends State<BarangScreen> {
                                                 fontSize: 20),
                                           ),
                                           Text(
-                                            'Rp ${product['price']}',
+                                            'Rp ${formatPrice(product['price'])}',
                                             style: TextStyle(fontSize: 15),
                                           )
                                         ],
@@ -533,9 +512,7 @@ class _BarangScreenState extends State<BarangScreen> {
                                             : Colors.grey,
                                         size: 28,
                                       ),
-                                      onPressed: () {
-                                        _toggleFavorite(product);
-                                      },
+                                      onPressed: () => _toggleFavorite(product),
                                     ),
                                   ],
                                 ),
@@ -555,12 +532,8 @@ class _BarangScreenState extends State<BarangScreen> {
           );
           await _fetchCart();
         },
-        child: Icon(
-          Icons.shopping_bag_rounded,
-          color: Colors.white,
-          size: 30,
-        ),
-        backgroundColor: Color(0xFF8DC63F),
+        child: Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 30),
+        backgroundColor: Color(0xFF0072BC),
       ),
     );
   }

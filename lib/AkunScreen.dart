@@ -224,6 +224,7 @@ class _AkunScreenState extends State<AkunScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF0072BC),
+        iconTheme: IconThemeData(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(20),
@@ -284,9 +285,10 @@ class _AkunScreenState extends State<AkunScreen> {
                       ],
                     )
                   : Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(15.0),
                       child: Column(
                         children: [
+                          // Section Nama
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -297,9 +299,16 @@ class _AkunScreenState extends State<AkunScreen> {
                                   color: Color(0xFF8DC63F)),
                             ),
                           ),
-                          _buildMenuItem(_userName ?? 'Guest'),
+                          _buildMenuItem(_userName ??
+                              'Guest'), // Jarak kecil sebelum divider
                           Divider(
-                              color: Colors.black, indent: 15, endIndent: 15),
+                              color: Colors.black,
+                              height: 0), // Mengurangi tinggi divider
+                          SizedBox(
+                              height:
+                                  30), // Jarak setelah divider sebelum section berikutnya
+
+                          // Section Email
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -310,9 +319,17 @@ class _AkunScreenState extends State<AkunScreen> {
                                   color: Color(0xFF8DC63F)),
                             ),
                           ),
-                          _buildMenuItem(_userEmail ?? 'Guest'),
+                          _buildMenuItem(_userEmail ??
+                              'Guest'), // Jarak kecil sebelum divider
                           Divider(
-                              color: Colors.black, indent: 15, endIndent: 15),
+                            color: Colors.black,
+                            height: 0,
+                          ), // Mengurangi tinggi divider
+                          SizedBox(
+                              height:
+                                  30), // Jarak setelah divider sebelum section berikutnya
+
+                          // Section No Handphone
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -323,9 +340,12 @@ class _AkunScreenState extends State<AkunScreen> {
                                   color: Color(0xFF8DC63F)),
                             ),
                           ),
-                          _buildMenuItem(_noHp ?? '-'),
+                          _buildMenuItem(
+                              _noHp ?? '-'), // Jarak kecil sebelum divider
                           Divider(
-                              color: Colors.black, indent: 15, endIndent: 15),
+                              color: Colors.black,
+                              height: 0), // Mengurangi tinggi divider
+
                           SizedBox(height: 40),
                           ElevatedButton(
                             onPressed: () {
@@ -333,9 +353,15 @@ class _AkunScreenState extends State<AkunScreen> {
                                 _isEditing = true;
                               });
                             },
-                            child: Text('Edit Profile'),
+                            child: Text('Edit Profile',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 14)),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF0072BC)),
+                                backgroundColor:
+                                    Color(0xFF8DC63F), // Checkout button color
+                                minimumSize: Size(double.infinity, 48),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10))),
                           ),
                         ],
                       ),
@@ -350,10 +376,13 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Widget _buildMenuItem(String title, {Function()? onTap}) {
     return ListTile(
+      contentPadding: EdgeInsets.symmetric(
+          horizontal: 0), // Menghilangkan padding default ListTile
       title: Text(title),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        color: Colors.white,
+        color: Colors.black,
+        size: 15,
       ),
       onTap: onTap,
     );

@@ -20,13 +20,32 @@ class _MarketScreenState extends State<MarketScreen> {
   final String favoritesCollectionId = '685adb7f00015bc4ec5f';
 
   List<Map<String, dynamic>> products = [];
-  List<Map<String, dynamic>> cartItems = [];
   List<Map<String, dynamic>> favoriteItems = [];
+  Set<String> favoriteProductIds = {};
   Map<String, int> productQuantities = {};
   String userId = '';
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
   bool isLoading = true;
+
+  String formatPrice(dynamic price) {
+    String priceStr = price.toString();
+
+    // Tambahkan titik setiap 3 digit dari belakang
+    String result = '';
+    int count = 0;
+
+    for (int i = priceStr.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = '.' + result;
+        count = 0;
+      }
+      result = priceStr[i] + result;
+      count++;
+    }
+
+    return result;
+  }
 
   @override
   void initState() {
@@ -74,13 +93,13 @@ class _MarketScreenState extends State<MarketScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: favoritesCollectionId,
-        queries: [
-          Query.equal('userIds', userId),
-        ],
+        queries: [Query.equal('userIds', userId)],
       );
 
       setState(() {
         favoriteItems = result.documents.map((doc) => doc.data).toList();
+        favoriteProductIds =
+            favoriteItems.map((item) => item['productId'].toString()).toSet();
       });
     } catch (e) {
       print('Error fetching favorites: $e');
@@ -88,54 +107,72 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Future<void> _toggleFavorite(Map<String, dynamic> product) async {
+    final productId = product['\$id'];
+
     try {
       final existingFavorites = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: favoritesCollectionId,
         queries: [
           Query.equal('userIds', userId),
-          Query.equal('productId', product['\$id']),
+          Query.equal('productId', productId),
         ],
       );
 
       if (existingFavorites.documents.isNotEmpty) {
-        // Jika sudah ada, hapus dari favorit
+        // Hapus dari favorit
         final docId = existingFavorites.documents.first.$id;
         await _databases.deleteDocument(
           databaseId: databaseId,
           collectionId: favoritesCollectionId,
           documentId: docId,
         );
+
         setState(() {
-          favoriteItems.removeWhere((item) => item['\$id'] == product['\$id']);
+          favoriteItems.removeWhere((item) => item['productId'] == productId);
+          favoriteProductIds.remove(productId);
         });
+
+        _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
       } else {
-        // Jika belum ada, tambahkan ke favorit
+        // Tambahkan ke favorit
+        final newFavorite = {
+          'userIds': userId,
+          'productId': productId,
+          'name': product['name'],
+          'price': product['price'],
+          'productImageUrl': product['productImageUrl'],
+        };
+
         await _databases.createDocument(
           databaseId: databaseId,
           collectionId: favoritesCollectionId,
           documentId: ID.unique(),
-          data: {
-            'userIds': userId,
-            'productId': product['\$id'],
-            'name': product['name'],
-            'price': product['price'],
-            'productImageUrl': product['productImageUrl'],
-          },
+          data: newFavorite,
         );
+
         setState(() {
-          favoriteItems.add({
-            'userIds': userId,
-            'productId': product['\$id'],
-            'name': product['name'],
-            'price': product['price'],
-            'productImageUrl': product['productImageUrl'],
-          });
+          favoriteItems.add(newFavorite);
+          favoriteProductIds.add(productId);
         });
+
+        _showSnackBar(
+            '${product['name']} ditambahkan ke favorit', Colors.green);
       }
     } catch (e) {
       print('Error toggling favorite: $e');
+      _showSnackBar('Gagal mengubah favorit. Silakan coba lagi.', Colors.red);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _fetchProducts() async {
@@ -144,7 +181,7 @@ class _MarketScreenState extends State<MarketScreen> {
         databaseId: databaseId,
         collectionId: productsCollectionId,
         queries: [
-          Query.equal('category', ['market']),
+          Query.equal('category', ['market'])
         ],
       );
 
@@ -161,16 +198,13 @@ class _MarketScreenState extends State<MarketScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
+        queries: [Query.equal('userId', userId)],
       );
 
       setState(() {
-        cartItems = result.documents.map((doc) => doc.data).toList();
         productQuantities.clear();
-        for (var item in cartItems) {
-          productQuantities[item['productId']] = item['quantity'];
+        for (var doc in result.documents) {
+          productQuantities[doc.data['productId']] = doc.data['quantity'];
         }
       });
     } catch (e) {
@@ -178,7 +212,7 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
-  Future<void> addToCartWithQuantity(
+  Future<void> _addToCartWithQuantity(
       Map<String, dynamic> product, int quantity) async {
     try {
       final existingItems = await _databases.listDocuments(
@@ -191,7 +225,7 @@ class _MarketScreenState extends State<MarketScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        // Update quantity yang sudah ada
+        // Update quantity
         final docId = existingItems.documents.first.$id;
         await _databases.updateDocument(
           databaseId: databaseId,
@@ -199,7 +233,6 @@ class _MarketScreenState extends State<MarketScreen> {
           documentId: docId,
           data: {'quantity': quantity},
         );
-        productQuantities[product['\$id']] = quantity;
       } else {
         // Buat dokumen baru
         await _databases.createDocument(
@@ -215,57 +248,13 @@ class _MarketScreenState extends State<MarketScreen> {
             'productImageUrl': product['productImageUrl'],
           },
         );
-        productQuantities[product['\$id']] = quantity;
       }
 
-      setState(() {});
+      setState(() {
+        productQuantities[product['\$id']] = quantity;
+      });
     } catch (e) {
       print('Error adding to cart: $e');
-    }
-  }
-
-  Future<void> tambahKeranjang(Map<String, dynamic> product) async {
-    try {
-      final existingItems = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-          Query.equal('productId', product['\$id']),
-        ],
-      );
-
-      if (existingItems.documents.isNotEmpty) {
-        final docId = existingItems.documents.first.$id;
-        final currentQty = existingItems.documents.first.data['quantity'] ?? 1;
-
-        await _databases.updateDocument(
-          databaseId: databaseId,
-          collectionId: cartsCollectionId,
-          documentId: docId,
-          data: {'quantity': currentQty + 1},
-        );
-        productQuantities[product['\$id']] = currentQty + 1;
-      } else {
-        await _databases.createDocument(
-          databaseId: databaseId,
-          collectionId: cartsCollectionId,
-          documentId: ID.unique(),
-          data: {
-            'userId': userId,
-            'productId': product['\$id'],
-            'name': product['name'],
-            'price': product['price'],
-            'quantity': 1,
-            'productImageUrl': product['productImageUrl'],
-          },
-        );
-        productQuantities[product['\$id']] = 1;
-      }
-
-      setState(() {});
-    } catch (e) {
-      print('Error menyimpan ke keranjang: $e');
     }
   }
 
@@ -317,7 +306,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         SizedBox(height: 16),
                         Row(
                           children: [
-                            Text('Rp ${product['price']}'),
+                            Text('Rp ${formatPrice(product['price'])}'),
                             Spacer(),
                             Container(
                               decoration: BoxDecoration(
@@ -325,26 +314,43 @@ class _MarketScreenState extends State<MarketScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.remove),
+                                    iconSize: 20,
+                                    padding: EdgeInsets.all(4),
+                                    constraints: BoxConstraints(
+                                        minWidth: 32, minHeight: 32),
+                                    icon: Icon(
+                                      Icons.remove_circle_outline,
+                                      color: Color(0xFF0072BC),
+                                      size: 25,
+                                    ),
                                     onPressed: displayQty > 1
-                                        ? () {
-                                            setModalState(() {
-                                              displayQty--;
-                                            });
-                                          }
+                                        ? () =>
+                                            setModalState(() => displayQty--)
                                         : null,
                                   ),
-                                  Text('$displayQty'),
+                                  Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 8),
+                                    child: Text(
+                                      displayQty.toString(),
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ),
                                   IconButton(
-                                    icon: Icon(Icons.add,
-                                        color: Color(0xFF8DC63F)),
-                                    onPressed: () {
-                                      setModalState(() {
-                                        displayQty++;
-                                      });
-                                    },
+                                    iconSize: 20,
+                                    padding: EdgeInsets.all(4),
+                                    constraints: BoxConstraints(
+                                        minWidth: 32, minHeight: 32),
+                                    icon: Icon(
+                                      Icons.add_circle_outlined,
+                                      color: Color(0xFF0072BC),
+                                      size: 25,
+                                    ),
+                                    onPressed: () =>
+                                        setModalState(() => displayQty++),
                                   ),
                                 ],
                               ),
@@ -356,15 +362,14 @@ class _MarketScreenState extends State<MarketScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF0072BC),
+                              backgroundColor: Color(0xFF8DC63F),
                               padding: EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             onPressed: () async {
-                              // Tambahkan ke keranjang dengan quantity yang dipilih
-                              await addToCartWithQuantity(product, displayQty);
+                              await _addToCartWithQuantity(product, displayQty);
                               Navigator.pop(context);
                             },
                             child: Text(
@@ -386,8 +391,6 @@ class _MarketScreenState extends State<MarketScreen> {
       },
     );
   }
-
-  String getImageUrl(String fileId) => fileId;
 
   List<Map<String, dynamic>> get filteredProducts {
     if (searchQuery.isEmpty) return products;
@@ -419,9 +422,7 @@ class _MarketScreenState extends State<MarketScreen> {
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
@@ -432,11 +433,7 @@ class _MarketScreenState extends State<MarketScreen> {
               height: 45,
               child: TextField(
                 controller: searchController,
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
+                onChanged: (value) => setState(() => searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Cari produk...',
                   prefixIcon: Icon(Icons.search, size: 20),
@@ -444,9 +441,7 @@ class _MarketScreenState extends State<MarketScreen> {
                       ? GestureDetector(
                           onTap: () {
                             searchController.clear();
-                            setState(() {
-                              searchQuery = '';
-                            });
+                            setState(() => searchQuery = '');
                           },
                           child:
                               Icon(Icons.clear, color: Colors.grey, size: 20),
@@ -517,7 +512,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                                 fontSize: 20),
                                           ),
                                           Text(
-                                            'Rp ${product['price']}',
+                                            'Rp ${formatPrice(product['price'])}',
                                             style: TextStyle(fontSize: 15),
                                           )
                                         ],
@@ -533,9 +528,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                             : Colors.grey,
                                         size: 28,
                                       ),
-                                      onPressed: () {
-                                        _toggleFavorite(product);
-                                      },
+                                      onPressed: () => _toggleFavorite(product),
                                     ),
                                   ],
                                 ),
@@ -555,12 +548,8 @@ class _MarketScreenState extends State<MarketScreen> {
           );
           await _fetchCart();
         },
-        child: Icon(
-          Icons.shopping_bag_rounded,
-          color: Colors.white,
-          size: 30,
-        ),
-        backgroundColor: Color(0xFF8DC63F),
+        child: Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 30),
+        backgroundColor: Color(0xFF0072BC),
       ),
     );
   }

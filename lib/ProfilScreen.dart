@@ -7,11 +7,11 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/AlamatScreen.dart';
 import 'package:pemesanan/FavoritScreen.dart';
-import 'package:pemesanan/RiwayatTransaksiScreen.dart';
 import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/AkunScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart'; // Tambahkan ini
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -346,6 +346,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  // Fungsi untuk membuka WhatsApp
+  Future<void> _openWhatsApp() async {
+    const phoneNumber = '6282377832998';
+    const message = 'Halo, saya butuh bantuan customer service';
+
+    // Encode pesan untuk URL
+    final encodedMessage = Uri.encodeComponent(message);
+
+    // Buat URL WhatsApp
+    final url =
+        'https://api.whatsapp.com/send?phone=$phoneNumber&text=$encodedMessage';
+
+    try {
+      final uri = Uri.parse(url);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback ke browser
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      print('Error: $e');
+      _showErrorDialog('Tidak dapat membuka WhatsApp. Error: ${e.toString()}');
+    }
+  }
+
+  // Fungsi untuk menampilkan dialog error
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _refreshData() async {
     await _loadProfileData();
   }
@@ -443,8 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => FavoriteScreen(
-                                    ),
+                                builder: (context) => FavoriteScreen(),
                               ),
                             );
                           }),
@@ -455,7 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       'Butuh Bantuan?',
                       style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     SizedBox(height: 10),
                     ListTile(
@@ -464,20 +509,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: Text(
                         'For Customer Service (chat only)',
                         style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 13,
                             fontWeight:
                                 FontWeight.bold), // Ukuran font untuk title
                       ),
                       subtitle: Text(
-                        '0831 - 8274 - 2991',
+                        '0823 - 7783 - 2998',
                         style: TextStyle(
-                            fontSize: 14), // Ukuran font untuk subtitle
+                            fontSize: 13), // Ukuran font untuk subtitle
                       ),
                       trailing: Icon(
                         Icons.arrow_forward_ios,
-                        color: Colors.white,
+                        color: Colors.black,
+                        size: 12,
                       ),
-                      onTap: () {},
+                      onTap: _openWhatsApp, // Ganti dengan fungsi WhatsApp
                     ),
                     SizedBox(height: 30),
                     ElevatedButton(
@@ -503,13 +549,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0072BC),
-                        shape: StadiumBorder(),
+                        backgroundColor: Color(0xFF8DC63F),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                         padding:
                             EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                       ),
-                      child:
-                          Text("KELUAR", style: TextStyle(color: Colors.white)),
+                      child: Text("Keluar",
+                          style: TextStyle(color: Colors.white, fontSize: 16)),
                     ),
                   ],
                 ),
@@ -527,7 +574,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           visualDensity: VisualDensity(horizontal: 0, vertical: -4),
           title: Text(
             title,
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(fontSize: 16),
           ),
           trailing: Icon(Icons.chevron_right, size: 20),
           onTap: onTap,

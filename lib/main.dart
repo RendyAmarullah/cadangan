@@ -196,7 +196,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       bottomNavigationBar: Container(
         height: 60,
         decoration: BoxDecoration(
-          color: Color(0xFF8DC63F),
+          color: Color(0xFF0072BC),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
@@ -242,7 +242,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               child: Icon(
                 icon,
                 color:
-                    _selectedIndex == index ? Color(0xFF8DC63F) : Colors.white,
+                    _selectedIndex == index ? Color(0xFF0072BC) : Colors.white,
                 size: 28,
               ),
             ),

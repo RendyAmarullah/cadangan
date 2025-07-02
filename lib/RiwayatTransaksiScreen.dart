@@ -232,12 +232,12 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   child: Image.network(
                     product['productImageUrl'] ?? '',
                     width: 50,
@@ -315,7 +315,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 padding: EdgeInsets.symmetric(vertical: 8),
                 backgroundColor: Colors.grey[50],
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   side: BorderSide(color: Colors.grey[300]!),
                 ),
               ),
@@ -386,11 +386,13 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       child: Text('Pesanan Kamu'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _currentFilter == 'Pesanan Kamu'
-                            ? Color(0xFF0072BC)
+                            ? Color(0xFF8DC63F)
                             : Colors.grey[300],
                         foregroundColor: _currentFilter == 'Pesanan Kamu'
                             ? Colors.white
                             : Colors.black,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -400,13 +402,14 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       onPressed: _showCompletedOrders,
                       child: Text('Semua Pesanan'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _currentFilter == 'Semua Pesanan'
-                            ? Color(0xFF0072BC)
-                            : Colors.grey[300],
-                        foregroundColor: _currentFilter == 'Semua Pesanan'
-                            ? Colors.white
-                            : Colors.black,
-                      ),
+                          backgroundColor: _currentFilter == 'Semua Pesanan'
+                              ? Color(0xFF8DC63F)
+                              : Colors.grey[300],
+                          foregroundColor: _currentFilter == 'Semua Pesanan'
+                              ? Colors.white
+                              : Colors.black,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
                     ),
                   ),
                 ],
@@ -473,8 +476,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             SizedBox(height: 8),
             Text(
               _currentFilter == 'Pesanan Kamu'
-                  ? 'Pesanan yang sedang diproses akan muncul di sini'
-                  : 'Pesanan yang selesai/dibatalkan akan muncul di sini',
+                  ? 'Status pesanan kamu akan muncul di sini'
+                  : 'Riwayat pesanan kamu akan muncul di sini',
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
           ],
@@ -483,7 +486,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
 
     return ListView.builder(
-      padding: EdgeInsets.all(8.0),
+      // Ubah padding dari 8.0 menjadi 20.0 untuk menyesuaikan dengan HomeScreen
+      padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
       itemCount: _filteredOrders.length,
       itemBuilder: (context, index) {
         var order = _filteredOrders[index];
@@ -499,7 +503,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           margin: EdgeInsets.only(bottom: 12.0),
           elevation: 2,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -534,7 +538,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -600,7 +604,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     Text(
                       _formatCurrency(totalPrice),
                       style: TextStyle(
-                        color: Color(0xFF8DC63F),
+                        color: Color(0xFF0072BC),
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -622,7 +626,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       decoration: BoxDecoration(
                         color: _getStatusColor(status).withOpacity(0.1),
                         border: Border.all(color: _getStatusColor(status)),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         status,
@@ -647,7 +651,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                         child: Text('Selesaikan Pesanan'),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Colors.green,
+                          backgroundColor: Color(0xFF8DC63F),
                         ),
                       ),
                     ),
@@ -664,7 +668,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                         child: Text('Batalkan Pesanan'),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Colors.red,
+                          backgroundColor: Color(0xFF8DC63F),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),

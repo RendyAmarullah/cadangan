@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pemesanan/BarangScreen.dart';
 import 'package:pemesanan/BeautyScreen.dart';
 import 'package:pemesanan/BunsikScreen.dart';
@@ -24,7 +22,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _userName;
   String? _email;
   int _cartItemCount = 0;
-  Stream<DocumentSnapshot>? _cartStream;
 
   // Banner carousel variables
   PageController _pageController = PageController();
@@ -52,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
     databases = Databases(client);
 
     _loadProfileData();
-    _initializeCartStream();
     _startAutoSlider();
   }
 
@@ -82,43 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Map<String, dynamic>> cartItems = [];
-
-  Future<void> _saveCartItems() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    CollectionReference cartCollection =
-        FirebaseFirestore.instance.collection('carts');
-
-    await cartCollection.doc(userId).set({
-      'cartItems': cartItems,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    print('Data keranjang berhasil disimpan ke Firestore');
-  }
-
-  void _initializeCartStream() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _cartStream = FirebaseFirestore.instance
-          .collection('carts')
-          .doc(user.uid)
-          .snapshots();
-    }
-  }
-
-  int _calculateCartItemCount(List<dynamic>? cartItems) {
-    if (cartItems == null) return 0;
-
-    int totalCount = 0;
-    for (var item in cartItems) {
-      // Asumsi setiap item memiliki field 'quantity' atau 'jumlah'
-      if (item is Map<String, dynamic>) {
-        int quantity = item['quantity'] ?? item['jumlah'] ?? 1;
-        totalCount += quantity;
-      }
-    }
-    return totalCount;
-  }
 
   Future<void> _loadProfileData() async {
     try {
@@ -173,62 +132,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Spacer(),
-              // Realtime Cart Icon with Badge
-              StreamBuilder<DocumentSnapshot>(
-                stream: _cartStream,
-                builder: (context, snapshot) {
-                  int cartCount = 0;
-
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    Map<String, dynamic>? data =
-                        snapshot.data!.data() as Map<String, dynamic>?;
-                    if (data != null && data.containsKey('cartItems')) {
-                      cartCount = _calculateCartItemCount(data['cartItems']);
-                    }
-                  }
-
-                  return Stack(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.shopping_bag_rounded,
-                            color: Color(0xFF0072BC), size: 28),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => KeranjangScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      if (cartCount > 0) // Hanya tampilkan badge jika ada item
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            constraints: BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              cartCount > 99 ? '99+' : cartCount.toString(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+              // Cart Icon (tanpa realtime badge)
+              Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.shopping_bag_rounded,
+                        color: Color(0xFF0072BC), size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => KeranjangScreen(),
                         ),
-                    ],
-                  );
-                },
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -240,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Banner Carousel section
             Container(
-              margin: EdgeInsets.all(20),
+              margin: EdgeInsets.all(25),
               height: 150,
               child: Stack(
                 children: [
@@ -298,11 +217,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Category icons - First row (4 items)
+            // Category Grid - Menggunakan GridView untuk layout yang rata
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              padding: const EdgeInsets.symmetric(horizontal: 5.0),
+              child: GridView.count(
+                crossAxisCount: 3, // 3 kolom
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                childAspectRatio: 0.9, // Rasio lebar:tinggi item
+                crossAxisSpacing: 20,
                 children: [
                   _buildIconButton(
                       Icons.shopping_cart, 'Market', Color(0xFF0072BC), () {
@@ -332,55 +255,33 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => NonHalalScreen()),
                     );
                   }),
+                  _buildIconButton(
+                      Icons.inventory_2, 'Barang', Color(0xFF0072BC), () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BarangScreen()),
+                    );
+                  }),
+                  _buildIconButton(Icons.face_retouching_natural, 'Beauty',
+                      Color(0xFF8DC63F), () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BeautyScreen()),
+                    );
+                  }),
                 ],
               ),
             ),
 
-            SizedBox(height: 20),
-
-            // Category icons - Second row (2 items)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildIconButton(
-                            Icons.inventory_2, 'Barang', Color(0xFF0072BC), () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => BarangScreen()),
-                          );
-                        }),
-                        _buildIconButton(Icons.face_retouching_natural,
-                            'Beauty', Color(0xFF8DC63F), () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => BeautyScreen()),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                      child: Container()), // Empty space to balance the layout
-                ],
-              ),
-            ),
-
-            SizedBox(height: 30),
+            SizedBox(height: 5),
 
             // Menu Popular section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
               child: Text(
                 'Menu',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
@@ -390,7 +291,6 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 15),
 
             // Popular menu items
-            // Ganti bagian Padding menu items dengan ini:
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
@@ -399,17 +299,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildMenuItem(
                     'Tteokbokki',
                     'Rp 30.000',
-                    'images/tteokbokki.jpg', // Tambahkan parameter gambar
+                    'images/tteokbokki.jpg',
                   ),
                   _buildMenuItem(
                     'Kimchi',
                     'Rp 30.000',
-                    'images/kimchi.png', // Tambahkan parameter gambar
+                    'images/kimchi.png',
                   ),
                   _buildMenuItem(
                     'Jjajangmyeon',
                     'Rp 42.000',
-                    'images/jjajangmyeon.jpg', // Tambahkan parameter gambar
+                    'images/jjajangmyeon.jpg',
                   ),
                 ],
               ),
@@ -434,11 +334,12 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 60,
             decoration: BoxDecoration(
               color: color,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(
+                  10), // Mengubah dari shape: BoxShape.circle menjadi borderRadius
             ),
             child: Icon(icon, color: Colors.white, size: 30),
           ),
-          SizedBox(width: 8),
+          SizedBox(height: 8),
           Text(
             label,
             style: TextStyle(
@@ -453,7 +354,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Pastikan method _buildMenuItem Anda seperti ini:
   Widget _buildMenuItem(String name, String price, String imagePath) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -462,18 +362,15 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.3),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: Offset(0, 2),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(15),
             child: Image.asset(
               imagePath,
               fit: BoxFit.cover,
