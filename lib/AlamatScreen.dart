@@ -132,6 +132,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Background putih bersih
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: AppBar(
@@ -160,41 +161,44 @@ class _AlamatScreenState extends State<AlamatScreen> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.location_on,
-                size: 60,
-                color: Color(0xFF0072BC),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "Alamat Anda:",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              Text(
-                _address,
-                style: TextStyle(fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _getCurrentLocation,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF0072BC),
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+      body: Container(
+        color: Colors.white, // Pastikan body juga putih
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.location_on,
+                  size: 60,
+                  color: Color(0xFF0072BC),
                 ),
-                child: Text(
-                  "Perbarui Lokasi",
-                  style: TextStyle(color: Colors.white),
+                SizedBox(height: 20),
+                Text(
+                  "Alamat Anda:",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
+                SizedBox(height: 10),
+                Text(
+                  _address,
+                  style: TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: _getCurrentLocation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0072BC),
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  ),
+                  child: Text(
+                    "Perbarui Lokasi",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

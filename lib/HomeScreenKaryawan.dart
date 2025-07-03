@@ -23,7 +23,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   @override
   void initState() {
     super.initState();
-
     client
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject('681aa0b70002469fc157')
@@ -52,7 +51,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     setState(() {
       _isLoading = true;
     });
-
     try {
       bool hasConnection = await _checkConnection();
       if (!hasConnection) {
@@ -68,7 +66,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           Query.limit(50),
         ],
       );
-
       print('Orders loaded: ${response.documents.length}'); // Debug log
 
       setState(() {
@@ -97,6 +94,8 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
             'orderId2': doc.data['orderId'],
             'createdAt':
                 doc.data['createdAt'] ?? DateTime.now().toIso8601String(),
+            'paymentProofUrl':
+                doc.data['paymentProofUrl'] ?? '', // Retrieve payment proof URL
           };
         }).toList();
         _isLoading = false;
@@ -106,7 +105,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       setState(() {
         _isLoading = false;
       });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -130,7 +128,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         _email = user.email;
         userId = user.$id;
       });
-
       print('User ID: $userId');
 
       final profileDoc = await databases!.getDocument(
@@ -143,7 +140,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       });
     } catch (e) {
       print('Failed to load user profile: $e');
-
       try {
         final user = await account!.get();
         setState(() {
@@ -159,7 +155,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   Future<void> _acceptOrder(String orderId, int index) async {
     try {
       print('Accepting order: $orderId with userId: $userId');
-
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -173,7 +168,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           ),
         ),
       );
-
       if (userId.isEmpty) {
         Navigator.pop(context);
         throw Exception('User ID tidak valid. Silakan login ulang.');
@@ -185,7 +179,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         collectionId: ordersCollectionId,
         documentId: orderId,
       );
-
       print('Order status: ${orderDoc.data['status']}');
 
       // Pastikan status pesanan 'menunggu'
@@ -209,7 +202,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       }
 
       String productsJson = jsonEncode(products);
-
       // Update status pesanan di collection ordersCollectionId menjadi "sedang diproses"
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
@@ -238,15 +230,15 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'createdAt': DateTime.now().toIso8601String(),
           'acceptedByy': userId,
           'acceptedAt': DateTime.now().toIso8601String(),
+          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ??
+              '', // Include payment proof URL
         },
       );
-
       Navigator.pop(context);
 
       setState(() {
         _orders.removeAt(index);
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
@@ -254,7 +246,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           duration: Duration(seconds: 2),
         ),
       );
-
       print(
           'Pesanan #$orderId berhasil diterima dan dipindahkan ke sedang diproses');
     } catch (e) {
@@ -306,11 +297,9 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           ],
         ),
       );
-
       if (confirmed != true) return;
 
       print('Rejecting order: $orderId with userId: $userId');
-
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -324,7 +313,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           ),
         ),
       );
-
       if (userId.isEmpty) {
         Navigator.pop(context);
         throw Exception('User ID tidak valid. Silakan login ulang.');
@@ -335,7 +323,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         collectionId: ordersCollectionId,
         documentId: orderId,
       );
-
       if (orderDoc.data['status'] != 'menunggu') {
         Navigator.pop(context);
         throw Exception('Order sudah diproses oleh orang lain');
@@ -356,7 +343,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       }
 
       String productsJson = jsonEncode(products);
-
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: '6854ba6e003bad3da579',
@@ -372,9 +358,10 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'createdAt': DateTime.now().toIso8601String(),
           'rejectedBy': userId,
           'rejectedAt': DateTime.now().toIso8601String(),
+          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ??
+              '', // Include payment proof URL
         },
       );
-
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -385,13 +372,11 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'rejectedAt': DateTime.now().toIso8601String(),
         },
       );
-
       Navigator.pop(context);
 
       setState(() {
         _orders.removeAt(index);
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil ditolak'),
@@ -399,7 +384,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           duration: Duration(seconds: 2),
         ),
       );
-
       print('Pesanan #$orderId berhasil ditolak');
     } catch (e) {
       if (Navigator.canPop(context)) {
@@ -436,6 +420,24 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
   String _formatOrderId(String orderId2) {
     return '#${orderId2}';
+  }
+
+  void _showPaymentProof(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Bukti Pembayaran'),
+        content: imageUrl.isNotEmpty
+            ? Image.network(imageUrl)
+            : Text('Bukti pembayaran tidak tersedia.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Tutup'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -509,7 +511,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                     itemBuilder: (context, index) {
                       var order = _orders[index];
                       List<dynamic> products = order['produk'];
-
                       return Container(
                         margin: EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
@@ -561,7 +562,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 ],
                               ),
                               SizedBox(height: 12),
-
                               // Alamat
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,7 +584,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 ],
                               ),
                               SizedBox(height: 8),
-
                               // Produk
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,8 +625,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 ],
                               ),
                               SizedBox(height: 12),
-
-                              // Total dan COD
+                              // Total dan Metode Pembayaran
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -638,13 +636,18 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.blue[50],
+                                      color: order['metodePembayaran'] == 'COD'
+                                          ? Colors.blue[50]
+                                          : Colors.purple[50],
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      'COD',
+                                      order['metodePembayaran'],
                                       style: TextStyle(
-                                        color: Colors.blue[700],
+                                        color:
+                                            order['metodePembayaran'] == 'COD'
+                                                ? Colors.blue[700]
+                                                : Colors.purple[700],
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -660,8 +663,31 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                   ),
                                 ],
                               ),
+                              if (order['metodePembayaran'] == 'QRIS' &&
+                                  order['paymentProofUrl'] != null &&
+                                  order['paymentProofUrl'].isNotEmpty)
+                                Column(
+                                  children: [
+                                    SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: GestureDetector(
+                                        onTap: () => _showPaymentProof(
+                                            context, order['paymentProofUrl']),
+                                        child: Text(
+                                          'Buka bukti pembayaran',
+                                          style: TextStyle(
+                                            color: Color(0xFF0072BC),
+                                            fontWeight: FontWeight.bold,
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               SizedBox(height: 16),
-
                               // Action Buttons
                               Row(
                                 children: [

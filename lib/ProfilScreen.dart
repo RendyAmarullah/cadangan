@@ -399,6 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Menambahkan background putih bersih
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: AppBar(
@@ -471,21 +472,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildMenuItem('Alamat', onTap: () {
+                          _buildMenuItem('Alamat', isLast: false, onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => AlamatScreen()),
                             );
                           }),
-                          _buildMenuItem('Akun Saya', onTap: () {
+                          _buildMenuItem('Akun Saya', isLast: false, onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => AkunScreen()),
                             );
                           }),
-                          _buildMenuItem('Favorit', onTap: () {
+                          _buildMenuItem('Favorit', isLast: true, onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -565,7 +566,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuItem(String title, {VoidCallback? onTap}) {
+  Widget _buildMenuItem(String title,
+      {required bool isLast, VoidCallback? onTap}) {
     return Column(
       children: [
         ListTile(
@@ -580,7 +582,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: onTap,
           minVerticalPadding: 0,
         ),
-        Divider(height: 1, thickness: 0.8),
+        if (!isLast) Divider(height: 1, thickness: 0.8),
       ],
     );
   }

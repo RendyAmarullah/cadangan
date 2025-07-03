@@ -222,6 +222,7 @@ class _AkunScreenState extends State<AkunScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Background putih bersih
       appBar: AppBar(
         backgroundColor: Color(0xFF0072BC),
         iconTheme: IconThemeData(color: Colors.white),
@@ -233,141 +234,144 @@ class _AkunScreenState extends State<AkunScreen> {
         ),
         title: Text('Akun', style: TextStyle(color: Colors.white)),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 60,
-                    child: _profileImageUrl != null
-                        ? CircleAvatar(
-                            radius: 60,
-                            backgroundImage: NetworkImage(_profileImageUrl!))
-                        : const CircleAvatar(
-                            radius: 60, child: Icon(Icons.person)),
+      body: Container(
+        color: Colors.white, // Pastikan body juga putih
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      radius: 60,
+                      child: _profileImageUrl != null
+                          ? CircleAvatar(
+                              radius: 60,
+                              backgroundImage: NetworkImage(_profileImageUrl!))
+                          : const CircleAvatar(
+                              radius: 60, child: Icon(Icons.person)),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 10),
-              _isEditing
-                  ? Column(
-                      children: [
-                        TextField(
-                          controller: _nameController,
-                          decoration: InputDecoration(labelText: 'Name'),
-                        ),
-                        TextField(
-                          controller: _emailController,
-                          decoration: InputDecoration(labelText: 'Email'),
-                        ),
-                        TextField(
-                          controller: _noHandPhoneController,
-                          decoration:
-                              InputDecoration(labelText: 'No Handphone'),
-                        ),
-                        TextField(
-                          controller: _passwordController,
-                          decoration:
-                              InputDecoration(labelText: 'Konfirmasi Password'),
-                        ),
-                        SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: _updateProfile,
-                          child: Text('Simpan Perubahan'),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF0072BC)),
-                        ),
-                      ],
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: Column(
+                SizedBox(height: 10),
+                _isEditing
+                    ? Column(
                         children: [
-                          // Section Nama
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Nama',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: Color(0xFF8DC63F)),
-                            ),
+                          TextField(
+                            controller: _nameController,
+                            decoration: InputDecoration(labelText: 'Name'),
                           ),
-                          _buildMenuItem(_userName ??
-                              'Guest'), // Jarak kecil sebelum divider
-                          Divider(
-                              color: Colors.black,
-                              height: 0), // Mengurangi tinggi divider
-                          SizedBox(
-                              height:
-                                  30), // Jarak setelah divider sebelum section berikutnya
-
-                          // Section Email
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Email',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: Color(0xFF8DC63F)),
-                            ),
+                          TextField(
+                            controller: _emailController,
+                            decoration: InputDecoration(labelText: 'Email'),
                           ),
-                          _buildMenuItem(_userEmail ??
-                              'Guest'), // Jarak kecil sebelum divider
-                          Divider(
-                            color: Colors.black,
-                            height: 0,
-                          ), // Mengurangi tinggi divider
-                          SizedBox(
-                              height:
-                                  30), // Jarak setelah divider sebelum section berikutnya
-
-                          // Section No Handphone
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'No Handphone',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: Color(0xFF8DC63F)),
-                            ),
+                          TextField(
+                            controller: _noHandPhoneController,
+                            decoration:
+                                InputDecoration(labelText: 'No Handphone'),
                           ),
-                          _buildMenuItem(
-                              _noHp ?? '-'), // Jarak kecil sebelum divider
-                          Divider(
-                              color: Colors.black,
-                              height: 0), // Mengurangi tinggi divider
-
-                          SizedBox(height: 40),
+                          TextField(
+                            controller: _passwordController,
+                            decoration: InputDecoration(
+                                labelText: 'Konfirmasi Password'),
+                          ),
+                          SizedBox(height: 20),
                           ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _isEditing = true;
-                              });
-                            },
-                            child: Text('Edit Profile',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 14)),
+                            onPressed: _updateProfile,
+                            child: Text('Simpan Perubahan'),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Color(0xFF8DC63F), // Checkout button color
-                                minimumSize: Size(double.infinity, 48),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10))),
+                                backgroundColor: Color(0xFF0072BC)),
                           ),
                         ],
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: Column(
+                          children: [
+                            // Section Nama
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Nama',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF8DC63F)),
+                              ),
+                            ),
+                            _buildMenuItem(_userName ??
+                                'Guest'), // Jarak kecil sebelum divider
+                            Divider(
+                                color: Colors.black,
+                                height: 0), // Mengurangi tinggi divider
+                            SizedBox(
+                                height:
+                                    30), // Jarak setelah divider sebelum section berikutnya
+
+                            // Section Email
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Email',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF8DC63F)),
+                              ),
+                            ),
+                            _buildMenuItem(_userEmail ??
+                                'Guest'), // Jarak kecil sebelum divider
+                            Divider(
+                              color: Colors.black,
+                              height: 0,
+                            ), // Mengurangi tinggi divider
+                            SizedBox(
+                                height:
+                                    30), // Jarak setelah divider sebelum section berikutnya
+
+                            // Section No Handphone
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'No Handphone',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF8DC63F)),
+                              ),
+                            ),
+                            _buildMenuItem(
+                                _noHp ?? '-'), // Jarak kecil sebelum divider
+                            Divider(
+                                color: Colors.black,
+                                height: 0), // Mengurangi tinggi divider
+
+                            SizedBox(height: 40),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isEditing = true;
+                                });
+                              },
+                              child: Text('Edit Profile',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 14)),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(
+                                      0xFF8DC63F), // Checkout button color
+                                  minimumSize: Size(double.infinity, 48),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10))),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-              SizedBox(height: 20),
-            ],
+                SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

@@ -94,9 +94,11 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.white, // Background putih bersih
       appBar: AppBar(
         backgroundColor: Color(0xFF0072BC),
+        iconTheme: IconThemeData(
+            color: Colors.white), // Menambahkan ini untuk tanda panah putih
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(20),
@@ -112,79 +114,83 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
           ),
         ),
       ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : favoriteItems.isEmpty
-              ? Center(child: Text('Tidak ada produk favorit.'))
-              : ListView.builder(
-                  padding: EdgeInsets.all(8),
-                  itemCount: favoriteItems.length,
-                  itemBuilder: (context, index) {
-                    var product = favoriteItems[index];
-                    var docId = product['\$id']; // Ambil ID dokumen
+      body: Container(
+        color: Colors.white, // Pastikan body juga putih
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : favoriteItems.isEmpty
+                ? Center(child: Text('Tidak ada produk favorit.'))
+                : ListView.builder(
+                    padding: EdgeInsets.all(8),
+                    itemCount: favoriteItems.length,
+                    itemBuilder: (context, index) {
+                      var product = favoriteItems[index];
+                      var docId = product['\$id']; // Ambil ID dokumen
 
-                    return GestureDetector(
-                      onTap: () {
-                        // Anda bisa menambahkan logika untuk membuka detail produk
-                      },
-                      child: Card(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
+                      return GestureDetector(
+                        onTap: () {
+                          // Anda bisa menambahkan logika untuk membuka detail produk
+                        },
+                        child: Card(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.white,
                           ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  product['productImageUrl'],
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
+                          elevation: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white,
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    product['productImageUrl'],
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product['name'],
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20),
-                                    ),
-                                    Text(
-                                      'Rp ${product['price']}',
-                                      style: TextStyle(fontSize: 15),
-                                    ),
-                                  ],
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product['name'],
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20),
+                                      ),
+                                      Text(
+                                        'Rp ${product['price']}',
+                                        style: TextStyle(fontSize: 15),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () async {
+                                    // Menghapus item dari daftar favorit
+                                    await _removeFromFavorites(docId);
+                                  },
                                 ),
-                                onPressed: () async {
-                                  // Menghapus item dari daftar favorit
-                                  await _removeFromFavorites(docId);
-                                },
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
+import 'package:pemesanan/RoomChatt.dart'; // Tambahkan import ini
 import 'dart:convert';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
@@ -42,7 +43,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(projectId)
         .setSelfSigned(status: true);
-
     _databases = Databases(_client);
     _account = Account(_client);
   }
@@ -52,7 +52,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-
     try {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
@@ -62,12 +61,11 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           Query.orderDesc('\$createdAt'),
         ],
       );
-
       setState(() {
         _orders = result.documents.map((doc) {
           return {
             'orderId': doc.$id,
-            'originalOrderId': doc.data['orderId'],
+            'originalOrderId': doc.data['orderId'], // Menambahkan ini jika ada
             'produk': jsonDecode(doc.data['produk']),
             'total': doc.data['total'],
             'metodePembayaran': doc.data['metodePembayaran'],
@@ -103,7 +101,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         documentId: orderId,
         data: {'status': 'Dibatalkan'},
       );
-
       setState(() {
         _orders = _orders.map((order) {
           if (order['orderId'] == orderId) {
@@ -119,7 +116,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           _showCompletedOrders();
         }
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Pesanan telah dibatalkan')),
       );
@@ -139,7 +135,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         documentId: orderId,
         data: {'status': 'Selesai'},
       );
-
       setState(() {
         _orders = _orders.map((order) {
           if (order['orderId'] == orderId) {
@@ -155,7 +150,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           _showCompletedOrders();
         }
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Pesanan selesai')),
       );
@@ -180,7 +174,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  // Updated filter functions
+  // Updated filter functions to include 'pesanan telah diterima'
   void _showCompletedOrders() {
     setState(() {
       _currentFilter = 'Semua Pesanan';
@@ -200,7 +194,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         String status = order['status'].toString().toLowerCase();
         return status == 'menunggu' ||
             status == 'diproses' ||
-            status == 'diantar' ||
+            status == 'sedang diantar' ||
             status == 'sedang diproses' ||
             status == 'pesanan telah diterima';
       }).toList();
@@ -233,6 +227,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey[300]!),
               borderRadius: BorderRadius.circular(10),
+              color: Colors.white,
             ),
             child: Row(
               children: [
@@ -288,8 +283,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             ),
           );
         }).toList(),
-
-        // Show expand/collapse button if more than 2 products
         if (produkList.length > 2)
           Container(
             width: double.infinity,
@@ -313,7 +306,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
               ),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                backgroundColor: Colors.grey[50],
+                backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                   side: BorderSide(color: Colors.grey[300]!),
@@ -333,7 +326,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       case 'diproses':
       case 'sedang diproses':
         return Colors.blue;
-      case 'diantar':
+      case 'sedang diantar':
         return Colors.purple;
       case 'selesai':
         return Colors.green;
@@ -347,9 +340,25 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
+  // Method untuk membuka chat room
+  void _openChatRoom(Map<String, dynamic> order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatRoomScreen(
+          orderId: order['orderId'],
+          userId: widget.userId,
+          userRole: 'customer', // Sesuaikan peran pengguna jika diperlukan
+          orderInfo: 'Order #${order['originalOrderId']}',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: AppBar(
@@ -373,52 +382,62 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _fetchOrders,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _showActiveOrders,
-                      child: Text('Pesanan Kamu'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _currentFilter == 'Pesanan Kamu'
-                            ? Color(0xFF8DC63F)
-                            : Colors.grey[300],
-                        foregroundColor: _currentFilter == 'Pesanan Kamu'
-                            ? Colors.white
-                            : Colors.black,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _showCompletedOrders,
-                      child: Text('Semua Pesanan'),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: _currentFilter == 'Semua Pesanan'
+        child: Container(
+          color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _showActiveOrders,
+                        child: Text('Pesanan Kamu'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _currentFilter == 'Pesanan Kamu'
                               ? Color(0xFF8DC63F)
-                              : Colors.grey[300],
-                          foregroundColor: _currentFilter == 'Semua Pesanan'
+                              : Colors.white,
+                          foregroundColor: _currentFilter == 'Pesanan Kamu'
                               ? Colors.white
                               : Colors.black,
+                          side: _currentFilter != 'Pesanan Kamu'
+                              ? BorderSide(color: Colors.grey[300]!)
+                              : null,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _showCompletedOrders,
+                        child: Text('Semua Pesanan'),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: _currentFilter == 'Semua Pesanan'
+                                ? Color(0xFF8DC63F)
+                                : Colors.white,
+                            foregroundColor: _currentFilter == 'Semua Pesanan'
+                                ? Colors.white
+                                : Colors.black,
+                            side: _currentFilter != 'Semua Pesanan'
+                                ? BorderSide(color: Colors.grey[300]!)
+                                : null,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10))),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: _buildBody(),
-            ),
-          ],
+              Expanded(
+                child: _buildBody(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -426,260 +445,313 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Memuat riwayat pesanan...'),
-          ],
+      return Container(
+        color: Colors.white,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Memuat riwayat pesanan...'),
+            ],
+          ),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red),
-            SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchOrders,
-              child: Text('Coba Lagi'),
-            ),
-          ],
+      return Container(
+        color: Colors.white,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchOrders,
+                child: Text('Coba Lagi'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (_filteredOrders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              _currentFilter == 'Pesanan Kamu'
-                  ? 'Belum ada pesanan'
-                  : 'Belum ada riwayat pesanan selesai',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-            ),
-            SizedBox(height: 8),
-            Text(
-              _currentFilter == 'Pesanan Kamu'
-                  ? 'Status pesanan kamu akan muncul di sini'
-                  : 'Riwayat pesanan kamu akan muncul di sini',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
-          ],
+      return Container(
+        color: Colors.white,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                _currentFilter == 'Pesanan Kamu'
+                    ? 'Belum ada pesanan'
+                    : 'Belum ada riwayat pesanan selesai',
+                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+              ),
+              SizedBox(height: 8),
+              Text(
+                _currentFilter == 'Pesanan Kamu'
+                    ? 'Status pesanan kamu akan muncul di sini'
+                    : 'Riwayat pesanan kamu akan muncul di sini',
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      // Ubah padding dari 8.0 menjadi 20.0 untuk menyesuaikan dengan HomeScreen
-      padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-      itemCount: _filteredOrders.length,
-      itemBuilder: (context, index) {
-        var order = _filteredOrders[index];
-        var produkList = List<Map<String, dynamic>>.from(order['produk']);
-        int totalPrice = order['total'];
-        String paymentMethod = order['metodePembayaran'];
-        String address = order['alamat'];
-        String createdAt = order['tanggal'];
-        String status = order['status'];
-        String orderId = order['orderId'];
+    return Container(
+      color: Colors.white,
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+        itemCount: _filteredOrders.length,
+        itemBuilder: (context, index) {
+          var order = _filteredOrders[index];
+          var produkList = List<Map<String, dynamic>>.from(order['produk']);
+          int totalPrice = order['total'];
+          String paymentMethod = order['metodePembayaran'];
+          String address = order['alamat'];
+          String createdAt = order['tanggal'];
+          String status = order['status'];
+          String orderId = order['orderId'];
 
-        return Card(
-          margin: EdgeInsets.only(bottom: 12.0),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Order #${order['originalOrderId']}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+          // Determine button properties based on status
+          bool isCompleteOrderButtonEnabled =
+              status.toLowerCase() == 'sedang diantar' ||
+                  status.toLowerCase() == 'pesanan telah diterima';
+          Color completeOrderButtonColor =
+              isCompleteOrderButtonEnabled ? Color(0xFF8DC63F) : Colors.grey;
+
+          return Card(
+            margin: EdgeInsets.only(bottom: 12.0),
+            elevation: 2,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Order #${order['originalOrderId']}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      _formatDate(createdAt),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
+                      Text(
+                        _formatDate(createdAt),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-
-                // Alamat dan Metode Pembayaran
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(10),
+                    ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.location_on,
-                              size: 16, color: Colors.grey[600]),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              address,
+                  SizedBox(height: 12),
+
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 16, color: Colors.grey[600]),
+                            SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                address,
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.payment,
+                                size: 16, color: Colors.grey[600]),
+                            SizedBox(width: 4),
+                            Text(
+                              paymentMethod,
                               style: TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  Text(
+                    'Produk (${produkList.length} item)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+
+                  _buildProductList(produkList, orderId),
+
+                  SizedBox(height: 16),
+                  Divider(),
+                  SizedBox(height: 8),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Pembayaran:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        _formatCurrency(totalPrice),
+                        style: TextStyle(
+                          color: Color(0xFF0072BC),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Status Pesanan:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(status).withOpacity(0.1),
+                          border: Border.all(color: _getStatusColor(status)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            color: _getStatusColor(status),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Logika Tombol Aksi Baru
+                  if (status.toLowerCase() == 'pesanan telah diterima' ||
+                      status.toLowerCase() == 'sedang diproses' ||
+                      status.toLowerCase() == 'sedang diantar' ||
+                      status.toLowerCase() == 'diproses')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _openChatRoom(order),
+                              icon: Icon(Icons.chat, size: 18),
+                              label: Text('Chat'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Color(0xFF0072BC),
+                                backgroundColor: Colors.white,
+                                side: BorderSide(color: Color(0xFF0072BC)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isCompleteOrderButtonEnabled
+                                  ? () => _completeOrder(orderId)
+                                  : null, // Disable if not enabled
+                              child: Text('Selesaikan Pesanan'),
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    completeOrderButtonColor, // Apply dynamic color
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.payment,
-                              size: 16, color: Colors.grey[600]),
-                          SizedBox(width: 4),
-                          Text(
-                            paymentMethod,
-                            style: TextStyle(fontSize: 14),
+                    ),
+                  if (status.toLowerCase() == 'menunggu')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Center(
+                        child: SizedBox(
+                          width: 300,
+                          child: ElevatedButton(
+                            onPressed: () => _cancelOrder(
+                                orderId), // Tombol Batalkan Pesanan
+                            child: Center(
+                              child: Text(
+                                'Batalkan Pesanan',
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor:
+                                  Colors.red, // Warna merah untuk batalkan
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Produk List dengan header
-                Text(
-                  'Produk (${produkList.length} item)',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                SizedBox(height: 8),
-
-                // Produk dengan dropdown functionality
-                _buildProductList(produkList, orderId),
-
-                SizedBox(height: 16),
-                Divider(),
-                SizedBox(height: 8),
-
-                // Total Pembayaran
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Total Pembayaran:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      _formatCurrency(totalPrice),
-                      style: TextStyle(
-                        color: Color(0xFF0072BC),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Status Pesanan:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(status).withOpacity(0.1),
-                        border: Border.all(color: _getStatusColor(status)),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: _getStatusColor(status),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
                         ),
                       ),
                     ),
-                  ],
-                ),
-
-                // Action buttons based on status
-                if (status.toLowerCase() == 'pesanan telah diterima')
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _completeOrder(orderId),
-                        child: Text('Selesaikan Pesanan'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Color(0xFF8DC63F),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (status.toLowerCase() == 'menunggu' ||
-                    status.toLowerCase() == 'sedang diproses' ||
-                    status.toLowerCase() == 'diproses')
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _cancelOrder(orderId),
-                        child: Text('Batalkan Pesanan'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Color(0xFF8DC63F),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

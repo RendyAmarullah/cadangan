@@ -1,5 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
+import 'package:pemesanan/RoomChatt.dart';
 import 'dart:convert';
 
 final client = Client()
@@ -9,7 +10,6 @@ final client = Client()
 
 class StatusPesananKaryawanScreen extends StatefulWidget {
   final String userId;
-
   StatusPesananKaryawanScreen({required this.userId});
 
   @override
@@ -22,7 +22,6 @@ class _StatusPesananKaryawanScreenState
   late Client _client;
   late Databases _databases;
   late Account _account;
-
   List<Map<String, dynamic>> _allOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -44,7 +43,6 @@ class _StatusPesananKaryawanScreenState
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(projectId)
         .setSelfSigned(status: true);
-
     _databases = Databases(_client);
     _account = Account(_client);
   }
@@ -54,17 +52,16 @@ class _StatusPesananKaryawanScreenState
       _isLoading = true;
       _errorMessage = null;
     });
-
     try {
       final ordersResult = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: ordersCollectionId,
         queries: [
-          Query.equal('status', ['sedang diproses', 'sedang diantar', 'pesanan telah diterima']),
+          Query.equal('status',
+              ['sedang diproses', 'sedang diantar', 'pesanan telah diterima']),
           Query.orderDesc('\$createdAt'),
         ],
       );
-
       List<Map<String, dynamic>> orders = ordersResult.documents.map((doc) {
         List<dynamic> products = [];
         try {
@@ -88,7 +85,6 @@ class _StatusPesananKaryawanScreenState
           'status': doc.data['status'] ?? 'Menunggu',
         };
       }).toList();
-
       setState(() {
         _allOrders = orders;
         _isLoading = false;
@@ -104,14 +100,12 @@ class _StatusPesananKaryawanScreenState
 
   Future<void> _updateOrderStatus(String orderId, String newStatus) async {
     try {
-      
       await _databases.updateDocument(
         databaseId: databaseId,
         collectionId: ordersCollectionId,
         documentId: orderId,
         data: {'status': newStatus},
       );
-
       // Update local state to reflect the changes
       setState(() {
         _allOrders = _allOrders.map((order) {
@@ -121,10 +115,8 @@ class _StatusPesananKaryawanScreenState
           return order;
         }).toList();
       });
-
-      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Status pesanan telah diperbarui menjadi $newStatus')),
+        SnackBar(content: Text('Pesanan sedang $newStatus')),
       );
     } catch (e) {
       print('Error updating order status: $e');
@@ -154,7 +146,6 @@ class _StatusPesananKaryawanScreenState
   Widget _buildOrderCard(Map<String, dynamic> order) {
     List<dynamic> products = order['produk'];
     String status = order['status'] ?? 'unknown';
-
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -190,13 +181,17 @@ class _StatusPesananKaryawanScreenState
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: status == 'Sedang Diantar' ? Colors.green[100] : Colors.orange[100],
+                    color: status == 'Sedang Diantar'
+                        ? Colors.green[100]
+                        : Colors.orange[100],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     status,
                     style: TextStyle(
-                      color: status == 'Sedang Diantar' ? Colors.green[800] : Colors.orange[800],
+                      color: status == 'Sedang Diantar'
+                          ? Colors.green[800]
+                          : Colors.orange[800],
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -313,30 +308,112 @@ class _StatusPesananKaryawanScreenState
               ],
             ),
 
-            
+            // Action buttons - GANTI BAGIAN INI
             if (status == 'sedang diproses')
-              SizedBox(
-                height: 16,
-                child: ElevatedButton(
-                  onPressed: () => _updateOrderStatus(order['orderId'], 'Sedang Diantar'),
-                  child: Text('Sedang Diantar'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white, backgroundColor: Colors.blue,
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _updateOrderStatus(
+                            order['orderId'], 'Sedang Diantar'),
+                        child: Text('Sedang Diantar'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openChatRoom(order),
+                        icon: Icon(Icons.chat, size: 18),
+                        label: Text('Chat'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color(0xFF0072BC),
+                          side: BorderSide(color: Color(0xFF0072BC)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            if (status == 'Sedang Diantar')
-              SizedBox(
-                height: 16,
-                child: ElevatedButton(
-                  onPressed: () => _updateOrderStatus(order['orderId'], 'Pesanan Telah Diterima'),
-                  child: Text('Pesanan Telah Diterima'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white, backgroundColor: Colors.green,
+            if (status == 'sedang diantar')
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _updateOrderStatus(
+                            order['orderId'], 'Pesanan Telah Diterima'),
+                        child: Text('Pesanan Telah Diterima'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openChatRoom(order),
+                        icon: Icon(Icons.chat, size: 18),
+                        label: Text('Chat'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color(0xFF0072BC),
+                          side: BorderSide(color: Color(0xFF0072BC)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (status == 'pesanan telah diterima')
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: OutlinedButton.icon(
+                  onPressed: () => _openChatRoom(order),
+                  icon: Icon(Icons.chat, size: 18),
+                  label: Text('Chat Room'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF0072BC),
+                    side: BorderSide(color: Color(0xFF0072BC)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openChatRoom(Map<String, dynamic> order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatRoomScreen(
+          orderId: order['orderId'],
+          userId: widget.userId,
+          userRole: 'employee',
+          orderInfo: 'Order #${order['originalOrderId']}',
         ),
       ),
     );

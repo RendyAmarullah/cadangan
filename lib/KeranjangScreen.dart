@@ -21,6 +21,24 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
   String userId = '';
   List<Map<String, dynamic>> cartItems = [];
 
+  // Add the formatPrice function from BarangScreen
+  String formatPrice(dynamic price) {
+    String priceStr = price.toString();
+    if (price is double) priceStr = price.toInt().toString();
+
+    String result = '';
+    int count = 0;
+    for (int i = priceStr.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = '.$result';
+        count = 0;
+      }
+      result = '${priceStr[i]}$result';
+      count++;
+    }
+    return result;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -395,7 +413,8 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                     ),
                                   ),
                                   SizedBox(height: 2), // Reduced spacing
-                                  Text('Rp ${cartItems[index]['price'] ?? '-'}',
+                                  Text(
+                                      'Rp ${formatPrice(cartItems[index]['price'] ?? 0)}',
                                       style: TextStyle(
                                           color: Color(0xFF0072BC),
                                           fontSize: 13,

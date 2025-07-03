@@ -33,17 +33,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late Client _client;
   late Databases _databases;
   late Account _account;
+  late Storage _storage; // Add Storage instance
 
   String userId = '';
   String address = 'Memuat alamat...';
   String _metodePembayaran = 'COD';
   bool _isProcessingOrder = false;
   bool _isLoadingAddress = true;
-
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String cartsCollectionId = '68407db7002d8716c9d0';
   final String addressCollectionId = '68447d3d0007b5f75cc5';
+  final String paymentProofBucketId =
+      '681aa16f003054da8969'; // QRIS image bucket ID
+
+  String? _qrisImageUrl =
+      'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/685cf51a0024c374db5e/view?project=681aa0b70002469fc157&mode=admin'; // QRIS image URL
+  XFile? _selectedPaymentProof; // To store selected payment proof image
+
+  // Add the formatPrice function from KeranjangScreen
+  String formatPrice(dynamic price) {
+    String priceStr = price.toString();
+    if (price is double) priceStr = price.toInt().toString();
+
+    String result = '';
+    int count = 0;
+    for (int i = priceStr.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = '.$result';
+        count = 0;
+      }
+      result = '${priceStr[i]}$result';
+      count++;
+    }
+    return result;
+  }
 
   @override
   void initState() {
@@ -57,9 +81,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(projectId)
         .setSelfSigned(status: true);
-
     _databases = Databases(_client);
     _account = Account(_client);
+    _storage = Storage(_client); // Initialize Storage
 
     await _getCurrentUser();
     if (userId.isNotEmpty) {
@@ -70,12 +94,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Updated method to update both local state and database
   void _updateQuantity(int index, int newQuantity) async {
     if (newQuantity < 1) return;
-
     // Update local state immediately for better UX
     setState(() {
       widget.cartItems[index]['quantity'] = newQuantity;
     });
-
     try {
       // Update database
       final docs = await _databases.listDocuments(
@@ -86,10 +108,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Query.equal('productId', widget.cartItems[index]['productId']),
         ],
       );
-
       if (docs.documents.isNotEmpty) {
         final docId = docs.documents.first.$id;
-
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -98,7 +118,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'quantity': newQuantity,
           },
         );
-
         // Notify cart screen about the update
         if (widget.onCartUpdated != null) {
           widget.onCartUpdated!();
@@ -163,7 +182,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Query.equal('userId', userId),
         ],
       );
-
       for (var doc in result.documents) {
         await _databases.deleteDocument(
           databaseId: databaseId,
@@ -187,10 +205,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() {
       _isLoadingAddress = true;
     });
-
     try {
       print('Mencari alamat untuk user ID: $userId');
-
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: addressCollectionId,
@@ -198,10 +214,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Query.equal('user_id', userId),
         ],
       );
-
       print(
           'Hasil pencarian alamat: ${result.documents.length} dokumen ditemukan');
-
       if (result.documents.isNotEmpty) {
         String foundAddress =
             result.documents.first.data['address'] ?? 'Alamat tidak tersedia';
@@ -232,10 +246,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       context,
       MaterialPageRoute(builder: (context) => AlamatScreen()),
     );
-
     // Refresh alamat setelah kembali dari halaman alamat
     print('Kembali dari halaman alamat dengan result: $result');
     await _fetchUserAddress();
+  }
+
+  // Method to pick image from gallery
+  Future<void> _pickImage() async {
+    final ImagePicker _picker = ImagePicker();
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      setState(() {
+        _selectedPaymentProof = image;
+      });
+      if (image != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bukti pembayaran dipilih: ${image.name}'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memilih gambar: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Method untuk membuat pesanan dengan validasi
@@ -245,7 +285,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() {
       _isProcessingOrder = true;
     });
-
     try {
       // Validasi alamat
       if (address.isEmpty ||
@@ -273,8 +312,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       }
 
-      final user = await account.get();
+      // Validasi bukti pembayaran jika metode pembayaran adalah QRIS
+      String? paymentProofUrl;
+      if (_metodePembayaran == 'QRIS') {
+        if (_selectedPaymentProof == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Harap unggah bukti pembayaran untuk QRIS'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        // Upload image to Appwrite Storage
+        try {
+          final file = await _storage.createFile(
+            bucketId: paymentProofBucketId,
+            fileId: ID.unique(),
+            file: InputFile.fromPath(path: _selectedPaymentProof!.path),
+          );
+          paymentProofUrl =
+              'https://fra.cloud.appwrite.io/v1/storage/buckets/$paymentProofBucketId/files/${file.$id}/view?project=$projectId';
+          print('Payment proof uploaded: $paymentProofUrl');
+        } catch (e) {
+          print('Error uploading payment proof: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal mengunggah bukti pembayaran: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
 
+      final user = await account.get();
       // Siapkan data produk
       final produkList = widget.cartItems
           .map((item) => {
@@ -284,7 +356,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 'productImageUrl': item['productImageUrl'] ?? ''
               })
           .toList();
-
       final produkJsonString = jsonEncode(produkList);
 
       // Generate order ID
@@ -295,7 +366,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
 
       String orderId = generateOrderId();
-
       // Hitung total
       int totalPrice = widget.cartItems.fold<int>(0, (sum, item) {
         int price = item['price'] is int ? item['price'] : 0;
@@ -306,7 +376,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       // PENTING: Buat timestamp saat pesanan dibuat (saat tombol diklik)
       String orderTimestamp = DateTime.now().toIso8601String();
-
       final data = {
         'userId': user.$id,
         'orderId': orderId,
@@ -315,9 +384,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'metodePembayaran': _metodePembayaran,
         'total': totalPriceWithShipping,
         'tanggal': orderTimestamp, // Menggunakan timestamp saat pesanan dibuat
-        'status': 'menunggu'
+        'status': 'menunggu',
+        'paymentProofUrl':
+            paymentProofUrl, // Add payment proof URL to order data
       };
-
       // Simpan pesanan ke database
       final response = await databases.createDocument(
         databaseId: databaseId,
@@ -325,7 +395,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         documentId: ID.unique(),
         data: data,
       );
-
       // Clear cart setelah pesanan berhasil
       await clearCartItems(user.$id);
 
@@ -342,7 +411,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             duration: Duration(seconds: 3),
           ),
         );
-
         // Navigate ke main screen
         Navigator.pushAndRemoveUntil(
           context,
@@ -371,6 +439,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  void _showQrisImage() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('QRIS Pembayaran'),
+        content: _qrisImageUrl != null
+            ? Image.network(_qrisImageUrl!)
+            : Text('Gambar QRIS tidak tersedia.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     int totalPrice = widget.cartItems.fold<int>(0, (sum, item) {
@@ -378,7 +464,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       int quantity = item['quantity'] is int ? item['quantity'] : 1;
       return sum + price * quantity;
     });
-
     int totalPrice2 = totalPrice + 5000; // Fixed calculation
 
     return Scaffold(
@@ -486,7 +571,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   itemCount: widget.cartItems.length,
                   itemBuilder: (context, index) {
                     int quantity = widget.cartItems[index]['quantity'] ?? 1;
-
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Row(
@@ -553,8 +637,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   height: 5,
                                 ),
                                 Text(
-                                  'Rp ${widget.cartItems[index]['price'] ?? 0}',
-                                  style: TextStyle(color: Color(0xFF8DC63F)),
+                                  'Rp ${formatPrice(widget.cartItems[index]['price'] ?? 0)}',
+                                  style: TextStyle(color: Color(0xFF0072BC)),
                                 ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
@@ -605,7 +689,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   },
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black, width: 1.0),
@@ -624,16 +708,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text('Tinggalkan catatan'),
                         ],
                       ),
-                      SizedBox(height: 10),
                       Divider(),
-                      SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Total:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp $totalPrice',
-                              style: TextStyle(color: Color(0xFF8DC63F))),
+                          Text('Rp ${formatPrice(totalPrice)}',
+                              style: TextStyle(color: Color(0xFF0072BC))),
                         ],
                       ),
                     ],
@@ -662,6 +744,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             onSelected: (String value) {
                               setState(() {
                                 _metodePembayaran = value;
+                                // Clear selected payment proof if not QRIS
+                                if (value != 'QRIS') {
+                                  _selectedPaymentProof = null;
+                                }
                               });
                             },
                             itemBuilder: (BuildContext context) =>
@@ -682,16 +768,57 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      if (_metodePembayaran == 'QRIS') ...[
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('QRIS Payment:',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            GestureDetector(
+                              onTap: _showQrisImage,
+                              child: Text(
+                                'Buka',
+                                style: TextStyle(
+                                  color: Color(0xFF0072BC),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _selectedPaymentProof != null
+                                    ? 'Bukti Terpilih: ${_selectedPaymentProof!.name}'
+                                    : 'Kirim bukti pembayaran',
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       Divider(),
-                      SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Total Pesanan:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp $totalPrice',
-                              style: TextStyle(color: Color(0xFF8DC63F))),
+                          Text('Rp ${formatPrice(totalPrice)}',
+                              style: TextStyle(color: Color(0xFF0072BC))),
                         ],
                       ),
                       Row(
@@ -699,8 +826,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           Text('Total Biaya Pengiriman:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp 5000',
-                              style: TextStyle(color: Color(0xFF8DC63F))),
+                          Text('Rp ${formatPrice(5000)}',
+                              style: TextStyle(color: Color(0xFF0072BC))),
                         ],
                       ),
                       Divider(),
@@ -709,15 +836,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           Text('Total:',
                               style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp $totalPrice2',
-                              style: TextStyle(color: Color(0xFF8DC63F))),
+                          Text('Rp ${formatPrice(totalPrice2)}',
+                              style: TextStyle(color: Color(0xFF0072BC))),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _isProcessingOrder
                     ? null
@@ -743,10 +870,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         style: TextStyle(color: Colors.white),
                       ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      _isProcessingOrder ? Colors.grey : Color(0xFF0072BC),
-                  minimumSize: Size(double.infinity, 48),
-                ),
+                    backgroundColor:
+                        _isProcessingOrder ? Colors.grey : Color(0xFF8DC63F),
+                    minimumSize: Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10))),
               ),
             ],
           ),
