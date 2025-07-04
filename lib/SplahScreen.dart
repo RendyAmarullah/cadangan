@@ -20,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   bool _showImage = false;
   bool _showForm = false;
   bool _isLoading = false;
+  bool _obscureText = true; // Ditambahkan untuk toggle visibilitas password
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -74,20 +75,15 @@ class _SplashScreenState extends State<SplashScreen>
       final user = await account.get();
       if (user != null) {
         print("User sudah login: ${user.email}");
-
-        // Cek status akun sebelum navigasi
         final isAccountActive = await _checkAccountStatus(user.$id);
         if (!isAccountActive) {
-          // Logout jika akun tidak aktif
           await account.deleteSession(sessionId: 'current');
           return;
         }
-
         await _navigateBasedOnRole(user);
       }
     } catch (e) {
       print("Tidak ada session aktif: $e");
-      // Tidak ada session aktif, lanjutkan ke login screen
     }
   }
 
@@ -98,14 +94,13 @@ class _SplashScreenState extends State<SplashScreen>
         collectionId: collectionId,
         documentId: userId,
       );
-
       final status = response.data['status'] ?? 'Aktif';
       print("Status akun: $status");
 
       return status == 'Aktif';
     } catch (e) {
       print("Error checking account status: $e");
-      return true; // Default aktif jika error
+      return true;
     }
   }
 
@@ -117,11 +112,9 @@ class _SplashScreenState extends State<SplashScreen>
         collectionId: collectionId,
         documentId: userId,
       );
-
       print("Response data: ${response.data}");
       final roles = List<String>.from(response.data['roles'] ?? []);
       print("Roles pengguna: $roles");
-
       if (roles.contains('karyawan')) {
         Navigator.pushReplacement(
           context,
@@ -136,7 +129,6 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (e) {
       print("Error getting user role: $e");
-      // Default ke home screen biasa jika error
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -152,8 +144,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _login() async {
     if (_isLoading) return;
-
-    // Validation
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +155,6 @@ class _SplashScreenState extends State<SplashScreen>
     setState(() {
       _isLoading = true;
     });
-
     try {
       try {
         await account.deleteSession(sessionId: 'current');
@@ -178,27 +167,19 @@ class _SplashScreenState extends State<SplashScreen>
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
       print("Login berhasil, session ID: ${session.$id}");
 
       final user = await account.get();
       print("User info: ${user.email}");
-
-      // Cek status akun setelah login berhasil
       final isAccountActive = await _checkAccountStatus(user.$id);
       if (!isAccountActive) {
-        // Logout jika akun tidak aktif
         await account.deleteSession(sessionId: 'current');
-
-        // Tampilkan dialog peringatan
         _showAccountInactiveDialog();
         return;
       }
-
       await _navigateBasedOnRole(user);
     } on AppwriteException catch (e) {
       print("Login error: ${e.message} (Code: ${e.code})");
-
       String errorMessage;
       switch (e.code) {
         case 401:
@@ -379,10 +360,28 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                             SizedBox(height: 15),
                             TextFormField(
-                              obscureText: true,
+                              obscureText:
+                                  _obscureText, // Menggunakan _obscureText di sini
                               controller: _passwordController,
                               style: TextStyle(color: Colors.black),
-                              decoration: _inputDecoration("Password"),
+                              decoration: _inputDecoration("Password").copyWith(
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureText
+                                        ? Icons
+                                            .visibility_off // Ikon mata tertutup jika disembunyikan
+                                        : Icons
+                                            .visibility, // Ikon mata terbuka jika terlihat
+                                    color: Colors.black54,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscureText =
+                                          !_obscureText; // Mengubah nilai _obscureText
+                                    });
+                                  },
+                                ),
+                              ),
                               enabled: !_isLoading,
                               onFieldSubmitted: (_) => _login(),
                             ),
