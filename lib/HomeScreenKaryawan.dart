@@ -96,6 +96,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                 doc.data['createdAt'] ?? DateTime.now().toIso8601String(),
             'paymentProofUrl':
                 doc.data['paymentProofUrl'] ?? '', // Retrieve payment proof URL
+             'catatanTambahan': doc.data['catatanTambahan'],
           };
         }).toList();
         _isLoading = false;
@@ -231,7 +232,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'acceptedByy': userId,
           'acceptedAt': DateTime.now().toIso8601String(),
           'paymentProofUrl': orderDoc.data['paymentProofUrl'] ??
-              '', // Include payment proof URL
+              '', 
         },
       );
       Navigator.pop(context);
@@ -359,7 +360,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'rejectedBy': userId,
           'rejectedAt': DateTime.now().toIso8601String(),
           'paymentProofUrl': orderDoc.data['paymentProofUrl'] ??
-              '', // Include payment proof URL
+              '', 
         },
       );
       await databases!.updateDocument(
@@ -611,7 +612,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                                   padding: EdgeInsets.only(
                                                       left: 8, top: 4),
                                                   child: Text(
-                                                    '• ${product['nama']} (${product['jumlah']}x)',
+                                                    '• ${product['name']} (${product['jumlah']}x)',
                                                     style: TextStyle(
                                                       fontSize: 13,
                                                       color: Colors.grey[600],
@@ -619,6 +620,44 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                                   ),
                                                 ))
                                             .toList(),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Row(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.note_sharp,
+                                    size: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Catatan:',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 8, top: 4),
+                                          child: Text(
+                                             '• ${order['catatanTambahan']}',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ),
+                                        
                                       ],
                                     ),
                                   ),

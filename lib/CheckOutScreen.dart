@@ -39,13 +39,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String address = 'Memuat alamat...';
   String _metodePembayaran = 'COD';
   bool _isProcessingOrder = false;
+  String _catatanTambahan = '';
   bool _isLoadingAddress = true;
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String cartsCollectionId = '68407db7002d8716c9d0';
   final String addressCollectionId = '68447d3d0007b5f75cc5';
   final String paymentProofBucketId =
-      '681aa16f003054da8969'; // QRIS image bucket ID
+      '681aa16f003054da8969';
+      
 
   String? _qrisImageUrl =
       'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/685cf51a0024c374db5e/view?project=681aa0b70002469fc157&mode=admin'; // QRIS image URL
@@ -374,7 +376,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       });
       int totalPriceWithShipping = totalPrice + 5000;
 
-      // PENTING: Buat timestamp saat pesanan dibuat (saat tombol diklik)
+     
       String orderTimestamp = DateTime.now().toIso8601String();
       final data = {
         'userId': user.$id,
@@ -383,10 +385,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'produk': produkJsonString,
         'metodePembayaran': _metodePembayaran,
         'total': totalPriceWithShipping,
-        'tanggal': orderTimestamp, // Menggunakan timestamp saat pesanan dibuat
+        'tanggal': orderTimestamp, 
         'status': 'menunggu',
         'paymentProofUrl':
-            paymentProofUrl, // Add payment proof URL to order data
+            paymentProofUrl, 
+         'catatanTambahan': _catatanTambahan,
       };
       // Simpan pesanan ke database
       final response = await databases.createDocument(
@@ -701,23 +704,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Catatan Tambahan:',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Tinggalkan catatan'),
-                        ],
-                      ),
-                      Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Total:',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Rp ${formatPrice(totalPrice)}',
-                              style: TextStyle(color: Color(0xFF0072BC))),
-                        ],
-                      ),
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Catatan Tambahan:',
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text('Tinggalkan catatan'),
+                            ],
+                          ),
+                          Divider(),
+                          TextField(
+                            onChanged: (value) {
+                              setState(() {
+                                _catatanTambahan = value; // Simpan catatan yang dimasukkan
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan catatan tambahan',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                          ),
+
                     ],
                   ),
                 ),

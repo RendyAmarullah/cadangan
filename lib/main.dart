@@ -321,7 +321,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
 
   @override
   void dispose() {
-    // Dispose animation controllers properly
+    
     for (var controller in _animationControllers) {
       if (controller.isAnimating) {
         controller.stop();
@@ -399,7 +399,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
 
   void _onItemTapped(int index) {
     if (_selectedIndex != index && mounted) {
-      // Reset previous animation safely
+      
       if (_animationControllers[_selectedIndex].isAnimating) {
         _animationControllers[_selectedIndex].stop();
       }
@@ -409,7 +409,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
         _selectedIndex = index;
       });
 
-      // Start new animation safely
+      
       if (mounted) {
         _animationControllers[index].forward();
       }
