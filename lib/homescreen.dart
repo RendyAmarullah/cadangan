@@ -28,6 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentPage = 0;
   Timer? _timer;
 
+  // Menu slide variables
+  PageController _menuPageController = PageController();
+  int _currentMenuPage = 0;
+
   // List banner images (ganti dengan path gambar Anda)
   final List<String> _bannerImages = [
     'images/banner1.jpg', // Gambar Mu Gung Hwa
@@ -37,6 +41,106 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final String profil = '684083800031dfaaecad';
+
+  // Appwrite configuration (pastikan ini belum ada)
+  final String projectId =
+      '681aa0b70002469fc157'; // Sesuaikan jika projectId Anda berbeda
+  final String databaseId = '681aa33a0023a8c7eb1f';
+  final String productsCollectionId = '68407bab00235ecda20d';
+  final String cartsCollectionId = '68407db7002d8716c9d0';
+
+  // State untuk menyimpan produk yang diambil
+  Map<String, Map<String, dynamic>?> _featuredProducts = {
+    'Bunsik': null,
+    'Minuman': null,
+    'Market': null,
+    'Beauty': null,
+    'NonHalal': null,
+    'Barang': null,
+  };
+
+  String formatPrice(dynamic price) {
+    if (price == null) {
+      return 'Rp 0';
+    }
+    String priceString = price.toString();
+    String formattedPrice = '';
+    int count = 0;
+    for (int i = priceString.length - 1; i >= 0; i--) {
+      formattedPrice = priceString[i] + formattedPrice;
+      count++;
+      if (count % 3 == 0 && i != 0) {
+        formattedPrice = '.' + formattedPrice;
+      }
+    }
+    return 'Rp ' + formattedPrice;
+  }
+
+  // Fungsi baru untuk mengambil produk unggulan berdasarkan kategori dan huruf awal 'A'
+  Future<void> _fetchFeaturedProducts() async {
+    final categories = [
+      'Bunsik',
+      'Minuman',
+      'Market',
+      'Beauty',
+      'NonHalal',
+      'Barang'
+    ];
+    for (String category in categories) {
+      try {
+        final response = await databases!.listDocuments(
+          databaseId: databaseId,
+          collectionId: productsCollectionId,
+          queries: [
+            Query.equal(
+                'category',
+                category
+                    .toLowerCase()), // Sesuaikan dengan kategori di Appwrite
+            Query.startsWith(
+                'name', 'A'), // Filter produk dengan nama dimulai 'A'
+            Query.limit(1), // Ambil hanya 1 produk
+          ],
+        );
+
+        if (response.documents.isNotEmpty) {
+          setState(() {
+            _featuredProducts[category] = response.documents.first.data;
+          });
+        }
+      } catch (e) {
+        print('Error fetching featured product for $category: $e');
+      }
+    }
+  }
+
+  String userId =
+      ''; // Deklarasi userId, pastikan tidak duplikat jika sudah ada
+
+  Future<void> _fetchCart() async {
+    try {
+      final user = await account!.get();
+      userId = user.$id; // Pastikan userId terisi
+
+      final response = await databases!.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+        ],
+      );
+
+      int count = 0;
+      for (var doc in response.documents) {
+        count += doc.data['quantity'] as int;
+      }
+
+      setState(() {
+        _cartItemCount = count;
+      });
+    } catch (e) {
+      print('Error fetching cart: $e');
+    }
+  }
 
   @override
   void initState() {
@@ -50,12 +154,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _loadProfileData();
     _startAutoSlider();
+    _fetchCart();
+    _fetchFeaturedProducts();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _pageController.dispose();
+    _menuPageController.dispose();
     super.dispose();
   }
 
@@ -275,46 +382,101 @@ class _HomeScreenState extends State<HomeScreen> {
 
             SizedBox(height: 5),
 
-            // Menu Popular section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Menu',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
                 ),
               ),
             ),
+            SizedBox(height: 8),
 
-            SizedBox(height: 15),
-
-            // Popular menu items
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            // Menu Slide Manual
+            Container(
+              height: 180,
+              // Padding dipindahkan ke container utama
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Stack(
                 children: [
-                  _buildMenuItem(
-                    'Tteokbokki',
-                    'Rp 30.000',
-                    'images/tteokbokki.jpg',
+                  PageView(
+                    controller: _menuPageController,
+                    onPageChanged: (int page) {
+                      setState(() {
+                        _currentMenuPage = page;
+                      });
+                    },
+                    children: [
+                      // Halaman 1 - tanpa padding tambahan
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildDynamicMenuItem(
+                              _featuredProducts['Bunsik'], BunsikScreen()),
+                          _buildDynamicMenuItem(
+                              _featuredProducts['Minuman'], MinumanScreen()),
+                          _buildDynamicMenuItem(
+                              _featuredProducts['Market'], MarketScreen()),
+                        ],
+                      ),
+                      // Halaman 2 - tanpa padding tambahan
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildDynamicMenuItem(
+                              _featuredProducts['Beauty'], BeautyScreen()),
+                          _buildDynamicMenuItem(
+                              _featuredProducts['NonHalal'], NonHalalScreen()),
+                          _buildDynamicMenuItem(
+                              _featuredProducts['Barang'], BarangScreen()),
+                        ],
+                      ),
+                    ],
                   ),
-                  _buildMenuItem(
-                    'Kimchi',
-                    'Rp 30.000',
-                    'images/kimchi.png',
-                  ),
-                  _buildMenuItem(
-                    'Jjajangmyeon',
-                    'Rp 42.000',
-                    'images/jjajangmyeon.jpg',
+                  // Dot indicator untuk menu
+                  Positioned(
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 8.0,
+                          height: 8.0,
+                          margin: EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 4.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentMenuPage == 0
+                                ? Color(0xFF0072BC)
+                                : Color(0xFF0072BC).withOpacity(0.3),
+                          ),
+                        ),
+                        Container(
+                          width: 8.0,
+                          height: 8.0,
+                          margin: EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 4.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentMenuPage == 1
+                                ? Color(0xFF0072BC)
+                                : Color(0xFF0072BC).withOpacity(0.3),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-
             SizedBox(height: 20),
           ],
         ),
@@ -354,55 +516,135 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMenuItem(String name, String price, String imagePath) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
+  // Modified _buildMenuItem to be _buildDynamicMenuItem
+  Widget _buildDynamicMenuItem(
+      Map<String, dynamic>? productData, Widget targetScreen) {
+    if (productData == null) {
+      // Tampilan placeholder saat data belum dimuat atau tidak ditemukan
+      return SizedBox(
+        width: 80,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                color: Colors.grey[200], // Placeholder color
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: Icon(
-                    Icons.image_not_supported,
-                    color: Colors.grey[600],
-                    size: 30,
-                  ),
-                );
-              },
+              child: Icon(
+                Icons.image_not_supported,
+                color: Colors.grey[600],
+                size: 30,
+              ),
             ),
-          ),
+            SizedBox(height: 8),
+            Text(
+              'Memuat...',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Rp 0',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        SizedBox(height: 8),
-        Text(
-          name,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
+      );
+    }
+
+    String name = productData['name'] ?? 'Nama Produk';
+    String price = formatPrice(productData['price'] ?? 0);
+    String imageUrl = productData['productImageUrl'] ??
+        ''; // Asumsi ada field productImageUrl di Appwrite
+
+    return GestureDetector(
+      onTap: () {
+        // Navigasi ke halaman kategori yang spesifik
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => targetScreen),
+        );
+      },
+      child: SizedBox(
+        width: 80, // Membatasi lebar widget
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.3),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey[600],
+                              size: 30,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey[300],
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey[600],
+                          size: 30,
+                        ),
+                      ),
+              ),
+            ),
+            SizedBox(height: 8),
+            // Nama produk dengan text wrapping
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2, // Maksimal 2 baris
+              overflow: TextOverflow
+                  .ellipsis, // Tambahkan ... jika masih terlalu panjang
+            ),
+            SizedBox(height: 4), // Spasi kecil antara nama dan harga
+            // Harga produk
+            Text(
+              price,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1, // Harga hanya 1 baris
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-        Text(
-          price,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

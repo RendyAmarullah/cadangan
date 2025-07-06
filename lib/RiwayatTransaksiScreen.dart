@@ -736,8 +736,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               foregroundColor: Colors.white,
-                              backgroundColor:
-                                  Colors.red, // Warna merah untuk batalkan
+                              backgroundColor: Color(
+                                  0xFF8DC63F), // Warna merah untuk batalkan
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),

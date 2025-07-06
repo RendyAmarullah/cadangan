@@ -96,7 +96,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                 doc.data['createdAt'] ?? DateTime.now().toIso8601String(),
             'paymentProofUrl':
                 doc.data['paymentProofUrl'] ?? '', // Retrieve payment proof URL
-             'catatanTambahan': doc.data['catatanTambahan'],
+            'catatanTambahan': doc.data['catatanTambahan'],
           };
         }).toList();
         _isLoading = false;
@@ -231,8 +231,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'createdAt': DateTime.now().toIso8601String(),
           'acceptedByy': userId,
           'acceptedAt': DateTime.now().toIso8601String(),
-          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ??
-              '', 
+          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ?? '',
         },
       );
       Navigator.pop(context);
@@ -243,7 +242,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
-          backgroundColor: Colors.green,
+          backgroundColor: Color(0xFF8DC63F),
           duration: Duration(seconds: 2),
         ),
       );
@@ -359,8 +358,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'createdAt': DateTime.now().toIso8601String(),
           'rejectedBy': userId,
           'rejectedAt': DateTime.now().toIso8601String(),
-          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ??
-              '', 
+          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ?? '',
         },
       );
       await databases!.updateDocument(
@@ -627,7 +625,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                               ),
                               SizedBox(height: 12),
                               Row(
-                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Icon(
                                     Icons.note_sharp,
@@ -648,16 +646,16 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                           ),
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.only(left: 8, top: 4),
+                                          padding: const EdgeInsets.only(
+                                              left: 8, top: 4),
                                           child: Text(
-                                             '• ${order['catatanTambahan']}',
+                                            '• ${order['catatanTambahan']}',
                                             style: TextStyle(
                                               fontSize: 13,
                                               color: Colors.grey[600],
                                             ),
                                           ),
                                         ),
-                                        
                                       ],
                                     ),
                                   ),
@@ -676,8 +674,8 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: order['metodePembayaran'] == 'COD'
-                                          ? Colors.blue[50]
-                                          : Colors.purple[50],
+                                          ? Colors.green[50]
+                                          : Colors.blue[50],
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -685,8 +683,8 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                       style: TextStyle(
                                         color:
                                             order['metodePembayaran'] == 'COD'
-                                                ? Colors.blue[700]
-                                                : Colors.purple[700],
+                                                ? Colors.green[700]
+                                                : Colors.blue[700],
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -735,7 +733,8 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                       onPressed: () =>
                                           _rejectOrder(order['orderId'], index),
                                       style: OutlinedButton.styleFrom(
-                                        side: BorderSide(color: Colors.red),
+                                        side: BorderSide(
+                                            color: Color(0xFF8DC63F)),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(8),
@@ -746,7 +745,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                       child: Text(
                                         'Tolak',
                                         style: TextStyle(
-                                          color: Colors.red,
+                                          color: Color(0xFF8DC63F),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -758,7 +757,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                       onPressed: () =>
                                           _acceptOrder(order['orderId'], index),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
+                                        backgroundColor: Color(0xFF8DC63F),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(8),

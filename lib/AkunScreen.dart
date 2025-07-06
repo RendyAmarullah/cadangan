@@ -21,7 +21,6 @@ class _AkunScreenState extends State<AkunScreen> {
   String? _userName;
   String? _userEmail;
   String? _noHp;
-  String? _gender;
   models.Session? _session;
   models.User? _currentUser;
 
@@ -61,11 +60,9 @@ class _AkunScreenState extends State<AkunScreen> {
 
       final userId = _currentUser?.$id;
       if (userId != null) {
-        // Fetch profile data (image, email, gender) from the current collection
         final profileDoc = await _databases.getDocument(
           databaseId: databaseId,
-          collectionId:
-              collectionId, // Collection containing profile image, email, gender
+          collectionId: collectionId,
           documentId: userId,
         );
 
@@ -101,7 +98,7 @@ class _AkunScreenState extends State<AkunScreen> {
         // Set the text fields with the fetched data
         _nameController.text = _userName ?? '';
         _emailController.text = _userEmail ?? '';
-        _noHandPhoneController.text = _gender ?? '';
+        _noHandPhoneController.text = _noHp ?? '';
       }
     } catch (e) {
       print('Error loading profile data: $e');
@@ -110,27 +107,51 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Future<void> _updateProfile() async {
     try {
-      final updatedName = _nameController.text;
-      final updatedEmail = _emailController.text;
-      final updatedNoHandphone = _noHandPhoneController.text;
+      final updatedName = _nameController.text.trim();
+      final updatedEmail = _emailController.text.trim();
+      final updatedNoHandphone = _noHandPhoneController.text.trim();
       final updatedPassword = _passwordController.text;
+
+      // Validation
+      if (updatedName.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Nama tidak boleh kosong')),
+        );
+        return;
+      }
+
+      if (updatedEmail.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Email tidak boleh kosong')),
+        );
+        return;
+      }
+
+      if (updatedPassword.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Password diperlukan untuk update profil')),
+        );
+        return;
+      }
 
       final user = await _account.get();
       if (user != null) {
-        // Update the email in Appwrite's authentication system
-        await _account.updateEmail(
-          email: updatedEmail,
-          password: _passwordController.text,
-        );
+        // Only update email if it's different from current email
+        if (updatedEmail != _userEmail) {
+          await _account.updateEmail(
+            email: updatedEmail,
+            password: updatedPassword,
+          );
+        }
 
-        // Update the email and name in your custom database
+        // Update the database
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: profil,
           documentId: user.$id,
           data: {
             'name': updatedName,
-            'email': updatedEmail, // Update the email in the collection too
+            'email': updatedEmail,
             'noHandphone': updatedNoHandphone,
           },
         );
@@ -138,28 +159,45 @@ class _AkunScreenState extends State<AkunScreen> {
         setState(() {
           _userName = updatedName;
           _userEmail = updatedEmail;
-
+          _noHp = updatedNoHandphone;
           _isEditing = false;
         });
 
-        await _account.deleteSession(sessionId: 'current');
+        // Clear password field
+        _passwordController.clear();
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Profile updated and logged out. Please log in again.')),
+          SnackBar(content: Text('Profile berhasil diperbarui')),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SplashScreen()),
-        );
+        // Only logout if email was changed
+        if (updatedEmail != _userEmail) {
+          await _account.deleteSession(sessionId: 'current');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Email diperbarui. Silakan login kembali.')),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SplashScreen()),
+          );
+        }
 
         print("Profile updated successfully.");
       }
     } catch (e) {
       print('Error updating profile: $e');
+      String errorMessage = 'Error updating profile';
+
+      if (e.toString().contains('user_target_already_exists')) {
+        errorMessage = 'Email sudah digunakan oleh user lain';
+      } else if (e.toString().contains('user_invalid_credentials')) {
+        errorMessage = 'Password salah';
+      } else if (e.toString().contains('user_invalid_email')) {
+        errorMessage = 'Format email tidak valid';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating profile: $e')),
+        SnackBar(content: Text(errorMessage)),
       );
     }
   }
@@ -222,7 +260,7 @@ class _AkunScreenState extends State<AkunScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Background putih bersih
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Color(0xFF0072BC),
         iconTheme: IconThemeData(color: Colors.white),
@@ -235,7 +273,7 @@ class _AkunScreenState extends State<AkunScreen> {
         title: Text('Akun', style: TextStyle(color: Colors.white)),
       ),
       body: Container(
-        color: Colors.white, // Pastikan body juga putih
+        color: Colors.white,
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -256,34 +294,88 @@ class _AkunScreenState extends State<AkunScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 50),
                 _isEditing
                     ? Column(
                         children: [
                           TextField(
                             controller: _nameController,
-                            decoration: InputDecoration(labelText: 'Name'),
+                            decoration: InputDecoration(
+                              labelText: 'Nama',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
+                          SizedBox(height: 10),
                           TextField(
                             controller: _emailController,
-                            decoration: InputDecoration(labelText: 'Email'),
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
                           ),
+                          SizedBox(height: 10),
                           TextField(
                             controller: _noHandPhoneController,
-                            decoration:
-                                InputDecoration(labelText: 'No Handphone'),
+                            decoration: InputDecoration(
+                              labelText: 'No Handphone',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.phone,
                           ),
+                          SizedBox(height: 10),
                           TextField(
                             controller: _passwordController,
                             decoration: InputDecoration(
-                                labelText: 'Konfirmasi Password'),
+                              labelText: 'Konfirmasi Password',
+                              border: OutlineInputBorder(),
+                            ),
+                            obscureText: true,
                           ),
                           SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _updateProfile,
-                            child: Text('Simpan Perubahan'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF0072BC)),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isEditing = false;
+                                      // Reset controllers to original values
+                                      _nameController.text = _userName ?? '';
+                                      _emailController.text = _userEmail ?? '';
+                                      _noHandPhoneController.text = _noHp ?? '';
+                                      _passwordController.clear();
+                                    });
+                                  },
+                                  child: Text('Batal'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: Color(0xFF8DC63F),
+                                    elevation: 0,
+                                    side: BorderSide(
+                                      color: Color(0xFF8DC63F),
+                                      width: 2,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _updateProfile,
+                                  child: Text('Simpan'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color(0xFF8DC63F),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10))),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       )
@@ -302,14 +394,9 @@ class _AkunScreenState extends State<AkunScreen> {
                                     color: Color(0xFF8DC63F)),
                               ),
                             ),
-                            _buildMenuItem(_userName ??
-                                'Guest'), // Jarak kecil sebelum divider
-                            Divider(
-                                color: Colors.black,
-                                height: 0), // Mengurangi tinggi divider
-                            SizedBox(
-                                height:
-                                    30), // Jarak setelah divider sebelum section berikutnya
+                            _buildMenuItem(_userName ?? 'Guest'),
+                            Divider(color: Colors.black, height: 0),
+                            SizedBox(height: 30),
 
                             // Section Email
                             Align(
@@ -322,15 +409,9 @@ class _AkunScreenState extends State<AkunScreen> {
                                     color: Color(0xFF8DC63F)),
                               ),
                             ),
-                            _buildMenuItem(_userEmail ??
-                                'Guest'), // Jarak kecil sebelum divider
-                            Divider(
-                              color: Colors.black,
-                              height: 0,
-                            ), // Mengurangi tinggi divider
-                            SizedBox(
-                                height:
-                                    30), // Jarak setelah divider sebelum section berikutnya
+                            _buildMenuItem(_userEmail ?? 'Guest'),
+                            Divider(color: Colors.black, height: 0),
+                            SizedBox(height: 30),
 
                             // Section No Handphone
                             Align(
@@ -343,11 +424,8 @@ class _AkunScreenState extends State<AkunScreen> {
                                     color: Color(0xFF8DC63F)),
                               ),
                             ),
-                            _buildMenuItem(
-                                _noHp ?? '-'), // Jarak kecil sebelum divider
-                            Divider(
-                                color: Colors.black,
-                                height: 0), // Mengurangi tinggi divider
+                            _buildMenuItem(_noHp ?? '-'),
+                            Divider(color: Colors.black, height: 0),
 
                             SizedBox(height: 40),
                             ElevatedButton(
@@ -360,8 +438,7 @@ class _AkunScreenState extends State<AkunScreen> {
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 14)),
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(
-                                      0xFF8DC63F), // Checkout button color
+                                  backgroundColor: Color(0xFF8DC63F),
                                   minimumSize: Size(double.infinity, 48),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10))),
@@ -380,8 +457,7 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Widget _buildMenuItem(String title, {Function()? onTap}) {
     return ListTile(
-      contentPadding: EdgeInsets.symmetric(
-          horizontal: 0), // Menghilangkan padding default ListTile
+      contentPadding: EdgeInsets.symmetric(horizontal: 0),
       title: Text(title),
       trailing: Icon(
         Icons.arrow_forward_ios,

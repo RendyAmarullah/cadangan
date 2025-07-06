@@ -321,7 +321,6 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
 
   @override
   void dispose() {
-    
     for (var controller in _animationControllers) {
       if (controller.isAnimating) {
         controller.stop();
@@ -341,7 +340,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
       bottomNavigationBar: Container(
         height: 60,
         decoration: BoxDecoration(
-          color: Color(0xFF8DC63F),
+          color: Color(0xFF0072BC),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
@@ -387,7 +386,7 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
               child: Icon(
                 icon,
                 color:
-                    _selectedIndex == index ? Color(0xFF8DC63F) : Colors.white,
+                    _selectedIndex == index ? Color(0xFF0072BC) : Colors.white,
                 size: 28,
               ),
             ),
@@ -399,7 +398,6 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
 
   void _onItemTapped(int index) {
     if (_selectedIndex != index && mounted) {
-      
       if (_animationControllers[_selectedIndex].isAnimating) {
         _animationControllers[_selectedIndex].stop();
       }
@@ -409,7 +407,6 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
         _selectedIndex = index;
       });
 
-      
       if (mounted) {
         _animationControllers[index].forward();
       }

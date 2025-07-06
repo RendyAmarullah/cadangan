@@ -275,13 +275,17 @@ class _StatusPesananKaryawanScreenState
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue[50],
+                        color: order['metodePembayaran'] == 'COD'
+                            ? Colors.green[50]
+                            : Colors.blue[50],
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         order['metodePembayaran'].toUpperCase(),
                         style: TextStyle(
-                          color: Colors.blue[700],
+                          color: order['metodePembayaran'] == 'COD'
+                              ? Colors.green[700]
+                              : Colors.blue[700],
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -321,7 +325,7 @@ class _StatusPesananKaryawanScreenState
                         child: Text('Sedang Diantar'),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Colors.blue,
+                          backgroundColor: Color(0xFF8DC63F),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -335,8 +339,8 @@ class _StatusPesananKaryawanScreenState
                         icon: Icon(Icons.chat, size: 18),
                         label: Text('Chat'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Color(0xFF0072BC),
-                          side: BorderSide(color: Color(0xFF0072BC)),
+                          foregroundColor: Color(0xFF8DC63F),
+                          side: BorderSide(color: Color(0xFF8DC63F)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

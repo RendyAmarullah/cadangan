@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/RiwayatTransaksiScreen.dart';
-import 'package:pemesanan/AlamatScreen.dart'; // Import AlamatScreen
+import 'package:pemesanan/AlamatScreen.dart';
 import 'package:pemesanan/main.dart';
 
 final client = Client()
@@ -21,7 +21,7 @@ final account = Account(client);
 
 class CheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
-  final VoidCallback? onCartUpdated; // Add callback
+  final VoidCallback? onCartUpdated;
 
   CheckoutScreen({required this.cartItems, this.onCartUpdated});
 
@@ -45,9 +45,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String cartsCollectionId = '68407db7002d8716c9d0';
   final String addressCollectionId = '68447d3d0007b5f75cc5';
-  final String paymentProofBucketId =
-      '681aa16f003054da8969';
-      
+  final String paymentProofBucketId = '681aa16f003054da8969';
 
   String? _qrisImageUrl =
       'https://fra.cloud.appwrite.io/v1/storage/buckets/681aa16f003054da8969/files/685cf51a0024c374db5e/view?project=681aa0b70002469fc157&mode=admin'; // QRIS image URL
@@ -376,7 +374,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       });
       int totalPriceWithShipping = totalPrice + 5000;
 
-     
       String orderTimestamp = DateTime.now().toIso8601String();
       final data = {
         'userId': user.$id,
@@ -385,11 +382,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'produk': produkJsonString,
         'metodePembayaran': _metodePembayaran,
         'total': totalPriceWithShipping,
-        'tanggal': orderTimestamp, 
+        'tanggal': orderTimestamp,
         'status': 'menunggu',
-        'paymentProofUrl':
-            paymentProofUrl, 
-         'catatanTambahan': _catatanTambahan,
+        'paymentProofUrl': paymentProofUrl,
+        'catatanTambahan': _catatanTambahan,
       };
       // Simpan pesanan ke database
       final response = await databases.createDocument(
@@ -704,27 +700,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Catatan Tambahan:',
-                                  style: TextStyle(fontWeight: FontWeight.bold)),
-                              Text('Tinggalkan catatan'),
-                            ],
-                          ),
-                          Divider(),
-                          TextField(
-                            onChanged: (value) {
-                              setState(() {
-                                _catatanTambahan = value; // Simpan catatan yang dimasukkan
-                              });
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Masukkan catatan tambahan',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Catatan Tambahan:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Expanded(
+                            child: TextField(
+                              onChanged: (value) {
+                                setState(() {
+                                  _catatanTambahan = value;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Tinggalkan catatan',
+                                border: InputBorder.none,
+                                contentPadding:
+                                    EdgeInsets.symmetric(horizontal: 10),
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                              textAlign: TextAlign.right,
+                              maxLines: 1,
                             ),
                           ),
-
+                        ],
+                      ),
                     ],
                   ),
                 ),
