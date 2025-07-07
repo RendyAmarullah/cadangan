@@ -13,11 +13,11 @@ class _MarketScreenState extends State<MarketScreen> {
   late Databases _databases;
   late Account _account;
 
-  final String projectId = '681aa0b70002469fc157';
-  final String databaseId = '681aa33a0023a8c7eb1f';
-  final String productsCollectionId = '68407bab00235ecda20d';
-  final String cartsCollectionId = '68407db7002d8716c9d0';
-  final String favoritesCollectionId = '685adb7f00015bc4ec5f';
+  static const String projectId = '681aa0b70002469fc157';
+  static const String databaseId = '681aa33a0023a8c7eb1f';
+  static const String productsCollectionId = '68407bab00235ecda20d';
+  static const String cartsCollectionId = '68407db7002d8716c9d0';
+  static const String favoritesCollectionId = '685adb7f00015bc4ec5f';
 
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> favoriteItems = [];
@@ -27,25 +27,6 @@ class _MarketScreenState extends State<MarketScreen> {
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
   bool isLoading = true;
-
-  String formatPrice(dynamic price) {
-    String priceStr = price.toString();
-
-    // Tambahkan titik setiap 3 digit dari belakang
-    String result = '';
-    int count = 0;
-
-    for (int i = priceStr.length - 1; i >= 0; i--) {
-      if (count == 3) {
-        result = '.' + result;
-        count = 0;
-      }
-      result = priceStr[i] + result;
-      count++;
-    }
-
-    return result;
-  }
 
   @override
   void initState() {
@@ -57,6 +38,22 @@ class _MarketScreenState extends State<MarketScreen> {
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  String formatPrice(dynamic price) {
+    String priceStr = price.toString();
+    String result = '';
+    int count = 0;
+
+    for (int i = priceStr.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = '.' + result;
+        count = 0;
+      }
+      result = priceStr[i] + result;
+      count++;
+    }
+    return result;
   }
 
   void _initializeAppwrite() async {
@@ -106,6 +103,43 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
+  Future<void> _fetchProducts() async {
+    try {
+      final models.DocumentList result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: productsCollectionId,
+        queries: [
+          Query.equal('category', ['market'])
+        ],
+      );
+
+      setState(() {
+        products = result.documents.map((doc) => doc.data).toList();
+      });
+    } catch (e) {
+      print('Error fetching products: $e');
+    }
+  }
+
+  Future<void> _fetchCart() async {
+    try {
+      final result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [Query.equal('userId', userId)],
+      );
+
+      setState(() {
+        productQuantities.clear();
+        for (var doc in result.documents) {
+          productQuantities[doc.data['productId']] = doc.data['quantity'];
+        }
+      });
+    } catch (e) {
+      print('Error fetching cart: $e');
+    }
+  }
+
   Future<void> _toggleFavorite(Map<String, dynamic> product) async {
     final productId = product['\$id'];
 
@@ -120,7 +154,6 @@ class _MarketScreenState extends State<MarketScreen> {
       );
 
       if (existingFavorites.documents.isNotEmpty) {
-        // Hapus dari favorit
         final docId = existingFavorites.documents.first.$id;
         await _databases.deleteDocument(
           databaseId: databaseId,
@@ -135,7 +168,6 @@ class _MarketScreenState extends State<MarketScreen> {
 
         _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
       } else {
-        // Tambahkan ke favorit
         final newFavorite = {
           'userIds': userId,
           'productId': productId,
@@ -175,43 +207,6 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Future<void> _fetchProducts() async {
-    try {
-      final models.DocumentList result = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: productsCollectionId,
-        queries: [
-          Query.equal('category', ['market'])
-        ],
-      );
-
-      setState(() {
-        products = result.documents.map((doc) => doc.data).toList();
-      });
-    } catch (e) {
-      print('Error fetching products: $e');
-    }
-  }
-
-  Future<void> _fetchCart() async {
-    try {
-      final result = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: cartsCollectionId,
-        queries: [Query.equal('userId', userId)],
-      );
-
-      setState(() {
-        productQuantities.clear();
-        for (var doc in result.documents) {
-          productQuantities[doc.data['productId']] = doc.data['quantity'];
-        }
-      });
-    } catch (e) {
-      print('Error fetching cart: $e');
-    }
-  }
-
   Future<void> _addToCartWithQuantity(
       Map<String, dynamic> product, int quantity) async {
     try {
@@ -225,7 +220,6 @@ class _MarketScreenState extends State<MarketScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        // Update quantity
         final docId = existingItems.documents.first.$id;
         await _databases.updateDocument(
           databaseId: databaseId,
@@ -234,7 +228,6 @@ class _MarketScreenState extends State<MarketScreen> {
           data: {'quantity': quantity},
         );
       } else {
-        // Buat dokumen baru
         await _databases.createDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -256,6 +249,41 @@ class _MarketScreenState extends State<MarketScreen> {
     } catch (e) {
       print('Error adding to cart: $e');
     }
+  }
+
+  Widget _buildQuantityControl(int quantity, Function(int) onQuantityChanged) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          IconButton(
+            iconSize: 20,
+            padding: EdgeInsets.all(4),
+            constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(Icons.remove_circle_outline,
+                color: Color(0xFF0072BC), size: 25),
+            onPressed:
+                quantity > 1 ? () => onQuantityChanged(quantity - 1) : null,
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Text(quantity.toString(), style: TextStyle(fontSize: 14)),
+          ),
+          IconButton(
+            iconSize: 20,
+            padding: EdgeInsets.all(4),
+            constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(Icons.add_circle_outlined,
+                color: Color(0xFF0072BC), size: 25),
+            onPressed: () => onQuantityChanged(quantity + 1),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showProductDetail(Map<String, dynamic> product) async {
@@ -287,16 +315,14 @@ class _MarketScreenState extends State<MarketScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Center(
-                          child: Image.network(
-                            product['productImageUrl'],
-                            height: 180,
-                          ),
+                          child: Image.network(product['productImageUrl'],
+                              height: 180),
                         ),
                         SizedBox(height: 16),
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -308,53 +334,9 @@ class _MarketScreenState extends State<MarketScreen> {
                           children: [
                             Text('Rp ${formatPrice(product['price'])}'),
                             Spacer(),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    iconSize: 20,
-                                    padding: EdgeInsets.all(4),
-                                    constraints: BoxConstraints(
-                                        minWidth: 32, minHeight: 32),
-                                    icon: Icon(
-                                      Icons.remove_circle_outline,
-                                      color: Color(0xFF0072BC),
-                                      size: 25,
-                                    ),
-                                    onPressed: displayQty > 1
-                                        ? () =>
-                                            setModalState(() => displayQty--)
-                                        : null,
-                                  ),
-                                  Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 8),
-                                    child: Text(
-                                      displayQty.toString(),
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    iconSize: 20,
-                                    padding: EdgeInsets.all(4),
-                                    constraints: BoxConstraints(
-                                        minWidth: 32, minHeight: 32),
-                                    icon: Icon(
-                                      Icons.add_circle_outlined,
-                                      color: Color(0xFF0072BC),
-                                      size: 25,
-                                    ),
-                                    onPressed: () =>
-                                        setModalState(() => displayQty++),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildQuantityControl(displayQty, (newQty) {
+                              setModalState(() => displayQty = newQty);
+                            }),
                           ],
                         ),
                         SizedBox(height: 20),
@@ -389,6 +371,101 @@ class _MarketScreenState extends State<MarketScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+      child: SizedBox(
+        height: 45,
+        child: TextField(
+          controller: searchController,
+          onChanged: (value) => setState(() => searchQuery = value),
+          decoration: InputDecoration(
+            hintText: 'Cari produk...',
+            prefixIcon: Icon(Icons.search, size: 20),
+            suffixIcon: searchQuery.isNotEmpty
+                ? GestureDetector(
+                    onTap: () {
+                      searchController.clear();
+                      setState(() => searchQuery = '');
+                    },
+                    child: Icon(Icons.clear, color: Colors.grey, size: 20),
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.black, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.black, width: 1),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Map<String, dynamic> product) {
+    bool isFavorite =
+        favoriteItems.any((item) => item['productId'] == product['\$id']);
+
+    return GestureDetector(
+      onTap: () => _showProductDetail(product),
+      child: Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  product['productImageUrl'],
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product['name'],
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                    Text(
+                      'Rp ${formatPrice(product['price'])}',
+                      style: TextStyle(fontSize: 15),
+                    )
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.red : Colors.grey,
+                  size: 28,
+                ),
+                onPressed: () => _toggleFavorite(product),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -427,40 +504,7 @@ class _MarketScreenState extends State<MarketScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-            child: SizedBox(
-              height: 45,
-              child: TextField(
-                controller: searchController,
-                onChanged: (value) => setState(() => searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: 'Cari produk...',
-                  prefixIcon: Icon(Icons.search, size: 20),
-                  suffixIcon: searchQuery.isNotEmpty
-                      ? GestureDetector(
-                          onTap: () {
-                            searchController.clear();
-                            setState(() => searchQuery = '');
-                          },
-                          child:
-                              Icon(Icons.clear, color: Colors.grey, size: 20),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.black, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.black, width: 1),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _buildSearchField(),
           Expanded(
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
@@ -469,73 +513,8 @@ class _MarketScreenState extends State<MarketScreen> {
                     : ListView.builder(
                         padding: EdgeInsets.all(8),
                         itemCount: filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          var product = filteredProducts[index];
-                          bool isFavorite = favoriteItems.any(
-                              (item) => item['productId'] == product['\$id']);
-
-                          return GestureDetector(
-                            onTap: () => _showProductDetail(product),
-                            child: Card(
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(8.0),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Colors.white,
-                                ),
-                                child: Row(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        product['productImageUrl'],
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            product['name'],
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 20),
-                                          ),
-                                          Text(
-                                            'Rp ${formatPrice(product['price'])}',
-                                            style: TextStyle(fontSize: 15),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        isFavorite
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: isFavorite
-                                            ? Colors.red
-                                            : Colors.grey,
-                                        size: 28,
-                                      ),
-                                      onPressed: () => _toggleFavorite(product),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+                        itemBuilder: (context, index) =>
+                            _buildProductCard(filteredProducts[index]),
                       ),
           ),
         ],

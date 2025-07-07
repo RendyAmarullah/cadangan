@@ -13,14 +13,12 @@ class _BunsikScreenState extends State<BunsikScreen> {
   late Databases _databases;
   late Account _account;
 
-  // Constants
   static const String projectId = '681aa0b70002469fc157';
   static const String databaseId = '681aa33a0023a8c7eb1f';
   static const String productsCollectionId = '68407bab00235ecda20d';
   static const String cartsCollectionId = '68407db7002d8716c9d0';
   static const String favoritesCollectionId = '685adb7f00015bc4ec5f';
 
-  // State variables
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> favoriteItems = [];
   Set<String> favoriteProductIds = {};
@@ -44,7 +42,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
 
   String formatPrice(dynamic price) {
     String priceStr = price.toString();
-
     String result = '';
     int count = 0;
 
@@ -56,7 +53,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
       result = priceStr[i] + result;
       count++;
     }
-
     return result;
   }
 
@@ -118,7 +114,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
       for (var item in cartItems) {
         productQuantities[item['productId']] = item['quantity'];
       }
-
       setState(() {});
     } catch (e) {
       print('Error fetching cart: $e');
@@ -157,7 +152,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
       );
 
       if (existingFavorites.documents.isNotEmpty) {
-        // Remove from favorites
         final docId = existingFavorites.documents.first.$id;
         await _databases.deleteDocument(
           databaseId: databaseId,
@@ -172,7 +166,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
 
         _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
       } else {
-        // Add to favorites
         final newFavorite = {
           'userIds': userId,
           'productId': productId,
@@ -225,7 +218,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        // Update existing item
         final docId = existingItems.documents.first.$id;
         await _databases.updateDocument(
           databaseId: databaseId,
@@ -234,7 +226,6 @@ class _BunsikScreenState extends State<BunsikScreen> {
           data: {'quantity': quantity},
         );
       } else {
-        // Create new cart item
         await _databases.createDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -295,7 +286,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -437,7 +428,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
                 : filteredProducts.isEmpty
-                    ? Center(child: Text('Tidak ada produk ditemukan.'))
+                    ? Center(child: Text('Produk tidak ditemukan'))
                     : _buildProductList(),
           ),
         ],
@@ -532,7 +523,7 @@ class _BunsikScreenState extends State<BunsikScreen> {
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 20),
+                              fontWeight: FontWeight.bold, fontSize: 17),
                         ),
                         Text(
                           'Rp ${formatPrice(product['price'])}',

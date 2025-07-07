@@ -20,26 +20,20 @@ final Databases databases = Databases(client);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
   await Firebase.initializeApp();
 
-  // Initialize Appwrite
   final client = Client();
   client
       .setEndpoint('https://fra.cloud.appwrite.io/v1')
       .setProject('681aa0b70002469fc157');
   final account = Account(client);
 
-  // Retrieve user ID asynchronously
   try {
     final user = await account.get();
     runApp(MyApp(userId: user.$id));
   } catch (e) {
     print("Error fetching user ID: $e");
-    runApp(MyApp(
-        userId:
-            '')); // Provide a fallback empty string if fetching user ID fails
+    runApp(MyApp(userId: ''));
   }
 }
 
@@ -71,11 +65,6 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
   Future<Map<String, dynamic>?> checkLoginStatus() async {
     try {
       final session = await account.getSession(sessionId: 'current');
@@ -93,7 +82,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         );
 
         final roles = List<String>.from(response.data['roles'] ?? []);
-
         return {'user': user, 'isKaryawan': roles.contains('karyawan')};
       }
       return null;
@@ -128,176 +116,28 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 }
 
-class MainScreen extends StatefulWidget {
+abstract class BaseMainScreen extends StatefulWidget {
   final String userId;
-
-  MainScreen({required this.userId});
-
-  @override
-  _MainScreenState createState() => _MainScreenState();
+  BaseMainScreen({required this.userId});
 }
 
-class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
-  int _selectedIndex = 0;
-  late List<AnimationController> _animationControllers;
-  late List<Animation<double>> _animations;
-  late List<Widget> _widgetOptions;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _widgetOptions = <Widget>[
-      HomeScreen(),
-      RiwayatTransaksiScreen(userId: widget.userId),
-      ProfileScreen(userId: widget.userId),
-    ];
-
-    _animationControllers = List.generate(
-      3,
-      (index) => AnimationController(
-        duration: Duration(milliseconds: 200),
-        vsync: this,
-      ),
-    );
-
-    _animations = _animationControllers.map((controller) {
-      return Tween<double>(begin: 0.0, end: -15.0).animate(
-        CurvedAnimation(parent: controller, curve: Curves.easeInOut),
-      );
-    }).toList();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _animationControllers[0].forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    // Dispose animation controllers properly
-    for (var controller in _animationControllers) {
-      if (controller.isAnimating) {
-        controller.stop();
-      }
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _widgetOptions,
-      ),
-      bottomNavigationBar: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Color(0xFF0072BC),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildAnimatedNavItem(0, Icons.home),
-            _buildAnimatedNavItem(1, Icons.receipt_long),
-            _buildAnimatedNavItem(2, Icons.person),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnimatedNavItem(int index, IconData icon) {
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: AnimatedBuilder(
-        animation: _animations[index],
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _animations[index].value),
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color:
-                    _selectedIndex == index ? Colors.white : Colors.transparent,
-                boxShadow: _selectedIndex == index
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Icon(
-                icon,
-                color:
-                    _selectedIndex == index ? Color(0xFF0072BC) : Colors.white,
-                size: 28,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _onItemTapped(int index) {
-    if (_selectedIndex != index && mounted) {
-      // Reset previous animation safely
-      if (_animationControllers[_selectedIndex].isAnimating) {
-        _animationControllers[_selectedIndex].stop();
-      }
-      _animationControllers[_selectedIndex].reverse();
-
-      setState(() {
-        _selectedIndex = index;
-      });
-
-      // Start new animation safely
-      if (mounted) {
-        _animationControllers[index].forward();
-      }
-    }
-  }
-}
-
-class MainScreenKaryawan extends StatefulWidget {
-  final String userId;
-
-  MainScreenKaryawan({required this.userId});
-
-  @override
-  _MainScreenKaryawanState createState() => _MainScreenKaryawanState();
-}
-
-class _MainScreenKaryawanState extends State<MainScreenKaryawan>
+abstract class BaseMainScreenState<T extends BaseMainScreen> extends State<T>
     with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late List<AnimationController> _animationControllers;
   late List<Animation<double>> _animations;
   late List<Widget> _widgetOptions;
 
+  List<Widget> getWidgetOptions();
+
   @override
   void initState() {
     super.initState();
+    _widgetOptions = getWidgetOptions();
+    _initializeAnimations();
+  }
 
-    _widgetOptions = <Widget>[
-      HomeScreenKaryawan(),
-      StatusPesananKaryawanScreen(userId: widget.userId),
-      ProfileScreen(userId: widget.userId),
-    ];
-
+  void _initializeAnimations() {
     _animationControllers = List.generate(
       3,
       (index) => AnimationController(
@@ -411,5 +251,41 @@ class _MainScreenKaryawanState extends State<MainScreenKaryawan>
         _animationControllers[index].forward();
       }
     }
+  }
+}
+
+class MainScreen extends BaseMainScreen {
+  MainScreen({required String userId}) : super(userId: userId);
+
+  @override
+  _MainScreenState createState() => _MainScreenState();
+}
+
+class _MainScreenState extends BaseMainScreenState<MainScreen> {
+  @override
+  List<Widget> getWidgetOptions() {
+    return <Widget>[
+      HomeScreen(),
+      RiwayatTransaksiScreen(userId: widget.userId),
+      ProfileScreen(userId: widget.userId),
+    ];
+  }
+}
+
+class MainScreenKaryawan extends BaseMainScreen {
+  MainScreenKaryawan({required String userId}) : super(userId: userId);
+
+  @override
+  _MainScreenKaryawanState createState() => _MainScreenKaryawanState();
+}
+
+class _MainScreenKaryawanState extends BaseMainScreenState<MainScreenKaryawan> {
+  @override
+  List<Widget> getWidgetOptions() {
+    return <Widget>[
+      HomeScreenKaryawan(),
+      StatusPesananKaryawanScreen(userId: widget.userId),
+      ProfileScreen(userId: widget.userId),
+    ];
   }
 }

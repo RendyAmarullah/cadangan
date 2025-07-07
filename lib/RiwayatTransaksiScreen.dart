@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
-import 'package:pemesanan/RoomChatt.dart'; // Tambahkan import ini
+import 'package:pemesanan/RoomChatt.dart';
 import 'dart:convert';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
@@ -16,14 +16,11 @@ class RiwayatTransaksiScreen extends StatefulWidget {
 class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   late Client _client;
   late Databases _databases;
-  late Account _account;
   List<Map<String, dynamic>> _orders = [];
   List<Map<String, dynamic>> _filteredOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
-  String _currentFilter = 'Pesanan Kamu'; // Track current filter
-
-  // Map untuk menyimpan status expanded untuk setiap order
+  String _currentFilter = 'Pesanan Kamu';
   Map<String, bool> _expandedOrders = {};
 
   final String projectId = '681aa0b70002469fc157';
@@ -44,7 +41,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         .setProject(projectId)
         .setSelfSigned(status: true);
     _databases = Databases(_client);
-    _account = Account(_client);
   }
 
   Future<void> _fetchOrders() async {
@@ -65,7 +61,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         _orders = result.documents.map((doc) {
           return {
             'orderId': doc.$id,
-            'originalOrderId': doc.data['orderId'], // Menambahkan ini jika ada
+            'originalOrderId': doc.data['orderId'],
             'produk': jsonDecode(doc.data['produk']),
             'total': doc.data['total'],
             'metodePembayaran': doc.data['metodePembayaran'],
@@ -75,7 +71,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           };
         }).toList();
 
-        // Apply current filter after fetching
         if (_currentFilter == 'Pesanan Kamu') {
           _showActiveOrders();
         } else {
@@ -85,7 +80,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error fetching orders: $e');
       setState(() {
         _errorMessage = 'Gagal memuat riwayat pesanan. Silakan coba lagi.';
         _isLoading = false;
@@ -93,23 +87,23 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  Future<void> _cancelOrder(String orderId) async {
+  Future<void> _updateOrderStatus(
+      String orderId, String status, String message) async {
     try {
       await _databases.updateDocument(
         databaseId: databaseId,
         collectionId: ordersCollectionId,
         documentId: orderId,
-        data: {'status': 'Dibatalkan'},
+        data: {'status': status},
       );
       setState(() {
         _orders = _orders.map((order) {
           if (order['orderId'] == orderId) {
-            order['status'] = 'Dibatalkan';
+            order['status'] = status;
           }
           return order;
         }).toList();
 
-        // Re-apply current filter after status update
         if (_currentFilter == 'Pesanan Kamu') {
           _showActiveOrders();
         } else {
@@ -117,48 +111,21 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pesanan telah dibatalkan')),
+        SnackBar(content: Text(message)),
       );
     } catch (e) {
-      print('Error canceling order: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal membatalkan pesanan.')),
+        SnackBar(content: Text('Gagal memperbarui status pesanan.')),
       );
     }
   }
 
-  Future<void> _completeOrder(String orderId) async {
-    try {
-      await _databases.updateDocument(
-        databaseId: databaseId,
-        collectionId: ordersCollectionId,
-        documentId: orderId,
-        data: {'status': 'Selesai'},
-      );
-      setState(() {
-        _orders = _orders.map((order) {
-          if (order['orderId'] == orderId) {
-            order['status'] = 'Selesai';
-          }
-          return order;
-        }).toList();
+  Future<void> _cancelOrder(String orderId) async {
+    await _updateOrderStatus(orderId, 'Dibatalkan', 'Pesanan telah dibatalkan');
+  }
 
-        // Re-apply current filter after status update
-        if (_currentFilter == 'Pesanan Kamu') {
-          _showActiveOrders();
-        } else {
-          _showCompletedOrders();
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pesanan selesai')),
-      );
-    } catch (e) {
-      print('Error completing order: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyelesaikan pesanan.')),
-      );
-    }
+  Future<void> _completeOrder(String orderId) async {
+    await _updateOrderStatus(orderId, 'Selesai', 'Pesanan selesai');
   }
 
   String _formatCurrency(int amount) {
@@ -174,7 +141,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  // Updated filter functions to include 'pesanan telah diterima'
   void _showCompletedOrders() {
     setState(() {
       _currentFilter = 'Semua Pesanan';
@@ -340,7 +306,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
-  // Method untuk membuka chat room
   void _openChatRoom(Map<String, dynamic> order) {
     Navigator.push(
       context,
@@ -348,7 +313,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         builder: (context) => ChatRoomScreen(
           orderId: order['orderId'],
           userId: widget.userId,
-          userRole: 'customer', // Sesuaikan peran pengguna jika diperlukan
+          userRole: 'customer',
           orderInfo: 'Order #${order['originalOrderId']}',
         ),
       ),
@@ -528,7 +493,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           String status = order['status'];
           String orderId = order['orderId'];
 
-          // Determine button properties based on status
           bool isCompleteOrderButtonEnabled =
               status.toLowerCase() == 'sedang diantar' ||
                   status.toLowerCase() == 'pesanan telah diterima';
@@ -569,7 +533,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ],
                   ),
                   SizedBox(height: 12),
-
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -609,7 +572,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                   ),
                   SizedBox(height: 16),
-
                   Text(
                     'Produk (${produkList.length} item)',
                     style: TextStyle(
@@ -618,13 +580,10 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                   ),
                   SizedBox(height: 8),
-
                   _buildProductList(produkList, orderId),
-
                   SizedBox(height: 16),
                   Divider(),
                   SizedBox(height: 8),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -674,8 +633,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       ),
                     ],
                   ),
-
-                  // Logika Tombol Aksi Baru
                   if (status.toLowerCase() == 'pesanan telah diterima' ||
                       status.toLowerCase() == 'sedang diproses' ||
                       status.toLowerCase() == 'sedang diantar' ||
@@ -704,12 +661,11 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                             child: ElevatedButton(
                               onPressed: isCompleteOrderButtonEnabled
                                   ? () => _completeOrder(orderId)
-                                  : null, // Disable if not enabled
+                                  : null,
                               child: Text('Selesaikan Pesanan'),
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                backgroundColor:
-                                    completeOrderButtonColor, // Apply dynamic color
+                                backgroundColor: completeOrderButtonColor,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -726,8 +682,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                         child: SizedBox(
                           width: 300,
                           child: ElevatedButton(
-                            onPressed: () => _cancelOrder(
-                                orderId), // Tombol Batalkan Pesanan
+                            onPressed: () => _cancelOrder(orderId),
                             child: Center(
                               child: Text(
                                 'Batalkan Pesanan',
@@ -736,8 +691,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               foregroundColor: Colors.white,
-                              backgroundColor: Color(
-                                  0xFF8DC63F), // Warna merah untuk batalkan
+                              backgroundColor: Color(0xFF8DC63F),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),

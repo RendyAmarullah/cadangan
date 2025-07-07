@@ -23,33 +23,25 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _email;
   int _cartItemCount = 0;
 
-  // Banner carousel variables
   PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
 
-  // Menu slide variables
   PageController _menuPageController = PageController();
   int _currentMenuPage = 0;
 
-  // List banner images (ganti dengan path gambar Anda)
   final List<String> _bannerImages = [
-    'images/banner1.jpg', // Gambar Mu Gung Hwa
+    'images/banner1.jpg',
     'images/banner2.jpg',
-    'images/banner3.jpg', // Gambar Jinro
-    // Tambahkan lebih banyak gambar banner jika diperlukan
+    'images/banner3.jpg',
   ];
 
   final String profil = '684083800031dfaaecad';
-
-  // Appwrite configuration (pastikan ini belum ada)
-  final String projectId =
-      '681aa0b70002469fc157'; // Sesuaikan jika projectId Anda berbeda
+  final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String productsCollectionId = '68407bab00235ecda20d';
   final String cartsCollectionId = '68407db7002d8716c9d0';
 
-  // State untuk menyimpan produk yang diambil
   Map<String, Map<String, dynamic>?> _featuredProducts = {
     'Bunsik': null,
     'Minuman': null,
@@ -59,13 +51,15 @@ class _HomeScreenState extends State<HomeScreen> {
     'Barang': null,
   };
 
+  String userId = '';
+
   String formatPrice(dynamic price) {
-    if (price == null) {
-      return 'Rp 0';
-    }
+    if (price == null) return 'Rp 0';
+
     String priceString = price.toString();
     String formattedPrice = '';
     int count = 0;
+
     for (int i = priceString.length - 1; i >= 0; i--) {
       formattedPrice = priceString[i] + formattedPrice;
       count++;
@@ -76,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Rp ' + formattedPrice;
   }
 
-  // Fungsi baru untuk mengambil produk unggulan berdasarkan kategori dan huruf awal 'A'
   Future<void> _fetchFeaturedProducts() async {
     final categories = [
       'Bunsik',
@@ -86,19 +79,16 @@ class _HomeScreenState extends State<HomeScreen> {
       'NonHalal',
       'Barang'
     ];
+
     for (String category in categories) {
       try {
         final response = await databases!.listDocuments(
           databaseId: databaseId,
           collectionId: productsCollectionId,
           queries: [
-            Query.equal(
-                'category',
-                category
-                    .toLowerCase()), // Sesuaikan dengan kategori di Appwrite
-            Query.startsWith(
-                'name', 'A'), // Filter produk dengan nama dimulai 'A'
-            Query.limit(1), // Ambil hanya 1 produk
+            Query.equal('category', category.toLowerCase()),
+            Query.startsWith('name', 'A'),
+            Query.limit(1),
           ],
         );
 
@@ -108,25 +98,20 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
       } catch (e) {
-        print('Error fetching featured product for $category: $e');
+        print('Gagal mengambil produk $category: $e');
       }
     }
   }
 
-  String userId =
-      ''; // Deklarasi userId, pastikan tidak duplikat jika sudah ada
-
   Future<void> _fetchCart() async {
     try {
       final user = await account!.get();
-      userId = user.$id; // Pastikan userId terisi
+      userId = user.$id;
 
       final response = await databases!.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
+        queries: [Query.equal('userId', userId)],
       );
 
       int count = 0;
@@ -138,16 +123,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _cartItemCount = count;
       });
     } catch (e) {
-      print('Error fetching cart: $e');
+      print('Terjadi kesalahan saat mengambil keranjang: $e');
     }
   }
 
   @override
   void initState() {
     super.initState();
-    client
-        .setEndpoint('https://cloud.appwrite.io/v1')
-        .setProject('681aa0b70002469fc157');
+    client.setEndpoint('https://cloud.appwrite.io/v1').setProject(projectId);
 
     account = Account(client);
     databases = Databases(client);
@@ -184,28 +167,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  List<Map<String, dynamic>> cartItems = [];
-
   Future<void> _loadProfileData() async {
     try {
       final user = await account!.get();
       setState(() {
         _email = user.email;
       });
-      print('User loaded: ${user.name} - ${user.email}');
 
       String userId = user.$id;
       final profileDoc = await databases!.getDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
+        databaseId: databaseId,
         collectionId: profil,
         documentId: userId,
       );
       setState(() {
         _userName = profileDoc.data['name'] ?? 'No name';
       });
-      print('Nama pengguna: ${profileDoc.data['name']}');
     } catch (e) {
-      print('Failed to load user profile: $e');
+      print('Gagal memuat profil pengguna: $e');
     }
   }
 
@@ -239,7 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Spacer(),
-              // Cart Icon (tanpa realtime badge)
               Stack(
                 children: [
                   IconButton(
@@ -264,222 +242,196 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: _refreshData,
         child: ListView(
           children: [
-            // Banner Carousel section
-            Container(
-              margin: EdgeInsets.all(25),
-              height: 150,
-              child: Stack(
-                children: [
-                  // PageView untuk banner carousel
-                  PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (int page) {
-                      setState(() {
-                        _currentPage = page;
-                      });
-                    },
-                    itemCount: _bannerImages.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          image: DecorationImage(
-                            image: AssetImage(_bannerImages[index]),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // Dot indicator
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: _bannerImages.asMap().entries.map((entry) {
-                        return Container(
-                          width: 8.0,
-                          height: 8.0,
-                          margin: EdgeInsets.symmetric(
-                            vertical: 8.0,
-                            horizontal: 4.0,
-                          ),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color:
-                                (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white
-                                        : Colors.white)
-                                    .withOpacity(
-                                        _currentPage == entry.key ? 0.9 : 0.4),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Category Grid - Menggunakan GridView untuk layout yang rata
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5.0),
-              child: GridView.count(
-                crossAxisCount: 3, // 3 kolom
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                childAspectRatio: 0.9, // Rasio lebar:tinggi item
-                crossAxisSpacing: 20,
-                children: [
-                  _buildIconButton(
-                      Icons.shopping_cart, 'Market', Color(0xFF0072BC), () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MarketScreen()),
-                    );
-                  }),
-                  _buildIconButton(
-                      Icons.local_drink, 'Minuman', Color(0xFF8DC63F), () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MinumanScreen()),
-                    );
-                  }),
-                  _buildIconButton(
-                      Icons.ramen_dining, 'Bunsik', Color(0xFF0072BC), () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BunsikScreen()),
-                    );
-                  }),
-                  _buildIconButton(
-                      Icons.no_food, 'Non-Halal', Color(0xFF8DC63F), () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => NonHalalScreen()),
-                    );
-                  }),
-                  _buildIconButton(
-                      Icons.inventory_2, 'Barang', Color(0xFF0072BC), () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BarangScreen()),
-                    );
-                  }),
-                  _buildIconButton(Icons.face_retouching_natural, 'Beauty',
-                      Color(0xFF8DC63F), () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BeautyScreen()),
-                    );
-                  }),
-                ],
-              ),
-            ),
-
+            _buildBannerCarousel(),
+            _buildCategoryGrid(),
             SizedBox(height: 5),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(height: 8),
-
-            // Menu Slide Manual
-            Container(
-              height: 180,
-              // Padding dipindahkan ke container utama
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Stack(
-                children: [
-                  PageView(
-                    controller: _menuPageController,
-                    onPageChanged: (int page) {
-                      setState(() {
-                        _currentMenuPage = page;
-                      });
-                    },
-                    children: [
-                      // Halaman 1 - tanpa padding tambahan
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildDynamicMenuItem(
-                              _featuredProducts['Bunsik'], BunsikScreen()),
-                          _buildDynamicMenuItem(
-                              _featuredProducts['Minuman'], MinumanScreen()),
-                          _buildDynamicMenuItem(
-                              _featuredProducts['Market'], MarketScreen()),
-                        ],
-                      ),
-                      // Halaman 2 - tanpa padding tambahan
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildDynamicMenuItem(
-                              _featuredProducts['Beauty'], BeautyScreen()),
-                          _buildDynamicMenuItem(
-                              _featuredProducts['NonHalal'], NonHalalScreen()),
-                          _buildDynamicMenuItem(
-                              _featuredProducts['Barang'], BarangScreen()),
-                        ],
-                      ),
-                    ],
-                  ),
-                  // Dot indicator untuk menu
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 8.0,
-                          height: 8.0,
-                          margin: EdgeInsets.symmetric(
-                            vertical: 8.0,
-                            horizontal: 4.0,
-                          ),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentMenuPage == 0
-                                ? Color(0xFF0072BC)
-                                : Color(0xFF0072BC).withOpacity(0.3),
-                          ),
-                        ),
-                        Container(
-                          width: 8.0,
-                          height: 8.0,
-                          margin: EdgeInsets.symmetric(
-                            vertical: 8.0,
-                            horizontal: 4.0,
-                          ),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentMenuPage == 1
-                                ? Color(0xFF0072BC)
-                                : Color(0xFF0072BC).withOpacity(0.3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildMenuSection(),
             SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBannerCarousel() {
+    return Container(
+      margin: EdgeInsets.all(25),
+      height: 150,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (int page) {
+              setState(() {
+                _currentPage = page;
+              });
+            },
+            itemCount: _bannerImages.length,
+            itemBuilder: (context, index) {
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  image: DecorationImage(
+                    image: AssetImage(_bannerImages[index]),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _bannerImages.asMap().entries.map((entry) {
+                return Container(
+                  width: 8.0,
+                  height: 8.0,
+                  margin: EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 4.0,
+                  ),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white
+                        .withOpacity(_currentPage == entry.key ? 0.9 : 0.4),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+      child: GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        childAspectRatio: 0.9,
+        crossAxisSpacing: 20,
+        children: [
+          _buildIconButton(Icons.shopping_cart, 'Market', Color(0xFF0072BC),
+              () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => MarketScreen()));
+          }),
+          _buildIconButton(Icons.local_drink, 'Minuman', Color(0xFF8DC63F), () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => MinumanScreen()));
+          }),
+          _buildIconButton(Icons.ramen_dining, 'Bunsik', Color(0xFF0072BC), () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => BunsikScreen()));
+          }),
+          _buildIconButton(Icons.no_food, 'Non-Halal', Color(0xFF8DC63F), () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => NonHalalScreen()));
+          }),
+          _buildIconButton(Icons.inventory_2, 'Barang', Color(0xFF0072BC), () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => BarangScreen()));
+          }),
+          _buildIconButton(
+              Icons.face_retouching_natural, 'Beauty', Color(0xFF8DC63F), () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => BeautyScreen()));
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            'Menu',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(height: 8),
+        Container(
+          height: 180,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Stack(
+            children: [
+              PageView(
+                controller: _menuPageController,
+                onPageChanged: (int page) {
+                  setState(() {
+                    _currentMenuPage = page;
+                  });
+                },
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildDynamicMenuItem(
+                          _featuredProducts['Bunsik'], BunsikScreen()),
+                      _buildDynamicMenuItem(
+                          _featuredProducts['Minuman'], MinumanScreen()),
+                      _buildDynamicMenuItem(
+                          _featuredProducts['Market'], MarketScreen()),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildDynamicMenuItem(
+                          _featuredProducts['Beauty'], BeautyScreen()),
+                      _buildDynamicMenuItem(
+                          _featuredProducts['NonHalal'], NonHalalScreen()),
+                      _buildDynamicMenuItem(
+                          _featuredProducts['Barang'], BarangScreen()),
+                    ],
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildDotIndicator(0),
+                    _buildDotIndicator(1),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDotIndicator(int index) {
+    return Container(
+      width: 8.0,
+      height: 8.0,
+      margin: EdgeInsets.symmetric(
+        vertical: 8.0,
+        horizontal: 4.0,
+      ),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _currentMenuPage == index
+            ? Color(0xFF0072BC)
+            : Color(0xFF0072BC).withOpacity(0.3),
       ),
     );
   }
@@ -496,8 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 60,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(
-                  10), // Mengubah dari shape: BoxShape.circle menjadi borderRadius
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.white, size: 30),
           ),
@@ -516,11 +467,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Modified _buildMenuItem to be _buildDynamicMenuItem
   Widget _buildDynamicMenuItem(
       Map<String, dynamic>? productData, Widget targetScreen) {
     if (productData == null) {
-      // Tampilan placeholder saat data belum dimuat atau tidak ditemukan
       return SizedBox(
         width: 80,
         child: Column(
@@ -531,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 80,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
-                color: Colors.grey[200], // Placeholder color
+                color: Colors.grey[200],
               ),
               child: Icon(
                 Icons.image_not_supported,
@@ -563,19 +512,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     String name = productData['name'] ?? 'Nama Produk';
     String price = formatPrice(productData['price'] ?? 0);
-    String imageUrl = productData['productImageUrl'] ??
-        ''; // Asumsi ada field productImageUrl di Appwrite
+    String imageUrl = productData['productImageUrl'] ?? '';
 
     return GestureDetector(
       onTap: () {
-        // Navigasi ke halaman kategori yang spesifik
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => targetScreen),
         );
       },
       child: SizedBox(
-        width: 80, // Membatasi lebar widget
+        width: 80,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -618,7 +565,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(height: 8),
-            // Nama produk dengan text wrapping
             Text(
               name,
               style: TextStyle(
@@ -626,12 +572,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2, // Maksimal 2 baris
-              overflow: TextOverflow
-                  .ellipsis, // Tambahkan ... jika masih terlalu panjang
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 4), // Spasi kecil antara nama dan harga
-            // Harga produk
+            SizedBox(height: 4),
             Text(
               price,
               style: TextStyle(
@@ -639,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.grey[700],
               ),
               textAlign: TextAlign.center,
-              maxLines: 1, // Harga hanya 1 baris
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],

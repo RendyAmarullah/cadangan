@@ -16,12 +16,10 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String cartsCollectionId = '68407db7002d8716c9d0';
-  final String bucketId = '681aa16f003054da8969';
 
   String userId = '';
   List<Map<String, dynamic>> cartItems = [];
 
-  // Add the formatPrice function from BarangScreen
   String formatPrice(dynamic price) {
     String priceStr = price.toString();
     if (price is double) priceStr = price.toInt().toString();
@@ -83,13 +81,8 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         cartItems = result.documents.map((doc) => doc.data).toList();
       });
     } catch (e) {
-      print('Error fetching cart: $e');
+      print('Gagal memuat keranjang: $e');
     }
-  }
-
-  String getImageUrl(String fileId) {
-    String appwriteEndpoint = 'https://fra.cloud.appwrite.io/v1';
-    return '$fileId';
   }
 
   Future<void> _updateCartItemQuantity(int index, int newQuantity) async {
@@ -125,7 +118,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         });
       }
     } catch (e) {
-      print('Error updating cart item quantity: $e');
+      print('Gagal menambah jumlah produk: $e');
     }
   }
 
@@ -154,13 +147,12 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         });
       }
     } catch (e) {
-      print('Error deleting cart item: $e');
+      print('Terjadi kesalahan saat menghapus item keranjang: $e');
     }
   }
 
   Future<void> _clearCart() async {
     try {
-      // Get all cart documents for this user
       final docs = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
@@ -169,7 +161,6 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         ],
       );
 
-      // Delete each document
       for (var doc in docs.documents) {
         await _databases.deleteDocument(
           databaseId: databaseId,
@@ -182,13 +173,12 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         cartItems.clear();
       });
     } catch (e) {
-      print('Error clearing cart: $e');
+      print('Terjadi kesalahan saat mengosongkan keranjang: $e');
     }
   }
 
   void _showClearCartDialog() {
     if (cartItems.isEmpty) {
-      // Show notification when cart is empty
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -196,9 +186,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
             content: Text('Belum ada produk di keranjangmu'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: Text('OK'),
               ),
             ],
@@ -206,7 +194,6 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         },
       );
     } else {
-      // Show confirmation dialog when cart has items
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -214,15 +201,13 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
             content: Text('Yakin ingin mengosongkan keranjang?'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: Text('Tidak'),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  _clearCart(); // Clear the cart
+                  Navigator.of(context).pop();
+                  _clearCart();
                 },
                 child: Text('Ya'),
               ),
@@ -233,7 +218,6 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
     }
   }
 
-  // Method untuk refresh cart items setelah kembali dari checkout
   void _refreshCartItems() async {
     await _fetchCartItems();
   }
@@ -241,7 +225,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Set background color to white
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: AppBar(
@@ -263,15 +247,12 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
       ),
       body: Column(
         children: [
-          // Header with total items and clear cart option - Always visible
           Container(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
@@ -289,28 +270,20 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                 ),
                 GestureDetector(
                   onTap: _showClearCartDialog,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.delete,
-                        color: Colors.red[800],
-                        size: 25,
-                      ),
-                    ],
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.red[800],
+                    size: 25,
                   ),
                 ),
               ],
             ),
           ),
-
-          // Divider line - Always visible
           Divider(
             height: 1,
             thickness: 1,
             color: Colors.grey[300],
           ),
-
-          // Cart items list
           Expanded(
             child: cartItems.isEmpty
                 ? Center(child: Text('Keranjang kosong'))
@@ -318,16 +291,12 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                     itemCount: cartItems.length,
                     itemBuilder: (context, index) {
                       int quantity = cartItems[index]['quantity'] ?? 1;
-                      String imageUrl = '';
-                      if (cartItems[index].containsKey('productImageUrl')) {
-                        imageUrl =
-                            getImageUrl(cartItems[index]['productImageUrl']);
-                      }
+                      String imageUrl =
+                          cartItems[index]['productImageUrl'] ?? '';
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20.0,
-                            vertical: 8.0), // Reduced vertical padding
+                            horizontal: 20.0, vertical: 8.0),
                         child: Row(
                           children: [
                             Container(
@@ -397,47 +366,43 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                       ),
                                     ),
                             ),
-                            SizedBox(width: 12), // Reduced spacing
+                            SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    height: 4, // Reduced spacing
-                                  ),
+                                  SizedBox(height: 4),
                                   Text(
                                     cartItems[index]['name'] ?? 'Produk',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14, // Reduced from 16 to 14
+                                      fontSize: 14,
                                     ),
                                   ),
-                                  SizedBox(height: 2), // Reduced spacing
+                                  SizedBox(height: 2),
                                   Text(
-                                      'Rp ${formatPrice(cartItems[index]['price'] ?? 0)}',
-                                      style: TextStyle(
-                                          color: Color(0xFF0072BC),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight
-                                              .bold // Added smaller font size
-                                          )),
-                                  SizedBox(height: 4), // Reduced spacing
+                                    'Rp ${formatPrice(cartItems[index]['price'] ?? 0)}',
+                                    style: TextStyle(
+                                      color: Color(0xFF0072BC),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
                                       IconButton(
-                                        iconSize: 20, // Smaller button
-                                        padding: EdgeInsets.all(
-                                            4), // Reduced padding
+                                        iconSize: 20,
+                                        padding: EdgeInsets.all(4),
                                         constraints: BoxConstraints(
-                                          minWidth: 32, // Smaller minimum width
-                                          minHeight:
-                                              32, // Smaller minimum height
+                                          minWidth: 32,
+                                          minHeight: 32,
                                         ),
                                         icon: Icon(
                                           Icons.remove_circle_outline,
                                           color: Color(0xFF0072BC),
-                                          size: 25, // Smaller icon size
+                                          size: 25,
                                         ),
                                         onPressed: () {
                                           if (quantity > 0) {
@@ -447,27 +412,24 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
                                         },
                                       ),
                                       Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 8), // Reduced spacing
+                                        padding:
+                                            EdgeInsets.symmetric(horizontal: 8),
                                         child: Text(
                                           quantity.toString(),
-                                          style: TextStyle(
-                                              fontSize: 14), // Smaller text
+                                          style: TextStyle(fontSize: 14),
                                         ),
                                       ),
                                       IconButton(
-                                        iconSize: 20, // Smaller button
-                                        padding: EdgeInsets.all(
-                                            4), // Reduced padding
+                                        iconSize: 20,
+                                        padding: EdgeInsets.all(4),
                                         constraints: BoxConstraints(
-                                          minWidth: 32, // Smaller minimum width
-                                          minHeight:
-                                              32, // Smaller minimum height
+                                          minWidth: 32,
+                                          minHeight: 32,
                                         ),
                                         icon: Icon(
                                           Icons.add_circle_outlined,
                                           color: Color(0xFF0072BC),
-                                          size: 25, // Kembali ke ukuran 30
+                                          size: 25,
                                         ),
                                         onPressed: () {
                                           _updateCartItemQuantity(
@@ -492,35 +454,35 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
                 onPressed: () async {
-                  // Navigate to CheckoutScreen and wait for result
-                  final result = await Navigator.push(
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => CheckoutScreen(
                         cartItems: cartItems,
-                        onCartUpdated: _refreshCartItems, // Pass callback
+                        onCartUpdated: _refreshCartItems,
                       ),
                     ),
                   );
-
-                  // Refresh cart items when returning from checkout
                   _refreshCartItems();
                 },
                 child: Text(
                   'Check Out',
                   style: TextStyle(
-                      color: Colors.white, // Set text color to white
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF8DC63F), // Checkout button color
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
+                  backgroundColor: Color(0xFF8DC63F),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
             )
-          : null, // Hide checkout button when cart is empty
+          : null,
     );
   }
 }

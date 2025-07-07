@@ -42,7 +42,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       );
       return true;
     } catch (e) {
-      print('Connection check failed: $e');
       return false;
     }
   }
@@ -66,7 +65,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           Query.limit(50),
         ],
       );
-      print('Orders loaded: ${response.documents.length}'); // Debug log
 
       setState(() {
         _orders = response.documents.map((doc) {
@@ -76,7 +74,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
               try {
                 products = jsonDecode(doc.data['produk']);
               } catch (e) {
-                print('Error parsing produk JSON: $e');
                 products = [];
               }
             } else if (doc.data['produk'] is List) {
@@ -94,15 +91,13 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
             'orderId2': doc.data['orderId'],
             'createdAt':
                 doc.data['createdAt'] ?? DateTime.now().toIso8601String(),
-            'paymentProofUrl':
-                doc.data['paymentProofUrl'] ?? '', // Retrieve payment proof URL
+            'paymentProofUrl': doc.data['paymentProofUrl'] ?? '',
             'catatanTambahan': doc.data['catatanTambahan'],
           };
         }).toList();
         _isLoading = false;
       });
     } catch (e) {
-      print('Error mengambil data pesanan: $e');
       setState(() {
         _isLoading = false;
       });
@@ -129,7 +124,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         _email = user.email;
         userId = user.$id;
       });
-      print('User ID: $userId');
 
       final profileDoc = await databases!.getDocument(
         databaseId: '681aa33a0023a8c7eb1f',
@@ -140,7 +134,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         _userName = profileDoc.data['name'] ?? 'No name';
       });
     } catch (e) {
-      print('Failed to load user profile: $e');
       try {
         final user = await account!.get();
         setState(() {
@@ -148,14 +141,13 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           userId = user.$id;
         });
       } catch (e2) {
-        print('Failed to get user: $e2');
+        // Handle error if needed
       }
     }
   }
 
   Future<void> _acceptOrder(String orderId, int index) async {
     try {
-      print('Accepting order: $orderId with userId: $userId');
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -169,20 +161,18 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           ),
         ),
       );
+
       if (userId.isEmpty) {
         Navigator.pop(context);
         throw Exception('User ID tidak valid. Silakan login ulang.');
       }
 
-      // Ambil data pesanan yang sesuai dengan orderId
       final orderDoc = await databases!.getDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
         documentId: orderId,
       );
-      print('Order status: ${orderDoc.data['status']}');
 
-      // Pastikan status pesanan 'menunggu'
       if (orderDoc.data['status'] != 'menunggu') {
         Navigator.pop(context);
         throw Exception('Order sudah diproses oleh orang lain');
@@ -194,7 +184,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           try {
             products = jsonDecode(orderDoc.data['produk']);
           } catch (e) {
-            print('Error parsing produk JSON: $e');
             products = [];
           }
         } else if (orderDoc.data['produk'] is List) {
@@ -203,7 +192,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       }
 
       String productsJson = jsonEncode(products);
-      // Update status pesanan di collection ordersCollectionId menjadi "sedang diproses"
+
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -215,7 +204,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         },
       );
 
-      // Buat dokumen baru untuk pesanan yang diterima di collection "sedang diproses"
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: '6854b40600020e4a49aa',
@@ -234,11 +222,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'paymentProofUrl': orderDoc.data['paymentProofUrl'] ?? '',
         },
       );
-      Navigator.pop(context);
 
+      Navigator.pop(context);
       setState(() {
         _orders.removeAt(index);
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil diterima'),
@@ -246,14 +235,10 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           duration: Duration(seconds: 2),
         ),
       );
-      print(
-          'Pesanan #$orderId berhasil diterima dan dipindahkan ke sedang diproses');
     } catch (e) {
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
-
-      print('Error menerima pesanan: $e');
 
       String errorMessage = 'Gagal menerima pesanan';
       if (e.toString().contains('User ID tidak valid')) {
@@ -299,7 +284,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       );
       if (confirmed != true) return;
 
-      print('Rejecting order: $orderId with userId: $userId');
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -313,6 +297,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           ),
         ),
       );
+
       if (userId.isEmpty) {
         Navigator.pop(context);
         throw Exception('User ID tidak valid. Silakan login ulang.');
@@ -323,6 +308,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         collectionId: ordersCollectionId,
         documentId: orderId,
       );
+
       if (orderDoc.data['status'] != 'menunggu') {
         Navigator.pop(context);
         throw Exception('Order sudah diproses oleh orang lain');
@@ -334,7 +320,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           try {
             products = jsonDecode(orderDoc.data['produk']);
           } catch (e) {
-            print('Error parsing produk JSON: $e');
             products = [];
           }
         } else if (orderDoc.data['produk'] is List) {
@@ -343,6 +328,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
       }
 
       String productsJson = jsonEncode(products);
+
       await databases!.createDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: '6854ba6e003bad3da579',
@@ -361,6 +347,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'paymentProofUrl': orderDoc.data['paymentProofUrl'] ?? '',
         },
       );
+
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -371,11 +358,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           'rejectedAt': DateTime.now().toIso8601String(),
         },
       );
-      Navigator.pop(context);
 
+      Navigator.pop(context);
       setState(() {
         _orders.removeAt(index);
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pesanan ${_formatOrderId(orderId)} berhasil ditolak'),
@@ -383,13 +371,10 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           duration: Duration(seconds: 2),
         ),
       );
-      print('Pesanan #$orderId berhasil ditolak');
     } catch (e) {
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
-
-      print('Error menolak pesanan: $e');
 
       String errorMessage = 'Gagal menolak pesanan';
       if (e.toString().contains('User ID tidak valid')) {
@@ -561,7 +546,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 ],
                               ),
                               SizedBox(height: 12),
-                              // Alamat
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -583,7 +567,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 ],
                               ),
                               SizedBox(height: 8),
-                              // Produk
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -662,7 +645,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 ],
                               ),
                               SizedBox(height: 12),
-                              // Total dan Metode Pembayaran
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -725,7 +707,6 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                   ],
                                 ),
                               SizedBox(height: 16),
-                              // Action Buttons
                               Row(
                                 children: [
                                   Expanded(

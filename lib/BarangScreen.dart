@@ -148,7 +148,6 @@ class _BarangScreenState extends State<BarangScreen> {
       );
 
       if (existingFavorites.documents.isNotEmpty) {
-        // Remove from favorites
         await _databases.deleteDocument(
           databaseId: databaseId,
           collectionId: favoritesCollectionId,
@@ -162,7 +161,6 @@ class _BarangScreenState extends State<BarangScreen> {
 
         _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
       } else {
-        // Add to favorites
         final newFavorite = {
           'userIds': userId,
           'productId': productId,
@@ -215,7 +213,6 @@ class _BarangScreenState extends State<BarangScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        // Update existing item
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -223,7 +220,6 @@ class _BarangScreenState extends State<BarangScreen> {
           data: {'quantity': quantity},
         );
       } else {
-        // Create new cart item
         await _databases.createDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -283,7 +279,7 @@ class _BarangScreenState extends State<BarangScreen> {
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -453,7 +449,7 @@ class _BarangScreenState extends State<BarangScreen> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
                 : filteredProducts.isEmpty
-                    ? Center(child: Text('Tidak ada produk ditemukan.'))
+                    ? Center(child: Text('Produk tidak ditemukan.'))
                     : ListView.builder(
                         padding: EdgeInsets.all(8),
                         itemCount: filteredProducts.length,
@@ -493,7 +489,7 @@ class _BarangScreenState extends State<BarangScreen> {
                                             product['name'],
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 20),
+                                                fontSize: 17),
                                           ),
                                           Text(
                                             'Rp ${formatPrice(product['price'])}',
@@ -510,7 +506,7 @@ class _BarangScreenState extends State<BarangScreen> {
                                         color: isFavorite
                                             ? Colors.red
                                             : Colors.grey,
-                                        size: 28,
+                                        size: 24,
                                       ),
                                       onPressed: () => _toggleFavorite(product),
                                     ),

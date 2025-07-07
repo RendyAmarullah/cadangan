@@ -14,8 +14,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String favoritesCollectionId =
-      '685adb7f00015bc4ec5f'; // Collection untuk favorit
+  final String favoritesCollectionId = '685adb7f00015bc4ec5f';
 
   List<Map<String, dynamic>> favoriteItems = [];
   String userId = '';
@@ -51,7 +50,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         userId = user.$id;
       });
     } catch (e) {
-      print('Error getting user: $e');
+      print('Gagal mengambil info pengguna: $e');
     }
   }
 
@@ -61,7 +60,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         databaseId: databaseId,
         collectionId: favoritesCollectionId,
         queries: [
-          Query.equal('userIds', userId), // Menggunakan 'userId' sebagai filter
+          Query.equal('userIds', userId),
         ],
       );
 
@@ -69,11 +68,10 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         favoriteItems = result.documents.map((doc) => doc.data).toList();
       });
     } catch (e) {
-      print('Error fetching favorites: $e');
+      print('Gagal mengambil produk favorit: $e');
     }
   }
 
-  // Fungsi untuk menghapus produk dari favorit
   Future<void> _removeFromFavorites(String docId) async {
     try {
       await _databases.deleteDocument(
@@ -83,22 +81,20 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       );
 
       setState(() {
-        // Hapus produk yang dihapus dari favorit
         favoriteItems.removeWhere((item) => item['\$id'] == docId);
       });
     } catch (e) {
-      print('Error removing from favorites: $e');
+      print('Gagal menghapus produk dari favorit: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Background putih bersih
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Color(0xFF0072BC),
-        iconTheme: IconThemeData(
-            color: Colors.white), // Menambahkan ini untuk tanda panah putih
+        iconTheme: IconThemeData(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(20),
@@ -115,22 +111,20 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         ),
       ),
       body: Container(
-        color: Colors.white, // Pastikan body juga putih
+        color: Colors.white,
         child: isLoading
             ? Center(child: CircularProgressIndicator())
             : favoriteItems.isEmpty
-                ? Center(child: Text('Tidak ada produk favorit.'))
+                ? Center(child: Text('Tidak ada produk favorit'))
                 : ListView.builder(
                     padding: EdgeInsets.all(8),
                     itemCount: favoriteItems.length,
                     itemBuilder: (context, index) {
                       var product = favoriteItems[index];
-                      var docId = product['\$id']; // Ambil ID dokumen
+                      var docId = product['\$id'];
 
                       return GestureDetector(
-                        onTap: () {
-                          // Anda bisa menambahkan logika untuk membuka detail produk
-                        },
+                        onTap: () {},
                         child: Card(
                           color: Colors.white,
                           shape: RoundedRectangleBorder(
@@ -179,7 +173,6 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                     color: Colors.red,
                                   ),
                                   onPressed: () async {
-                                    // Menghapus item dari daftar favorit
                                     await _removeFromFavorites(docId);
                                   },
                                 ),

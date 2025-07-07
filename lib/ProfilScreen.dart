@@ -1,17 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/AlamatScreen.dart';
 import 'package:pemesanan/FavoritScreen.dart';
-import 'package:pemesanan/SignUpScreen.dart';
 import 'package:pemesanan/AkunScreen.dart';
 import 'package:pemesanan/SplahScreen.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart'; // Tambahkan ini
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -27,13 +24,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Storage _storage;
   late Account _account;
   late Databases _databases;
+
   File? _imageFile;
   String? _profileImageUrl;
   String? _userName;
   String? _userEmail;
   models.Session? _session;
   models.User? _currentUser;
-  String? _userLocation;
   bool _isLoading = true;
 
   final String databaseId = '681aa33a0023a8c7eb1f';
@@ -59,9 +56,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker _picker = ImagePicker();
+    final ImagePicker picker = ImagePicker();
     final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
+        await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -73,25 +70,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<bool?> _notifLogout(BuildContext context) {
     return showDialog<bool>(
       context: context,
-      barrierDismissible:
-          false, // Prevent dismissing by tapping outside the dialog
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Konfirmasi Logout'),
           content: Text('Apakah Anda yakin ingin keluar?'),
           actions: <Widget>[
             TextButton(
-              onPressed: () {
-                Navigator.of(context)
-                    .pop(false); // Dismiss dialog with false (no logout)
-              },
+              onPressed: () => Navigator.of(context).pop(false),
               child: Text('Batal'),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(
-                    true); // Dismiss dialog with true (proceed with logout)
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               child: Text('Keluar'),
             ),
           ],
@@ -105,8 +95,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final fileId = DateTime.now().millisecondsSinceEpoch.toString();
-      final bucketId = '681aa16f003054da8969';
-
       final inputFile = InputFile.fromPath(path: _imageFile!.path);
 
       final result = await _storage.createFile(
@@ -124,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       await _saveProfileImage(result.$id);
     } catch (e) {
-      print('Error uploading image: $e');
+      print('Gagal mengupload gambar: $e');
     }
   }
 
@@ -132,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = await _account.get();
     if (user != null) {
       try {
-        final document = await _databases.getDocument(
+        await _databases.getDocument(
           databaseId: databaseId,
           collectionId: collectionId,
           documentId: user.$id,
@@ -144,7 +132,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           documentId: user.$id,
           data: {'profile_image': fileId},
         );
-        print("Profile image updated in the database successfully.");
       } catch (e) {
         if (e.toString().contains('document_not_found')) {
           await _databases.createDocument(
@@ -153,9 +140,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             documentId: user.$id,
             data: {'profile_image': fileId},
           );
-          print("Profile image saved to the database successfully.");
-        } else {
-          print('Error: $e');
         }
       }
     }
@@ -167,213 +151,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      print("🔄 Starting to load profile data...");
+      _session = await _account.getSession(sessionId: 'current');
+      _currentUser = await _account.get();
 
-      // Get the current session
-      try {
-        _session = await _account.getSession(sessionId: 'current');
-        print("✅ Session loaded successfully");
-      } catch (e) {
-        print("❌ Error loading session: $e");
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Get current user
-      try {
-        _currentUser = await _account.get();
-        print("✅ Current user loaded: ${_currentUser?.$id}");
-        print("📧 User email: ${_currentUser?.email}");
-        print("👤 User name from auth: ${_currentUser?.name}");
-
-        // Set email and name from auth as fallback
-        setState(() {
-          _userEmail = _currentUser?.email;
-          if (_currentUser?.name != null && _currentUser!.name.isNotEmpty) {
-            _userName = _currentUser!.name;
-          }
-        });
-      } catch (e) {
-        print("❌ Error loading current user: $e");
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
+      setState(() {
+        _userEmail = _currentUser?.email;
+        if (_currentUser?.name != null && _currentUser!.name.isNotEmpty) {
+          _userName = _currentUser!.name;
+        }
+      });
 
       final userId = _currentUser?.$id;
       if (userId != null) {
-        // Try to load profile image
-        try {
-          print(
-              "🖼️ Trying to load profile image from collection: $collectionId");
-          final profileDoc = await _databases.getDocument(
-            databaseId: databaseId,
-            collectionId: collectionId,
-            documentId: userId,
-          );
-
-          final profileImageId = profileDoc.data['profile_image'];
-          if (profileImageId != null) {
-            final fileViewUrl =
-                'https://fra.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/$profileImageId/view?project=$projectId';
-            setState(() {
-              _profileImageUrl = fileViewUrl;
-            });
-            print("✅ Profile image loaded successfully");
-          } else {
-            print("ℹ️ No profile image found in document");
-          }
-        } catch (e) {
-          print("❌ Error loading profile image: $e");
-          // Create empty profile document if it doesn't exist
-          if (e.toString().contains('document_not_found')) {
-            try {
-              await _databases.createDocument(
-                databaseId: databaseId,
-                collectionId: collectionId,
-                documentId: userId,
-                data: {'profile_image': null},
-              );
-              print("✅ Created empty profile document");
-            } catch (createError) {
-              print("❌ Error creating profile document: $createError");
-            }
-          }
-        }
-
-        // Try to load user name from users collection
-        try {
-          print(
-              "👤 Trying to load user name from collection: $usersCollectionId");
-          final userNameDoc = await _databases.getDocument(
-            databaseId: databaseId,
-            collectionId: usersCollectionId,
-            documentId: userId,
-          );
-
-          final name = userNameDoc.data['name'];
-          if (name != null && name.toString().isNotEmpty) {
-            setState(() {
-              _userName = name.toString();
-            });
-            print("✅ User name loaded from database: $name");
-          } else {
-            print("ℹ️ Name field is empty in users collection");
-          }
-        } catch (e) {
-          print("❌ Error loading user name from database: $e");
-
-          // If document doesn't exist, try to create it with data from auth
-          if (e.toString().contains('document_not_found')) {
-            try {
-              final userData = {
-                'name': _currentUser?.name ??
-                    _currentUser?.email?.split('@')[0] ??
-                    'User',
-                'email': _currentUser?.email ?? '',
-                'userId': userId,
-              };
-
-              await _databases.createDocument(
-                databaseId: databaseId,
-                collectionId: usersCollectionId,
-                documentId: userId,
-                data: userData,
-              );
-
-              setState(() {
-                _userName = userData['name'];
-              });
-
-              print("✅ Created user document with name: ${userData['name']}");
-            } catch (createError) {
-              print("❌ Error creating user document: $createError");
-            }
-          }
-        }
+        await _loadProfileImage(userId);
+        await _loadUserName(userId);
       }
 
       setState(() {
         _isLoading = false;
       });
-
-      print("🎉 Profile data loading completed");
-      print("Final state - Name: $_userName, Email: $_userEmail");
     } catch (e) {
-      print('❌ General error loading profile data: $e');
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _getUserLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  Future<void> _loadProfileImage(String userId) async {
+    try {
+      final profileDoc = await _databases.getDocument(
+        databaseId: databaseId,
+        collectionId: collectionId,
+        documentId: userId,
+      );
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      print('Location services are disabled.');
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        print('Location permission is denied');
-        return;
+      final profileImageId = profileDoc.data['profile_image'];
+      if (profileImageId != null) {
+        final fileViewUrl =
+            'https://fra.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/$profileImageId/view?project=$projectId';
+        setState(() {
+          _profileImageUrl = fileViewUrl;
+        });
+      }
+    } catch (e) {
+      if (e.toString().contains('document_not_found')) {
+        await _databases.createDocument(
+          databaseId: databaseId,
+          collectionId: collectionId,
+          documentId: userId,
+          data: {'profile_image': null},
+        );
       }
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      print(
-          'Location permission is permanently denied, we cannot request permissions.');
-      return;
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-
-    print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
-
-    setState(() {
-      _userLocation =
-          'Latitude: ${position.latitude}, Longitude: ${position.longitude}';
-    });
   }
 
-  // Fungsi untuk membuka WhatsApp
+  Future<void> _loadUserName(String userId) async {
+    try {
+      final userNameDoc = await _databases.getDocument(
+        databaseId: databaseId,
+        collectionId: usersCollectionId,
+        documentId: userId,
+      );
+
+      final name = userNameDoc.data['name'];
+      if (name != null && name.toString().isNotEmpty) {
+        setState(() {
+          _userName = name.toString();
+        });
+      }
+    } catch (e) {
+      if (e.toString().contains('document_not_found')) {
+        final userData = {
+          'name': _currentUser?.name ??
+              _currentUser?.email?.split('@')[0] ??
+              'User',
+          'email': _currentUser?.email ?? '',
+          'userId': userId,
+        };
+
+        await _databases.createDocument(
+          databaseId: databaseId,
+          collectionId: usersCollectionId,
+          documentId: userId,
+          data: userData,
+        );
+
+        setState(() {
+          _userName = userData['name'];
+        });
+      }
+    }
+  }
+
   Future<void> _openWhatsApp() async {
     const phoneNumber = '6282377832998';
     const message = 'Halo, saya butuh bantuan customer service';
-
-    // Encode pesan untuk URL
     final encodedMessage = Uri.encodeComponent(message);
-
-    // Buat URL WhatsApp
     final url =
         'https://api.whatsapp.com/send?phone=$phoneNumber&text=$encodedMessage';
 
     try {
       final uri = Uri.parse(url);
-
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        // Fallback ke browser
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
-      print('Error: $e');
       _showErrorDialog('Tidak dapat membuka WhatsApp. Error: ${e.toString()}');
     }
   }
 
-  // Fungsi untuk menampilkan dialog error
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -399,7 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Menambahkan background putih bersih
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: AppBar(
@@ -490,8 +378,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => FavoriteScreen(),
-                              ),
+                                  builder: (context) => FavoriteScreen()),
                             );
                           }),
                         ],
@@ -510,27 +397,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: Text(
                         'For Customer Service (chat only)',
                         style: TextStyle(
-                            fontSize: 13,
-                            fontWeight:
-                                FontWeight.bold), // Ukuran font untuk title
+                            fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                         '0823 - 7783 - 2998',
-                        style: TextStyle(
-                            fontSize: 13), // Ukuran font untuk subtitle
+                        style: TextStyle(fontSize: 13),
                       ),
-                      trailing: Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.black,
-                        size: 12,
-                      ),
-                      onTap: _openWhatsApp, // Ganti dengan fungsi WhatsApp
+                      trailing: Icon(Icons.arrow_forward_ios,
+                          color: Colors.black, size: 12),
+                      onTap: _openWhatsApp,
                     ),
                     SizedBox(height: 30),
                     ElevatedButton(
                       onPressed: () async {
                         bool? isConfirmed = await _notifLogout(context);
-
                         if (isConfirmed == true) {
                           try {
                             await _account.deleteSession(sessionId: 'current');
@@ -540,7 +420,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   builder: (context) => SplashScreen()),
                             );
                           } catch (e) {
-                            print('Logout failed: $e');
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   content:
@@ -556,8 +435,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding:
                             EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                       ),
-                      child: Text("Keluar",
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                      child: Text(
+                        "Keluar",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ),
                   ],
                 ),
@@ -574,10 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           dense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
           visualDensity: VisualDensity(horizontal: 0, vertical: -4),
-          title: Text(
-            title,
-            style: TextStyle(fontSize: 16),
-          ),
+          title: Text(title, style: TextStyle(fontSize: 16)),
           trailing: Icon(Icons.chevron_right, size: 20),
           onTap: onTap,
           minVerticalPadding: 0,

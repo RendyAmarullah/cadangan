@@ -6,8 +6,8 @@ import 'dart:convert';
 class ChatRoomScreen extends StatefulWidget {
   final String orderId;
   final String userId;
-  final String userRole; // 'customer' atau 'employee'
-  final String orderInfo; // Info pesanan untuk header
+  final String userRole;
+  final String orderInfo;
 
   ChatRoomScreen({
     required this.orderId,
@@ -34,8 +34,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
-  final String chatCollectionId =
-      '68666f5c00159b853aab'; // ID collection untuk chat
+  final String chatCollectionId = '68666f5c00159b853aab';
 
   @override
   void initState() {
@@ -54,19 +53,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     _databases = Databases(_client);
     _realtime = Realtime(_client);
-
-    // Debug: Print client configuration
-    print('Appwrite Client initialized');
-    print('Endpoint: https://fra.cloud.appwrite.io/v1');
-    print('Project ID: $projectId');
-    print('Database ID: $databaseId');
-    print('Chat Collection ID: $chatCollectionId');
   }
 
   Future<void> _loadMessages() async {
     try {
-      print('Loading messages for order: ${widget.orderId}');
-
       final response = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: chatCollectionId,
@@ -75,9 +65,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           Query.orderAsc('\$createdAt'),
         ],
       );
-
-      print(
-          'Messages loaded successfully: ${response.documents.length} messages');
 
       setState(() {
         _messages = response.documents.map((doc) {
@@ -95,20 +82,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
       _scrollToBottom();
     } catch (e) {
-      print('Error loading messages: $e');
-      print('Error type: ${e.runtimeType}');
-
-      if (e is AppwriteException) {
-        print('Appwrite Error Code: ${e.code}');
-        print('Appwrite Error Message: ${e.message}');
-        print('Appwrite Error Type: ${e.type}');
-      }
-
       setState(() {
         _isLoading = false;
       });
 
-      // Show error to user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -123,20 +100,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _subscribeToMessages() {
     try {
-      print('Subscribing to messages...');
-
       _realtime
           .subscribe(
               ['databases.$databaseId.collections.$chatCollectionId.documents'])
           .stream
           .listen(
             (response) {
-              print('Realtime event received: ${response.events}');
-
               if (response.events
                   .contains('databases.*.collections.*.documents.*.create')) {
                 final newMessage = response.payload;
-                print('New message payload: $newMessage');
 
                 if (newMessage['orderId'] == widget.orderId) {
                   setState(() {
@@ -154,18 +126,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               }
             },
             onError: (error) {
-              print('Realtime subscription error: $error');
+              // Handle error silently
             },
           );
     } catch (e) {
-      print('Error setting up realtime subscription: $e');
+      // Handle error silently
     }
   }
 
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty || _isSending) return;
 
-    // Validasi data sebelum mengirim
     if (widget.orderId.isEmpty || widget.userId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -182,11 +153,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     try {
       final message = _messageController.text.trim();
-      print('Attempting to send message: $message');
-      print('Order ID: ${widget.orderId}');
-      print('User ID: ${widget.userId}');
-      print('User Role: ${widget.userRole}');
-
       _messageController.clear();
 
       final messageData = {
@@ -197,37 +163,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         'timestamp': DateTime.now().toIso8601String(),
       };
 
-      print('Message data to send: $messageData');
-
-      final response = await _databases.createDocument(
+      await _databases.createDocument(
         databaseId: databaseId,
         collectionId: chatCollectionId,
         documentId: ID.unique(),
         data: messageData,
       );
 
-      print('Message sent successfully: ${response.$id}');
-
       setState(() {
         _isSending = false;
       });
     } catch (e) {
-      print('Detailed error sending message: $e');
-      print('Error type: ${e.runtimeType}');
-
-      // Cek jika error adalah AppwriteException
-      if (e is AppwriteException) {
-        print('Appwrite Error Code: ${e.code}');
-        print('Appwrite Error Message: ${e.message}');
-        print('Appwrite Error Type: ${e.type}');
-        print('Appwrite Error Response: ${e.response}');
-      }
-
       setState(() {
         _isSending = false;
       });
 
-      // Tampilkan error yang lebih spesifik
       String errorMessage = 'Gagal mengirim pesan';
       if (e is AppwriteException) {
         switch (e.code) {
@@ -342,26 +292,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  // Method untuk test koneksi
-  Future<void> _testConnection() async {
-    try {
-      print('Testing connection...');
-      final response = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: chatCollectionId,
-        queries: [Query.limit(1)],
-      );
-      print(
-          'Connection test successful: ${response.documents.length} documents found');
-    } catch (e) {
-      print('Connection test failed: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Clean white background
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Color(0xFF0072BC),
         elevation: 0,
@@ -386,20 +320,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ],
         ),
         iconTheme: IconThemeData(color: Colors.white),
-        actions: [
-          // Tambahkan tombol untuk test koneksi (development only)
-          if (false) // Set ke true untuk development
-            IconButton(
-              icon: Icon(Icons.refresh),
-              onPressed: _testConnection,
-            ),
-        ],
       ),
       body: Column(
         children: [
           Expanded(
             child: Container(
-              color: Colors.white, // Explicit white background
+              color: Colors.white,
               child: _isLoading
                   ? Center(
                       child: Column(

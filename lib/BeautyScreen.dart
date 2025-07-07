@@ -30,7 +30,6 @@ class _BeautyScreenState extends State<BeautyScreen> {
 
   String formatPrice(dynamic price) {
     String priceStr = '';
-
     if (price is String) {
       priceStr = price;
     } else if (price is int) {
@@ -43,16 +42,14 @@ class _BeautyScreenState extends State<BeautyScreen> {
 
     String result = '';
     int count = 0;
-
     for (int i = priceStr.length - 1; i >= 0; i--) {
       if (count == 3) {
-        result = '.' + result;
+        result = '.$result';
         count = 0;
       }
-      result = priceStr[i] + result;
+      result = '${priceStr[i]}$result';
       count++;
     }
-
     return result;
   }
 
@@ -81,19 +78,49 @@ class _BeautyScreenState extends State<BeautyScreen> {
     await _fetchProducts();
     await _fetchCart();
     await _fetchFavorites();
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
   }
 
   Future<void> _getCurrentUser() async {
     try {
       final models.User user = await _account.get();
-      setState(() {
-        userId = user.$id;
-      });
+      setState(() => userId = user.$id);
     } catch (e) {
       print('Error getting user: $e');
+    }
+  }
+
+  Future<void> _fetchProducts() async {
+    try {
+      final models.DocumentList result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: productsCollectionId,
+        queries: [Query.equal('category', 'beauty')],
+      );
+      setState(
+          () => products = result.documents.map((doc) => doc.data).toList());
+    } catch (e) {
+      print('Error fetching products: $e');
+    }
+  }
+
+  Future<void> _fetchCart() async {
+    try {
+      final result = await _databases.listDocuments(
+        databaseId: databaseId,
+        collectionId: cartsCollectionId,
+        queries: [Query.equal('userId', userId)],
+      );
+
+      final cartItems = result.documents.map((doc) => doc.data).toList();
+      setState(() {
+        productQuantities.clear();
+        for (var item in cartItems) {
+          productQuantities[item['productId']] = item['quantity'];
+        }
+      });
+    } catch (e) {
+      print('Error fetching cart: $e');
     }
   }
 
@@ -102,9 +129,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: favoritesCollectionId,
-        queries: [
-          Query.equal('userIds', userId),
-        ],
+        queries: [Query.equal('userIds', userId)],
       );
 
       setState(() {
@@ -131,11 +156,10 @@ class _BeautyScreenState extends State<BeautyScreen> {
       );
 
       if (existingFavorites.documents.isNotEmpty) {
-        final docId = existingFavorites.documents.first.$id;
         await _databases.deleteDocument(
           databaseId: databaseId,
           collectionId: favoritesCollectionId,
-          documentId: docId,
+          documentId: existingFavorites.documents.first.$id,
         );
 
         setState(() {
@@ -184,47 +208,6 @@ class _BeautyScreenState extends State<BeautyScreen> {
     );
   }
 
-  Future<void> _fetchProducts() async {
-    try {
-      final models.DocumentList result = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: productsCollectionId,
-        queries: [
-          Query.equal('category', 'beauty'),
-        ],
-      );
-
-      setState(() {
-        products = result.documents.map((doc) => doc.data).toList();
-      });
-    } catch (e) {
-      print('Error fetching products: $e');
-    }
-  }
-
-  Future<void> _fetchCart() async {
-    try {
-      final result = await _databases.listDocuments(
-        databaseId: databaseId,
-        collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
-      );
-
-      final cartItems = result.documents.map((doc) => doc.data).toList();
-
-      setState(() {
-        productQuantities.clear();
-        for (var item in cartItems) {
-          productQuantities[item['productId']] = item['quantity'];
-        }
-      });
-    } catch (e) {
-      print('Error fetching cart: $e');
-    }
-  }
-
   Future<void> _updateCart(Map<String, dynamic> product, int quantity) async {
     try {
       final existingItems = await _databases.listDocuments(
@@ -237,11 +220,10 @@ class _BeautyScreenState extends State<BeautyScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        final docId = existingItems.documents.first.$id;
         await _databases.updateDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
-          documentId: docId,
+          documentId: existingItems.documents.first.$id,
           data: {'quantity': quantity},
         );
       } else {
@@ -260,9 +242,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
         );
       }
 
-      setState(() {
-        productQuantities[product['\$id']] = quantity;
-      });
+      setState(() => productQuantities[product['\$id']] = quantity);
     } catch (e) {
       print('Error updating cart: $e');
     }
@@ -306,7 +286,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -327,17 +307,12 @@ class _BeautyScreenState extends State<BeautyScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    iconSize: 20,
+                                    iconSize: 25,
                                     padding: EdgeInsets.all(4),
                                     constraints: BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    icon: Icon(
-                                      Icons.remove_circle_outline,
-                                      color: Color(0xFF0072BC),
-                                      size: 25,
-                                    ),
+                                        minWidth: 32, minHeight: 32),
+                                    icon: Icon(Icons.remove_circle_outline,
+                                        color: Color(0xFF0072BC)),
                                     onPressed: displayQty > 1
                                         ? () {
                                             setModalState(() {
@@ -349,23 +324,16 @@ class _BeautyScreenState extends State<BeautyScreen> {
                                   Padding(
                                     padding:
                                         EdgeInsets.symmetric(horizontal: 8),
-                                    child: Text(
-                                      displayQty.toString(),
-                                      style: TextStyle(fontSize: 14),
-                                    ),
+                                    child: Text(displayQty.toString(),
+                                        style: TextStyle(fontSize: 14)),
                                   ),
                                   IconButton(
-                                    iconSize: 20,
+                                    iconSize: 25,
                                     padding: EdgeInsets.all(4),
                                     constraints: BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    icon: Icon(
-                                      Icons.add_circle_outlined,
-                                      color: Color(0xFF0072BC),
-                                      size: 25,
-                                    ),
+                                        minWidth: 32, minHeight: 32),
+                                    icon: Icon(Icons.add_circle_outlined,
+                                        color: Color(0xFF0072BC)),
                                     onPressed: () {
                                       setModalState(() {
                                         displayQty++;
@@ -382,7 +350,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF8Dc63F),
+                              backgroundColor: Color(0xFF8DC63F),
                               padding: EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -415,8 +383,10 @@ class _BeautyScreenState extends State<BeautyScreen> {
   List<Map<String, dynamic>> get filteredProducts {
     if (searchQuery.isEmpty) return products;
     return products.where((product) {
-      final name = product['name'].toString().toLowerCase();
-      return name.contains(searchQuery.toLowerCase());
+      return product['name']
+          .toString()
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase());
     }).toList();
   }
 
@@ -453,11 +423,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
               height: 45,
               child: TextField(
                 controller: searchController,
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
+                onChanged: (value) => setState(() => searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Cari produk...',
                   prefixIcon: Icon(Icons.search, size: 20),
@@ -465,9 +431,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
                       ? GestureDetector(
                           onTap: () {
                             searchController.clear();
-                            setState(() {
-                              searchQuery = '';
-                            });
+                            setState(() => searchQuery = '');
                           },
                           child:
                               Icon(Icons.clear, color: Colors.grey, size: 20),
@@ -491,14 +455,14 @@ class _BeautyScreenState extends State<BeautyScreen> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
                 : filteredProducts.isEmpty
-                    ? Center(child: Text('Tidak ada produk ditemukan.'))
+                    ? Center(child: Text('Produk tidak ditemukan.'))
                     : ListView.builder(
                         padding: EdgeInsets.all(8),
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           var product = filteredProducts[index];
-                          bool isFavorite = favoriteItems.any(
-                              (item) => item['productId'] == product['\$id']);
+                          bool isFavorite =
+                              favoriteProductIds.contains(product['\$id']);
 
                           return GestureDetector(
                             onTap: () => _showProductDetail(product),
@@ -510,10 +474,6 @@ class _BeautyScreenState extends State<BeautyScreen> {
                               elevation: 0,
                               child: Container(
                                 padding: const EdgeInsets.all(8.0),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Colors.white,
-                                ),
                                 child: Row(
                                   children: [
                                     ClipRRect(
@@ -535,7 +495,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
                                             product['name'],
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 20),
+                                                fontSize: 17),
                                           ),
                                           Text(
                                             'Rp ${formatPrice(product['price'])}',
@@ -574,11 +534,7 @@ class _BeautyScreenState extends State<BeautyScreen> {
           );
           await _fetchCart();
         },
-        child: Icon(
-          Icons.shopping_bag_rounded,
-          color: Colors.white,
-          size: 30,
-        ),
+        child: Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 30),
         backgroundColor: Color(0xFF0072BC),
       ),
     );

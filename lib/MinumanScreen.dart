@@ -95,9 +95,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: favoritesCollectionId,
-        queries: [
-          Query.equal('userIds', userId),
-        ],
+        queries: [Query.equal('userIds', userId)],
       );
 
       setState(() {
@@ -124,7 +122,6 @@ class _MinumanScreenState extends State<MinumanScreen> {
       );
 
       if (existingFavorites.documents.isNotEmpty) {
-        // Remove from favorites
         final docId = existingFavorites.documents.first.$id;
         await _databases.deleteDocument(
           databaseId: databaseId,
@@ -139,7 +136,6 @@ class _MinumanScreenState extends State<MinumanScreen> {
 
         _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
       } else {
-        // Add to favorites
         final newFavorite = {
           'userIds': userId,
           'productId': productId,
@@ -184,9 +180,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
-        queries: [
-          Query.equal('category', 'minuman'),
-        ],
+        queries: [Query.equal('category', 'minuman')],
       );
 
       setState(() {
@@ -202,9 +196,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
+        queries: [Query.equal('userId', userId)],
       );
 
       setState(() {
@@ -231,7 +223,6 @@ class _MinumanScreenState extends State<MinumanScreen> {
       );
 
       if (existingItems.documents.isNotEmpty) {
-        // Update existing item
         final docId = existingItems.documents.first.$id;
         await _databases.updateDocument(
           databaseId: databaseId,
@@ -240,7 +231,6 @@ class _MinumanScreenState extends State<MinumanScreen> {
           data: {'quantity': quantity},
         );
       } else {
-        // Create new item
         await _databases.createDocument(
           databaseId: databaseId,
           collectionId: cartsCollectionId,
@@ -301,7 +291,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -530,7 +520,7 @@ class _MinumanScreenState extends State<MinumanScreen> {
                                             product['name'],
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 20),
+                                                fontSize: 17),
                                           ),
                                           Text(
                                             'Rp ${formatPrice(product['price'])}',

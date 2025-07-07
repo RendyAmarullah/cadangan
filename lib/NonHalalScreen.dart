@@ -29,16 +29,9 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
   bool isLoading = true;
 
   String formatPrice(dynamic price) {
-    String priceStr = '';
-
-    if (price is String) {
-      priceStr = price;
-    } else if (price is int) {
-      priceStr = price.toString();
-    } else if (price is double) {
+    String priceStr = price.toString();
+    if (price is double) {
       priceStr = price.toInt().toString();
-    } else {
-      return '0';
     }
 
     String result = '';
@@ -102,9 +95,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: favoritesCollectionId,
-        queries: [
-          Query.equal('userIds', userId),
-        ],
+        queries: [Query.equal('userIds', userId)],
       );
 
       setState(() {
@@ -143,13 +134,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
           favoriteProductIds.remove(productId);
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${product['name']} dihapus dari favorit'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        _showSnackBar('${product['name']} dihapus dari favorit', Colors.orange);
       } else {
         final newFavorite = {
           'userIds': userId,
@@ -171,24 +156,23 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
           favoriteProductIds.add(productId);
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${product['name']} ditambahkan ke favorit'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        _showSnackBar(
+            '${product['name']} ditambahkan ke favorit', Colors.green);
       }
     } catch (e) {
       print('Error toggling favorite: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal mengubah favorit. Silakan coba lagi.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _showSnackBar('Gagal mengubah favorit. Silakan coba lagi.', Colors.red);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _fetchProducts() async {
@@ -196,9 +180,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
       final models.DocumentList result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: productsCollectionId,
-        queries: [
-          Query.equal('category', 'non-halal'),
-        ],
+        queries: [Query.equal('category', 'non-halal')],
       );
 
       setState(() {
@@ -214,16 +196,13 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
       final result = await _databases.listDocuments(
         databaseId: databaseId,
         collectionId: cartsCollectionId,
-        queries: [
-          Query.equal('userId', userId),
-        ],
+        queries: [Query.equal('userId', userId)],
       );
 
-      final cartItems = result.documents.map((doc) => doc.data).toList();
       setState(() {
         productQuantities.clear();
-        for (var item in cartItems) {
-          productQuantities[item['productId']] = item['quantity'];
+        for (var doc in result.documents) {
+          productQuantities[doc.data['productId']] = doc.data['quantity'];
         }
       });
     } catch (e) {
@@ -231,7 +210,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
     }
   }
 
-  Future<void> _addToCartWithQuantity(
+  Future<void> _updateCartQuantity(
       Map<String, dynamic> product, int quantity) async {
     try {
       final existingItems = await _databases.listDocuments(
@@ -270,7 +249,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
       productQuantities[product['\$id']] = quantity;
       setState(() {});
     } catch (e) {
-      print('Error adding to cart: $e');
+      print('Error updating cart: $e');
     }
   }
 
@@ -312,7 +291,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
                         Text(
                           product['name'],
                           style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -395,7 +374,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
                               ),
                             ),
                             onPressed: () async {
-                              await _addToCartWithQuantity(product, displayQty);
+                              await _updateCartQuantity(product, displayQty);
                               Navigator.pop(context);
                             },
                             child: Text(
@@ -448,9 +427,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
@@ -543,7 +520,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
                                             product['name'],
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 20),
+                                                fontSize: 17),
                                           ),
                                           Text(
                                             'Rp ${formatPrice(product['price'])}',
@@ -562,9 +539,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
                                             : Colors.grey,
                                         size: 28,
                                       ),
-                                      onPressed: () {
-                                        _toggleFavorite(product);
-                                      },
+                                      onPressed: () => _toggleFavorite(product),
                                     ),
                                   ],
                                 ),

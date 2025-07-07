@@ -3,11 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:pemesanan/RoomChatt.dart';
 import 'dart:convert';
 
-final client = Client()
-  ..setEndpoint('https://fra.cloud.appwrite.io/v1')
-  ..setProject('681aa0b70002469fc157')
-  ..setSelfSigned(status: true);
-
 class StatusPesananKaryawanScreen extends StatefulWidget {
   final String userId;
   StatusPesananKaryawanScreen({required this.userId});
@@ -21,7 +16,6 @@ class _StatusPesananKaryawanScreenState
     extends State<StatusPesananKaryawanScreen> {
   late Client _client;
   late Databases _databases;
-  late Account _account;
   List<Map<String, dynamic>> _allOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -44,7 +38,6 @@ class _StatusPesananKaryawanScreenState
         .setProject(projectId)
         .setSelfSigned(status: true);
     _databases = Databases(_client);
-    _account = Account(_client);
   }
 
   Future<void> _fetchOrders() async {
@@ -106,7 +99,6 @@ class _StatusPesananKaryawanScreenState
         documentId: orderId,
         data: {'status': newStatus},
       );
-      // Update local state to reflect the changes
       setState(() {
         _allOrders = _allOrders.map((order) {
           if (order['orderId'] == orderId) {
@@ -200,8 +192,6 @@ class _StatusPesananKaryawanScreenState
               ],
             ),
             SizedBox(height: 12),
-
-            // Alamat
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -223,8 +213,6 @@ class _StatusPesananKaryawanScreenState
               ],
             ),
             SizedBox(height: 8),
-
-            // Produk
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -263,7 +251,6 @@ class _StatusPesananKaryawanScreenState
               ],
             ),
             SizedBox(height: 12),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -311,8 +298,6 @@ class _StatusPesananKaryawanScreenState
                 ),
               ],
             ),
-
-            // Action buttons - GANTI BAGIAN INI
             if (status == 'sedang diproses')
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),

@@ -8,7 +8,8 @@ class LupaPasswordScreen extends StatefulWidget {
 class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isEmailSubmitted = false;
 
@@ -24,7 +25,6 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
     if (_formKey.currentState!.validate()) {
       String email = _emailController.text.trim();
 
-      // Tampilkan dialog sukses untuk email
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -36,7 +36,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                 onPressed: () {
                   Navigator.of(context).pop();
                   setState(() {
-                    _isEmailSubmitted = true; // Ubah status setelah email dikirim
+                    _isEmailSubmitted = true;
                   });
                 },
                 child: Text('OK'),
@@ -52,7 +52,6 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
 
   void _submitNewPassword() {
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      // Tampilkan pesan error jika password tidak cocok
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -61,9 +60,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
             content: Text('Password dan konfirmasi password tidak cocok.'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: Text('OK'),
               ),
             ],
@@ -71,9 +68,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
         },
       );
     } else {
-      // Implementasi logika untuk reset password
       String newPassword = _newPasswordController.text.trim();
-      // Tampilkan dialog sukses
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -84,7 +79,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Kembali ke halaman login
+                  Navigator.of(context).pop();
                 },
                 child: Text('OK'),
               ),
@@ -119,6 +114,55 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
     return null;
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    required String? Function(String?) validator,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        validator: validator,
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.black87,
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: Colors.grey[600],
+          ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,13 +186,10 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header dengan tombol back
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
+                        onTap: () => Navigator.pop(context),
                         child: Container(
                           width: 40,
                           height: 40,
@@ -161,17 +202,12 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                       SizedBox(width: 16),
                     ],
                   ),
-
-                  // Spacer untuk mendorong form ke tengah
                   Spacer(flex: 2),
-
-                  // Form Section
                   Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Instruksi
                         Container(
                           margin: EdgeInsets.only(bottom: 30),
                           child: Text(
@@ -186,132 +222,32 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                             textAlign: TextAlign.center,
                           ),
                         ),
-
-                        // Email TextField (tampil hanya jika email belum dikirim)
                         if (!_isEmailSubmitted)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: _validateEmail,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Email',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.email_outlined,
-                                  color: Colors.grey[600],
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 15,
-                                ),
-                              ),
-                            ),
+                          _buildTextField(
+                            controller: _emailController,
+                            hintText: 'Email',
+                            icon: Icons.email_outlined,
+                            validator: _validateEmail,
+                            keyboardType: TextInputType.emailAddress,
                           ),
-
-                        // Password TextFields (tampil setelah email dikirim)
                         if (_isEmailSubmitted) ...[
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: TextFormField(
-                              controller: _newPasswordController,
-                              obscureText: true,
-                              validator: _validatePassword,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Password Baru',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  color: Colors.grey[600],
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 15,
-                                ),
-                              ),
-                            ),
+                          _buildTextField(
+                            controller: _newPasswordController,
+                            hintText: 'Password Baru',
+                            icon: Icons.lock_outline,
+                            validator: _validatePassword,
+                            obscureText: true,
                           ),
                           SizedBox(height: 20),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: TextFormField(
-                              controller: _confirmPasswordController,
-                              obscureText: true,
-                              validator: _validatePassword,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Konfirmasi Password',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  color: Colors.grey[600],
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 15,
-                                ),
-                              ),
-                            ),
+                          _buildTextField(
+                            controller: _confirmPasswordController,
+                            hintText: 'Konfirmasi Password',
+                            icon: Icons.lock_outline,
+                            validator: _validatePassword,
+                            obscureText: true,
                           ),
                         ],
-
                         SizedBox(height: 30),
-
-                        // Submit Button
                         Container(
                           height: 50,
                           decoration: BoxDecoration(
@@ -357,10 +293,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                       ],
                     ),
                   ),
-
                   Spacer(flex: 3),
-
-                  // Footer text
                   Center(
                     child: Text(
                       'Ingat password Anda?',
@@ -373,9 +306,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                   SizedBox(height: 8),
                   Center(
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
+                      onTap: () => Navigator.pop(context),
                       child: Text(
                         'Kembali ke Login',
                         style: TextStyle(

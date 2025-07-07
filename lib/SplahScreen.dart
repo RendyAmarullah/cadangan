@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   bool _showImage = false;
   bool _showForm = false;
   bool _isLoading = false;
-  bool _obscureText = true; // Ditambahkan untuk toggle visibilitas password
+  bool _obscureText = true;
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -74,7 +74,6 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final user = await account.get();
       if (user != null) {
-        print("User sudah login: ${user.email}");
         final isAccountActive = await _checkAccountStatus(user.$id);
         if (!isAccountActive) {
           await account.deleteSession(sessionId: 'current');
@@ -95,8 +94,6 @@ class _SplashScreenState extends State<SplashScreen>
         documentId: userId,
       );
       final status = response.data['status'] ?? 'Aktif';
-      print("Status akun: $status");
-
       return status == 'Aktif';
     } catch (e) {
       print("Error checking account status: $e");
@@ -112,9 +109,9 @@ class _SplashScreenState extends State<SplashScreen>
         collectionId: collectionId,
         documentId: userId,
       );
-      print("Response data: ${response.data}");
+
       final roles = List<String>.from(response.data['roles'] ?? []);
-      print("Roles pengguna: $roles");
+
       if (roles.contains('karyawan')) {
         Navigator.pushReplacement(
           context,
@@ -144,21 +141,20 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _login() async {
     if (_isLoading) return;
+
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Email dan password harus diisi')),
-      );
+      _showSnackBar('Email dan password harus diisi');
       return;
     }
 
     setState(() {
       _isLoading = true;
     });
+
     try {
       try {
         await account.deleteSession(sessionId: 'current');
-        print("Session lama berhasil dihapus");
       } catch (e) {
         print("Tidak ada session aktif untuk dihapus: $e");
       }
@@ -167,19 +163,18 @@ class _SplashScreenState extends State<SplashScreen>
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      print("Login berhasil, session ID: ${session.$id}");
 
       final user = await account.get();
-      print("User info: ${user.email}");
       final isAccountActive = await _checkAccountStatus(user.$id);
+
       if (!isAccountActive) {
         await account.deleteSession(sessionId: 'current');
         _showAccountInactiveDialog();
         return;
       }
+
       await _navigateBasedOnRole(user);
     } on AppwriteException catch (e) {
-      print("Login error: ${e.message} (Code: ${e.code})");
       String errorMessage;
       switch (e.code) {
         case 401:
@@ -191,15 +186,10 @@ class _SplashScreenState extends State<SplashScreen>
         default:
           errorMessage = 'Login gagal: ${e.message}';
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      _showSnackBar(errorMessage);
     } catch (e) {
       print("Unexpected error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan tidak terduga')),
-      );
+      _showSnackBar('Terjadi kesalahan tidak terduga');
     } finally {
       if (mounted) {
         setState(() {
@@ -207,6 +197,12 @@ class _SplashScreenState extends State<SplashScreen>
         });
       }
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   void _showAccountInactiveDialog() {
@@ -239,9 +235,7 @@ class _SplashScreenState extends State<SplashScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: Text('Tutup'),
             ),
             ElevatedButton(
@@ -275,196 +269,194 @@ class _SplashScreenState extends State<SplashScreen>
         onTap: _showForm ? null : _toggleForm,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: _showImage
-                  ? SlideTransition(
-                      position: _animation,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.asset(
-                            'images/login.png',
-                            fit: BoxFit.cover,
-                          ),
-                          Container(
-                            color: Colors.black.withOpacity(0.3),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Image.asset(
-                      "images/logo.PNG",
-                      fit: BoxFit.cover,
-                    ),
-            ),
-            if (_showImage && !_showForm)
-              Positioned(
-                bottom: 60,
-                left: 0,
-                right: 0,
-                child: Column(
-                  children: [
-                    Text(
-                      "Geser Ke Atas",
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Untuk Masuk",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Icon(
-                      Icons.keyboard_arrow_up,
-                      size: 30,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-            if (_showForm)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: SingleChildScrollView(
-                      physics: NeverScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Masukkan Akun Anda",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              style: TextStyle(color: Colors.black),
-                              decoration: _inputDecoration("Email"),
-                              enabled: !_isLoading,
-                            ),
-                            SizedBox(height: 15),
-                            TextFormField(
-                              obscureText:
-                                  _obscureText, // Menggunakan _obscureText di sini
-                              controller: _passwordController,
-                              style: TextStyle(color: Colors.black),
-                              decoration: _inputDecoration("Password").copyWith(
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureText
-                                        ? Icons
-                                            .visibility_off // Ikon mata tertutup jika disembunyikan
-                                        : Icons
-                                            .visibility, // Ikon mata terbuka jika terlihat
-                                    color: Colors.black54,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureText =
-                                          !_obscureText; // Mengubah nilai _obscureText
-                                    });
-                                  },
-                                ),
-                              ),
-                              enabled: !_isLoading,
-                              onFieldSubmitted: (_) => _login(),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                TextButton(
-                                  onPressed: _isLoading
-                                      ? null
-                                      : () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (context) =>
-                                                    SignUpScreen()),
-                                          );
-                                        },
-                                  child: Text("Daftar",
-                                      style:
-                                          TextStyle(color: Color(0xFF8DC63F))),
-                                ),
-                                TextButton(
-                                  onPressed: _isLoading
-                                      ? null
-                                      : () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (context) =>
-                                                    LupaPasswordScreen()),
-                                          );
-                                        },
-                                  child: Text("Lupa Password",
-                                      style:
-                                          TextStyle(color: Color(0xFF8DC63F))),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10),
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                shape: StadiumBorder(),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 40, vertical: 12),
-                              ),
-                              child: _isLoading
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      "MASUK",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                            if (_isLoading) ...[
-                              SizedBox(height: 10),
-                              Text(
-                                "Sedang masuk...",
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            _buildBackground(),
+            if (_showImage && !_showForm) _buildSwipeUpIndicator(),
+            if (_showForm) _buildLoginForm(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Positioned.fill(
+      child: _showImage
+          ? SlideTransition(
+              position: _animation,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset('images/login.png', fit: BoxFit.cover),
+                  Container(color: Colors.black.withOpacity(0.3)),
+                ],
+              ),
+            )
+          : Image.asset("images/logo.PNG", fit: BoxFit.cover),
+    );
+  }
+
+  Widget _buildSwipeUpIndicator() {
+    return Positioned(
+      bottom: 60,
+      left: 0,
+      right: 0,
+      child: Column(
+        children: [
+          Text(
+            "Geser Ke Atas",
+            style: TextStyle(
+              fontSize: 20,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            "Untuk Masuk",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white70,
+            ),
+          ),
+          SizedBox(height: 10),
+          Icon(
+            Icons.keyboard_arrow_up,
+            size: 30,
+            color: Colors.white,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.3),
+        child: Center(
+          child: SingleChildScrollView(
+            physics: NeverScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Masukkan Akun Anda",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: TextStyle(color: Colors.black),
+                    decoration: _inputDecoration("Email"),
+                    enabled: !_isLoading,
+                  ),
+                  SizedBox(height: 15),
+                  TextFormField(
+                    obscureText: _obscureText,
+                    controller: _passwordController,
+                    style: TextStyle(color: Colors.black),
+                    decoration: _inputDecoration("Password").copyWith(
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.black54,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      ),
+                    ),
+                    enabled: !_isLoading,
+                    onFieldSubmitted: (_) => _login(),
+                  ),
+                  _buildActionButtons(),
+                  SizedBox(height: 10),
+                  _buildLoginButton(),
+                  if (_isLoading) ...[
+                    SizedBox(height: 10),
+                    Text(
+                      "Sedang masuk...",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        TextButton(
+          onPressed: _isLoading
+              ? null
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignUpScreen()),
+                  ),
+          child: Text(
+            "Daftar",
+            style: TextStyle(color: Color(0xFF8DC63F)),
+          ),
+        ),
+        TextButton(
+          onPressed: _isLoading
+              ? null
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => LupaPasswordScreen()),
+                  ),
+          child: Text(
+            "Lupa Password",
+            style: TextStyle(color: Color(0xFF8DC63F)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return ElevatedButton(
+      onPressed: _isLoading ? null : _login,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        shape: StadiumBorder(),
+        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+      ),
+      child: _isLoading
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : Text(
+              "MASUK",
+              style: TextStyle(color: Colors.white),
+            ),
     );
   }
 
