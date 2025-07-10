@@ -64,7 +64,7 @@ class _StatusPesananKaryawanScreenState
             products = doc.data['produk'];
           }
         } catch (e) {
-          print('Error decoding products: $e');
+          products = [];
         }
 
         return {
@@ -83,7 +83,6 @@ class _StatusPesananKaryawanScreenState
         _isLoading = false;
       });
     } catch (e) {
-      print('Error fetching orders: $e');
       setState(() {
         _errorMessage = 'Gagal memuat pesanan. Silakan coba lagi.';
         _isLoading = false;
@@ -111,7 +110,6 @@ class _StatusPesananKaryawanScreenState
         SnackBar(content: Text('Pesanan sedang $newStatus')),
       );
     } catch (e) {
-      print('Error updating order status: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memperbarui status pesanan')),
       );
@@ -138,6 +136,8 @@ class _StatusPesananKaryawanScreenState
   Widget _buildOrderCard(Map<String, dynamic> order) {
     List<dynamic> products = order['produk'];
     String status = order['status'] ?? 'unknown';
+    bool showChat = status == 'sedang diproses' || status == 'sedang diantar';
+
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -173,17 +173,21 @@ class _StatusPesananKaryawanScreenState
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: status == 'Sedang Diantar'
+                    color: status == 'sedang diantar'
                         ? Colors.green[100]
-                        : Colors.orange[100],
+                        : status == 'sedang diproses'
+                            ? Colors.orange[100]
+                            : Colors.blue[100],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     status,
                     style: TextStyle(
-                      color: status == 'Sedang Diantar'
+                      color: status == 'sedang diantar'
                           ? Colors.green[800]
-                          : Colors.orange[800],
+                          : status == 'sedang diproses'
+                              ? Colors.orange[800]
+                              : Colors.blue[800],
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -237,7 +241,7 @@ class _StatusPesananKaryawanScreenState
                           .map((product) => Padding(
                                 padding: EdgeInsets.only(left: 8, top: 4),
                                 child: Text(
-                                  '• ${product['nama']} (${product['jumlah']}x)',
+                                  '• ${product['name']} (${product['jumlah']}x)',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.grey[600],
@@ -306,7 +310,7 @@ class _StatusPesananKaryawanScreenState
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () => _updateOrderStatus(
-                            order['orderId'], 'Sedang Diantar'),
+                            order['orderId'], 'sedang diantar'),
                         child: Text('Sedang Diantar'),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
@@ -341,28 +345,13 @@ class _StatusPesananKaryawanScreenState
                 child: Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _updateOrderStatus(
-                            order['orderId'], 'Pesanan Telah Diterima'),
-                        child: Text('Pesanan Telah Diterima'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _openChatRoom(order),
                         icon: Icon(Icons.chat, size: 18),
                         label: Text('Chat'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Color(0xFF0072BC),
-                          side: BorderSide(color: Color(0xFF0072BC)),
+                          foregroundColor: Color(0xFF8DC63F),
+                          side: BorderSide(color: Color(0xFF8DC63F)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -370,22 +359,6 @@ class _StatusPesananKaryawanScreenState
                       ),
                     ),
                   ],
-                ),
-              ),
-            if (status == 'pesanan telah diterima')
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: OutlinedButton.icon(
-                  onPressed: () => _openChatRoom(order),
-                  icon: Icon(Icons.chat, size: 18),
-                  label: Text('Chat Room'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Color(0xFF0072BC),
-                    side: BorderSide(color: Color(0xFF0072BC)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                 ),
               ),
           ],
