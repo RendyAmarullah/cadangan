@@ -516,7 +516,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Order #${order['originalOrderId']}',
+                          'Order ${order['originalOrderId']}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -636,7 +636,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                   if (status.toLowerCase() == 'pesanan telah diterima' ||
                       status.toLowerCase() == 'sedang diproses' ||
                       status.toLowerCase() == 'sedang diantar' ||
-                      status.toLowerCase() == 'diproses')
+                      status.toLowerCase() == 'diproses' ||
+                      status.toLowerCase() == 'menunggu')
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
                       child: Row(

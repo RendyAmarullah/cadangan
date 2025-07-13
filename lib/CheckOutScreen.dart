@@ -6,6 +6,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:pemesanan/AlamatScreen.dart';
 import 'package:pemesanan/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -24,6 +25,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late Storage _storage;
 
   String userId = '';
+  String userName = '';
   String address = 'Memuat alamat...';
   String _metodePembayaran = 'COD';
   bool _isProcessingOrder = false;
@@ -68,6 +70,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final models.User user = await _account.get();
       setState(() {
         userId = user.$id;
+        userName = user.name;
       });
     } catch (e) {
       print('Gagal mendapatkan info pengguna: $e');
@@ -188,11 +191,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  String _generateOrderId() {
-    final random = Random();
-    final randomDigits = random.nextInt(9000) + 1000;
-    return 'MGH$randomDigits';
-  }
+  Future<String> _generateSequentialOrderId() async {
+  final prefs = await SharedPreferences.getInstance();
+  int lastOrderNumber = prefs.getInt('last_order_number') ?? 0;
+  int newOrderNumber = lastOrderNumber + 1;
+
+  await prefs.setInt('last_order_number', newOrderNumber);
+
+  // Format dengan leading zero jika ingin misalnya MGH0001
+  String formattedNumber = newOrderNumber.toString().padLeft(4, '0');
+
+  return 'MGH$formattedNumber';
+}
+
 
   Future<void> _createOrder() async {
     if (_isProcessingOrder) return;
@@ -297,7 +308,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return {
       'userId': user.$id,
-      'orderId': _generateOrderId(),
+      'nama' : userName,
+      'orderId':await _generateSequentialOrderId(),
       'alamat': address,
       'produk': jsonEncode(produkList),
       'metodePembayaran': _metodePembayaran,

@@ -69,6 +69,7 @@ class _StatusPesananKaryawanScreenState
 
         return {
           'orderId': doc.$id,
+          'nama' : doc.data['nama'],
           'originalOrderId': doc.data['orderId'],
           'produk': products,
           'total': doc.data['total'] ?? 0,
@@ -130,7 +131,7 @@ class _StatusPesananKaryawanScreenState
   }
 
   String _formatOrderId(String orderId) {
-    return '#${orderId}';
+    return '${orderId}';
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
@@ -190,6 +191,27 @@ class _StatusPesananKaryawanScreenState
                               : Colors.blue[800],
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.person,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Nama: ${order['nama']}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
                     ),
                   ),
                 ),
@@ -339,7 +361,7 @@ class _StatusPesananKaryawanScreenState
                   ],
                 ),
               ),
-            if (status == 'sedang diantar')
+            if (status == 'sedang diantar' || status == 'selesai' || status == 'Pesanan Telah Diterima')
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: Row(
