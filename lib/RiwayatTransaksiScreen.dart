@@ -187,6 +187,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     return Column(
       children: [
         ...displayedProducts.map((product) {
+          bool isNonHalal = product['kategori'] == 'Non-halal';
           return Container(
             margin: EdgeInsets.only(bottom: 8),
             padding: EdgeInsets.all(8),
@@ -225,6 +226,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 14,
+                          color: isNonHalal ? Colors.blue : Colors.black,
                         ),
                       ),
                       SizedBox(height: 4),

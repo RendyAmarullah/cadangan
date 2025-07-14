@@ -240,6 +240,7 @@ class _NonHalalScreenState extends State<NonHalalScreen> {
             'productId': product['\$id'],
             'name': product['name'],
             'price': product['price'],
+            'category' : product['category'],
             'quantity': quantity,
             'productImageUrl': product['productImageUrl'],
           },

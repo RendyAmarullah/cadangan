@@ -198,7 +198,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   await prefs.setInt('last_order_number', newOrderNumber);
 
-  // Format dengan leading zero jika ingin misalnya MGH0001
+ 
   String formattedNumber = newOrderNumber.toString().padLeft(4, '0');
 
   return 'MGH$formattedNumber';
@@ -297,6 +297,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final produkList = widget.cartItems
         .map((item) => {
               'name': item['name'] ?? 'Produk',
+              'kategori' : item['category'],
               'jumlah': item['quantity'] ?? 1,
               'harga': item['price'] ?? 0,
               'productImageUrl': item['productImageUrl'] ?? ''

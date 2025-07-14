@@ -83,6 +83,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
           return {
             'userId': doc.data['userId'] ?? '',
+            'nama' : doc.data['nama'],
             'alamat': doc.data['alamat'] ?? '',
             'produk': products,
             'metodePembayaran': doc.data['metodePembayaran'] ?? 'COD',
@@ -550,6 +551,27 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Icon(
+                                    Icons.person,
+                                    size: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Nama: ${order['nama']}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
                                     Icons.location_on_outlined,
                                     size: 16,
                                     color: Colors.grey[600],
@@ -588,19 +610,21 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                             color: Colors.grey[700],
                                           ),
                                         ),
-                                        ...products
-                                            .map((product) => Padding(
-                                                  padding: EdgeInsets.only(
-                                                      left: 8, top: 4),
-                                                  child: Text(
-                                                    '• ${product['name']} (${product['jumlah']}x)',
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                  ),
-                                                ))
-                                            .toList(),
+                                        ...products.map((product) {
+                                                    
+                                                    bool isNonHalal = product['kategori'] == 'Non-halal'; 
+
+                                                    return Padding(
+                                                      padding: EdgeInsets.only(left: 8, top: 4),
+                                                      child: Text(
+                                                        '• ${product['name']} (${product['jumlah']}x)',
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          color: isNonHalal ? Colors.blue : Colors.grey[600],
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }).toList(),
                                       ],
                                     ),
                                   ),
