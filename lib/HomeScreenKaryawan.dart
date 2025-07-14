@@ -83,7 +83,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
 
           return {
             'userId': doc.data['userId'] ?? '',
-            'nama' : doc.data['nama'],
+            'nama': doc.data['nama'],
             'alamat': doc.data['alamat'] ?? '',
             'produk': products,
             'metodePembayaran': doc.data['metodePembayaran'] ?? 'COD',
@@ -611,20 +611,24 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                           ),
                                         ),
                                         ...products.map((product) {
-                                                    
-                                                    bool isNonHalal = product['kategori'] == 'Non-halal'; 
+                                          bool isNonHalal =
+                                              product['kategori'] ==
+                                                  'Non-halal';
 
-                                                    return Padding(
-                                                      padding: EdgeInsets.only(left: 8, top: 4),
-                                                      child: Text(
-                                                        '• ${product['name']} (${product['jumlah']}x)',
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                          color: isNonHalal ? Colors.blue : Colors.grey[600],
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }).toList(),
+                                          return Padding(
+                                            padding: EdgeInsets.only(
+                                                left: 8, top: 4),
+                                            child: Text(
+                                              '• ${product['name']} (${product['jumlah']}x)',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: isNonHalal
+                                                    ? Colors.red
+                                                    : Colors.grey[600],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
                                       ],
                                     ),
                                   ),

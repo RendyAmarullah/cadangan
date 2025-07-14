@@ -69,7 +69,7 @@ class _StatusPesananKaryawanScreenState
 
         return {
           'orderId': doc.$id,
-          'nama' : doc.data['nama'],
+          'nama': doc.data['nama'],
           'originalOrderId': doc.data['orderId'],
           'produk': products,
           'total': doc.data['total'] ?? 0,
@@ -260,16 +260,15 @@ class _StatusPesananKaryawanScreenState
                         ),
                       ),
                       ...products.map((product) {
-                        
                         bool isNonHalal = product['kategori'] == 'Non-halal';
-                        
+
                         return Padding(
                           padding: EdgeInsets.only(left: 8, top: 4),
                           child: Text(
                             '• ${product['name']} (${product['jumlah']}x)',
                             style: TextStyle(
                               fontSize: 13,
-                              color: isNonHalal ? Colors.blue : Colors.grey[600],
+                              color: isNonHalal ? Colors.red : Colors.grey[600],
                             ),
                           ),
                         );
@@ -364,7 +363,9 @@ class _StatusPesananKaryawanScreenState
                   ],
                 ),
               ),
-            if (status == 'sedang diantar' || status == 'selesai' || status == 'Pesanan Telah Diterima')
+            if (status == 'sedang diantar' ||
+                status == 'selesai' ||
+                status == 'Pesanan Telah Diterima')
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: Row(

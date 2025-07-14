@@ -226,7 +226,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 14,
-                          color: isNonHalal ? Colors.blue : Colors.black,
+                          color: isNonHalal ? Colors.red : Colors.black,
                         ),
                       ),
                       SizedBox(height: 4),

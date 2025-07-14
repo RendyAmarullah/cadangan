@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'Minuman': null,
     'Market': null,
     'Beauty': null,
-    'NonHalal': null,
+    'Non-halal': null,
     'Barang': null,
   };
 
@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'Minuman',
       'Market',
       'Beauty',
-      'NonHalal',
+      'Non-halal',
       'Barang'
     ];
 
@@ -393,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildDynamicMenuItem(
                           _featuredProducts['Beauty'], BeautyScreen()),
                       _buildDynamicMenuItem(
-                          _featuredProducts['NonHalal'], NonHalalScreen()),
+                          _featuredProducts['Non-halal'], NonHalalScreen()),
                       _buildDynamicMenuItem(
                           _featuredProducts['Barang'], BarangScreen()),
                     ],

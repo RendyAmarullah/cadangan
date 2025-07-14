@@ -125,13 +125,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 }
               }
             },
-            onError: (error) {
-              // Handle error silently
-            },
+            onError: (error) {},
           );
-    } catch (e) {
-      // Handle error silently
-    }
+    } catch (e) {}
   }
 
   Future<void> _sendMessage() async {

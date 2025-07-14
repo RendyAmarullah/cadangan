@@ -20,6 +20,27 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   String userId = '';
   bool isLoading = true;
 
+  String formatPrice(dynamic price) {
+    String priceStr = price.toString();
+    if (price is double) {
+      priceStr = price.toInt().toString();
+    }
+
+    String result = '';
+    int count = 0;
+
+    for (int i = priceStr.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = '.' + result;
+        count = 0;
+      }
+      result = priceStr[i] + result;
+      count++;
+    }
+
+    return result;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -161,7 +182,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                             fontSize: 20),
                                       ),
                                       Text(
-                                        'Rp ${product['price']}',
+                                        'Rp ${formatPrice(product['price'])}',
                                         style: TextStyle(fontSize: 15),
                                       ),
                                     ],
