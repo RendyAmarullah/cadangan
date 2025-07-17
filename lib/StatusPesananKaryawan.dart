@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 import 'package:pemesanan/RoomChatt.dart';
@@ -20,6 +22,7 @@ class _StatusPesananKaryawanScreenState
   bool _isLoading = true;
   String? _errorMessage;
 
+  Timer? _timer;
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
   final String ordersCollectionId = '684b33e80033b767b024';
@@ -29,6 +32,7 @@ class _StatusPesananKaryawanScreenState
     super.initState();
     _initAppwrite();
     _fetchOrders();
+    
   }
 
   void _initAppwrite() {
@@ -38,8 +42,14 @@ class _StatusPesananKaryawanScreenState
         .setProject(projectId)
         .setSelfSigned(status: true);
     _databases = Databases(_client);
+    _startAutoUpdateTimer();
   }
 
+  void _startAutoUpdateTimer() {
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+      _fetchOrders();
+    });
+  }
   Future<void> _fetchOrders() async {
     setState(() {
       _isLoading = true;
@@ -429,38 +439,9 @@ class _StatusPesananKaryawanScreenState
           ),
         ),
       ),
-      body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Memuat status pesanan...'),
-                ],
-              ),
-            )
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchOrders,
-                        child: Text('Coba Lagi'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
+      body: 
+          
+               RefreshIndicator(
                   onRefresh: _fetchOrders,
                   child: ListView.builder(
                     padding: EdgeInsets.all(16),

@@ -44,6 +44,8 @@ dependencies:
   geolocator: ^9.0.2
   geocoding: ^2.0.0
   shared_preferences: ^2.0.11
+  flutter_vibrate: ^1.0.0
+  flutter_local_notifications: ^9.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

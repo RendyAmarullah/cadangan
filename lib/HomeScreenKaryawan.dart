@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:convert';
 
 class HomeScreenKaryawan extends StatefulWidget {
@@ -15,10 +18,16 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   String? _userName;
   String? _email;
   List<Map<String, dynamic>> _orders = [];
+
   final String profil = '684083800031dfaaecad';
   final String ordersCollectionId = '684b33e80033b767b024';
   String userId = '';
   bool _isLoading = true;
+  Realtime? realtime;
+  final StreamController<List<Map<String, dynamic>>> _ordersStreamController = StreamController<List<Map<String, dynamic>>>();
+  Timer? _timer; 
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  bool isProcessing = false;
 
   @override
   void initState() {
@@ -29,9 +38,98 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         .setSelfSigned(status: true);
     account = Account(client);
     databases = Databases(client);
+    realtime = Realtime(client);
     _loadProfileData();
     _loadOrders();
+    _initializeRealtimeListener();
+    _startAutoRefresh();
+    _initializeNotifications();
+    _listenForNewOrders();
   }
+
+
+  void _listenForNewOrders() {
+  realtime!.subscribe([
+    'databases.681aa33a0023a8c7eb1f.collections.$ordersCollectionId.documents'
+  ]).stream.listen((event) {
+    // Jika ada pembaruan pada data pesanan
+    if (event.events == 'documents.create') {
+      Map<String, dynamic> newOrder = event.payload;
+      _showNewOrderNotification(newOrder);  
+      _vibrate();
+    }
+  });
+}
+
+Future<void> _showNewOrderNotification(Map<String, dynamic> updatedOrder) async {
+  var androidDetails = AndroidNotificationDetails(
+    'channel_id',
+    'Notifikasi Pesanan',
+    importance: Importance.high,
+    priority: Priority.high,
+    ticker: 'ticker',
+  );
+
+  var generalNotificationDetails = NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Pesanan Baru',
+    'Pesanan baru dengan ID ${updatedOrder['orderId']} telah diterima.',
+    generalNotificationDetails,
+  );
+}
+
+
+  void _initializeNotifications() {
+    final androidInitialization = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final initializationSettings = InitializationSettings(android: androidInitialization);
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+  void _startAutoRefresh() {
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+      _loadOrders(); 
+    });
+  }
+  void _vibrate() async {
+    if (await Vibrate.canVibrate) {
+      Vibrate.vibrate(); 
+    }
+  }
+
+  
+void _initializeRealtimeListener() {
+  realtime!.subscribe([
+    'databases.681aa33a0023a8c7eb1f.collections.$ordersCollectionId.documents'
+  ]).stream.listen((response) {
+    if (response.payload != null) {
+      var updatedOrder = response.payload;
+
+      if (updatedOrder is Map<String, dynamic>) {
+        
+        if (updatedOrder['status'] == 'menunggu' && !isProcessing) {
+          setState(() {
+            var existingIndex = _orders.indexWhere((order) => order['orderId'] == updatedOrder['orderId']);
+            
+            if (existingIndex >= 0) {
+              _orders[existingIndex] = updatedOrder;
+            } else {
+              _orders.add(updatedOrder);
+            }
+
+            _ordersStreamController.add(List.from(_orders)); 
+          });
+
+          
+          _showNewOrderNotification(updatedOrder);
+          _vibrate();
+        }
+      }
+    }
+  });
+}
+
+
 
   Future<bool> _checkConnection() async {
     try {
@@ -46,16 +144,12 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
     }
   }
 
-  Future<void> _loadOrders() async {
+Future<void> _loadOrders() async {
     setState(() {
       _isLoading = true;
     });
-    try {
-      bool hasConnection = await _checkConnection();
-      if (!hasConnection) {
-        throw Exception('Tidak ada koneksi internet');
-      }
 
+    try {
       final response = await databases!.listDocuments(
         databaseId: '681aa33a0023a8c7eb1f',
         collectionId: ordersCollectionId,
@@ -90,13 +184,13 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
             'total': doc.data['total'] ?? 0,
             'orderId': doc.$id,
             'orderId2': doc.data['orderId'],
-            'createdAt':
-                doc.data['createdAt'] ?? DateTime.now().toIso8601String(),
+            'createdAt': doc.data['createdAt'] ?? DateTime.now().toIso8601String(),
             'paymentProofUrl': doc.data['paymentProofUrl'] ?? '',
             'catatanTambahan': doc.data['catatanTambahan'],
           };
         }).toList();
         _isLoading = false;
+        _ordersStreamController.add(_orders); // Add to stream
       });
     } catch (e) {
       setState(() {
@@ -205,24 +299,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         },
       );
 
-      await databases!.createDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: '6854b40600020e4a49aa',
-        documentId: ID.unique(),
-        data: {
-          'userId': userId,
-          'orderId': orderId,
-          'alamat': orderDoc.data['alamat'] ?? '',
-          'produk': productsJson,
-          'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'COD',
-          'total': orderDoc.data['total'] ?? 0,
-          'status': 'sedang diproses',
-          'createdAt': DateTime.now().toIso8601String(),
-          'acceptedByy': userId,
-          'acceptedAt': DateTime.now().toIso8601String(),
-          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ?? '',
-        },
-      );
+      
 
       Navigator.pop(context);
       setState(() {
@@ -328,26 +405,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
         }
       }
 
-      String productsJson = jsonEncode(products);
-
-      await databases!.createDocument(
-        databaseId: '681aa33a0023a8c7eb1f',
-        collectionId: '6854ba6e003bad3da579',
-        documentId: ID.unique(),
-        data: {
-          'userId': userId,
-          'orderId': orderId,
-          'alamat': orderDoc.data['alamat'] ?? '',
-          'produk': productsJson,
-          'metodePembayaran': orderDoc.data['metodePembayaran'] ?? 'COD',
-          'total': orderDoc.data['total'] ?? 0,
-          'status': 'ditolak',
-          'createdAt': DateTime.now().toIso8601String(),
-          'rejectedBy': userId,
-          'rejectedAt': DateTime.now().toIso8601String(),
-          'paymentProofUrl': orderDoc.data['paymentProofUrl'] ?? '',
-        },
-      );
+      
 
       await databases!.updateDocument(
         databaseId: '681aa33a0023a8c7eb1f',
@@ -426,6 +484,13 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    _ordersStreamController.close();
+    _timer?.cancel();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -451,51 +516,30 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
           ],
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadOrders,
-        child: _isLoading
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Memuat pesanan...'),
-                  ],
-                ),
-              )
-            : _orders.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inbox_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Tidak ada pesanan menunggu',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: _loadOrders,
-                          child: Text('Refresh'),
-                        ),
-                      ],
-                    ),
-                  )
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _ordersStreamController.stream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Gagal memuat pesanan: ${snapshot.error}'));
+          }
+
+          var orders = snapshot.data ?? [];
+
+          return RefreshIndicator(
+            onRefresh: _loadOrders, 
+            child: orders.isEmpty
+                ? Center(child: Text('Tidak ada pesanan menunggu'))
                 : ListView.builder(
                     padding: EdgeInsets.all(16),
-                    itemCount: _orders.length,
+                    itemCount: orders.length,
                     itemBuilder: (context, index) {
-                      var order = _orders[index];
+                      var order = orders[index];
                       List<dynamic> products = order['produk'];
+                      
                       return Container(
                         margin: EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
@@ -515,8 +559,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     order['orderId2'],
@@ -527,10 +570,7 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                                     ),
                                   ),
                                   Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.orange[100],
                                       borderRadius: BorderRadius.circular(20),
@@ -791,7 +831,9 @@ class _HomeScreenKaryawanState extends State<HomeScreenKaryawan> {
                       );
                     },
                   ),
-      ),
+      );
+        }
+      )
     );
   }
 }

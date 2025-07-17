@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
@@ -22,6 +24,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   String? _errorMessage;
   String _currentFilter = 'Pesanan Kamu';
   Map<String, bool> _expandedOrders = {};
+  late Realtime _realtime;
+  final StreamController<List<Map<String, dynamic>>> _ordersStreamController = StreamController<List<Map<String, dynamic>>>();
+  Timer? _timer;
 
   final String projectId = '681aa0b70002469fc157';
   final String databaseId = '681aa33a0023a8c7eb1f';
@@ -32,6 +37,8 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     super.initState();
     _initAppwrite();
     _fetchOrders();
+    _initializeRealtimeListener();
+    _startAutoUpdateTimer();
   }
 
   void _initAppwrite() {
@@ -41,8 +48,15 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         .setProject(projectId)
         .setSelfSigned(status: true);
     _databases = Databases(_client);
+    _realtime = Realtime(_client);
+    
   }
 
+  void _startAutoUpdateTimer() {
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+      _fetchOrders();  // Call _fetchOrders every 10 seconds
+    });
+  }
   Future<void> _fetchOrders() async {
     setState(() {
       _isLoading = true;
@@ -78,6 +92,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         }
 
         _isLoading = false;
+        _ordersStreamController.add(_orders); // Send the initial data to StreamController
       });
     } catch (e) {
       setState(() {
@@ -87,6 +102,22 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
     }
   }
 
+   void _initializeRealtimeListener() {
+    _realtime.subscribe(['collections.$ordersCollectionId.documents']).stream.listen((response) {
+      if (response.payload != null) {
+        setState(() {
+          var updatedOrder = response.payload;
+          var existingIndex = _orders.indexWhere((order) => order['orderId'] == updatedOrder['orderId']);
+          if (existingIndex >= 0) {
+            _orders[existingIndex] = updatedOrder; // Update the existing order
+          } else {
+            _orders.add(updatedOrder); // Add new order
+          }
+          _ordersStreamController.add(_orders); // Update the StreamController with new data
+        });
+      }
+    });
+  }
   Future<void> _updateOrderStatus(
       String orderId, String status, String message) async {
     try {
@@ -347,7 +378,20 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           ),
         ),
       ),
-      body: RefreshIndicator(
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _ordersStreamController.stream, // Stream from StreamController
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Gagal memuat pesanan: ${snapshot.error}'));
+          }
+
+          var orders = snapshot.data ?? [];
+      
+      return RefreshIndicator(
         onRefresh: _fetchOrders,
         child: Container(
           color: Colors.white,
@@ -406,26 +450,28 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             ],
           ),
         ),
-      ),
+      );
+        },
+      )
     );
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return Container(
-        color: Colors.white,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Memuat riwayat pesanan...'),
-            ],
-          ),
-        ),
-      );
-    }
+    // if (_isLoading) {
+    //   return Container(
+    //     color: Colors.white,
+    //     child: Center(
+    //       child: Column(
+    //         mainAxisAlignment: MainAxisAlignment.center,
+    //         children: [
+    //           CircularProgressIndicator(),
+    //           SizedBox(height: 16),
+    //           Text('Memuat riwayat pesanan...'),
+    //         ],
+    //       ),
+    //     ),
+    //   );
+    // }
 
     if (_errorMessage != null) {
       return Container(
